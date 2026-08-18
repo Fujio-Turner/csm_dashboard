@@ -30,6 +30,8 @@ def test_views_present():
     assert "tab-count" in js
     assert "Suggest reply" in js
     assert "openCompanyForm" in js
+    assert "makeTagInput" in js
+    assert "sheet-company" in js
     assert "owns_all_projects" in js
     assert "openProjectForm" in js
     assert "fillProjects" in js
@@ -42,14 +44,18 @@ def test_views_present():
     assert "settings-page" in HTML
     assert "settings-form" in HTML
     assert "help-page" in HTML
-    assert "help-toc" in HTML
+    assert "help-toc" not in HTML
     assert "settings-page" in css
-    assert "help-toc" in css
+    assert "help-q" in css
+    assert "help-q-icon" in css
     assert "fillTimezoneSelect" in js
-    assert "btn-world-clock" in HTML
+    assert "btn-world-clock" not in HTML
+    assert "openHelpItem" in js
     assert "world-box" in HTML
     assert "worldclock.js" in HTML
     assert "side-foot" in css
+    assert "side-version" in HTML
+    assert "bind-pill" not in HTML
     assert "sheet-world" in css
     assert "100vh - 1.05rem" in css
     assert "#world-box.lightbox" in css
@@ -64,6 +70,8 @@ def test_views_present():
     assert "world_clock" in world
     assert "getWorldClock" in js
     assert "crop-box" in HTML
+    assert "#crop-box.lightbox" in css
+    assert "z-index: 50" in css
     assert "Change logo" in js
     assert "Crop & Save" in js
     assert "openLogoCrop" in js
@@ -72,10 +80,34 @@ def test_views_present():
     assert "acct-renewal" in css
     assert "showHomeTab" in js
     assert "loadAgenda" in js
+    assert 'id="desk-clock"' in HTML
+    assert "desk-clock-time" in HTML
+    assert "desk-clock-when" in HTML
+    assert "desk-clock-meta" not in HTML
+    assert "Click for World Clock" in HTML
+    assert "crumb-abbr" in js
+    assert "crumb-abbr" in css
+    assert "home-company-tools" in HTML
+    assert "home-top" in css
+    assert 'id="home-crumb"' in HTML
+    assert "renderHomeCrumb" in js
+    assert "tickDeskClock" in js
+    assert "startDeskClock" in js
+    assert "paintHomeBoard" in js
+    assert "setWorldClock" in js
+    assert "query_by_account" in (ROOT / "src" / "csm_dashboard" / "storage" / "memory.py").read_text(encoding="utf-8")
     assert "New mail / chat / tasks" in js
     assert "agenda-inbox-filter" in js
+    assert "agenda-proj-filter" in js
+    assert "fillAgendaProjFilter" in js
+    assert "placeAgendaProjMenu" in js
+    assert "Search company or project" in js
     assert "agendaInboxFilter" in js
     assert "openTaskForm" in js
+    assert "btn-task-assist" in js
+    assert "AI Assist" in js
+    assert "bindPeopleTagify" in js
+    assert "/api/tasks/assist" in js
     assert "btn-add-task" in js
     assert "icon-task.svg" in js
     assert "task-box" in HTML

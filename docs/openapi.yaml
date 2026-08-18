@@ -532,6 +532,18 @@ paths:
       responses:
         "200":
           description: email
+  /api/tasks/assist:
+    post:
+      tags: [mail]
+      operationId: assistTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200":
+          description: suggested task fields
   /api/tasks:
     post:
       tags: [mail]

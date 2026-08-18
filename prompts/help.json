@@ -26,7 +26,7 @@
         {
           "id": "agenda",
           "h": "Agenda",
-          "p": "Home opens on Agenda. Left: meetings for the selected day (arrows change the day). Right: new email, Slack, Teams, and tasks, newest first. The + in that pane creates a task — a mail to yourself. Subject is Tasks: Company : name {type}. The body holds the note and When Due By. You can CC people and edit the task later because it is just an email."
+          "p": "Home opens on Agenda. Left: meetings for the selected day (arrows change the day). Right: new email, Slack, Teams, and tasks, newest first. The + in that pane creates a task — a mail to yourself. Subject is Tasks: Company : name {type}. CC uses people from the selected company. AI Assist drafts the name, due date, CC, and body from that book and the type you picked. The body holds the note and When Due By."
         },
         {
           "id": "companies-tab",
@@ -100,7 +100,7 @@
         {
           "id": "world-clock",
           "h": "Compare timezones",
-          "p": "The globe at the bottom of the sidebar opens a converter. Search a city (Los Angeles, even “las angoles”), add or remove rows, and drag the handle to reorder. Hover a column to compare; click two hours to mark a meeting window. Your timezone is the You row. Picks are saved in the local database and survive refresh and restart."
+          "p": "Click the digital clock above Desk chat to open the converter. Search a city (Los Angeles, even “las angoles”), add or remove rows, and drag the handle to reorder. Hover a column to compare; click two hours to mark a meeting window. Your timezone is the You row. Picks are saved in the local database and survive refresh and restart."
         }
       ]
     },

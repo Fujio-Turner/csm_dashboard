@@ -49,5 +49,11 @@ class MemoryStore:
     def query_all(self, collection: str) -> list[dict]:
         return self.list_all(collection)
 
+    def query_by_account(self, collection: str, account_id: str) -> list[dict]:
+        return [r for r in self.list_all(collection) if r.get("account_id") == account_id]
+
+    def query_eq(self, collection: str, field: str, value: object) -> list[dict]:
+        return [r for r in self.list_all(collection) if r.get(field) == value]
+
     def close(self) -> None:
         return None

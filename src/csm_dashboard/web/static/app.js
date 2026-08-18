@@ -18,8 +18,16 @@
   var agendaDay = "";
   var agendaInboxFilter = "all";
   var agendaInboxItems = [];
+  var agendaProjFilter = "";
+  var agendaProjOptions = [];
+  var agendaProjBound = false;
+  var agendaProjProbe = null;
   var peopleAllProjects = false;
   var operatorTz = "UTC";
+  var deskClockTimer = 0;
+  var deskClockFmts = { tz: "", hour24: null, time: null, date: null, zone: null };
+  var homeItems = null;
+  var helpReady = false;
   var TZ_FALLBACK = [
     "UTC",
     "America/New_York",
@@ -160,7 +168,7 @@
       src = "/static/icon-task.svg";
       label = "Task";
     }
-    img.src = src;
+    img.src = src + (status && status.version ? "?v=" + status.version : "");
     img.alt = "";
     wrap.title = label;
     wrap.setAttribute("aria-label", label);
@@ -178,7 +186,7 @@
   }
 
   function empty(node) {
-    while (node.firstChild) node.removeChild(node.firstChild);
+    if (node) node.textContent = "";
   }
 
   function showView(name) {
@@ -212,10 +220,15 @@
     if (head === "compose" && parts[1]) {
       showView("home");
       setHomeMode(true);
-      loadAccount(parts[1], "email").then(function () {
+      var openCompose = function () {
         syncChatScope(currentAccount && currentAccount.account_id);
         if (window.CSMCompose) window.CSMCompose.open(currentAccount);
-      });
+      };
+      if (currentAccount && (currentAccount.abbr || "").toLowerCase() === parts[1].toLowerCase()) {
+        openCompose();
+        return;
+      }
+      loadAccount(parts[1], "email").then(openCompose);
       return;
     }
     if (HIDDEN_TABS[head]) {
@@ -266,17 +279,19 @@
       head.hidden = !!accountOn;
       head.classList.toggle("hidden", !!accountOn);
     }
+    if (!accountOn) renderHomeCrumb(null);
   }
 
   function refreshStatus() {
     return api("/api/status").then(function (s) {
       status = s;
       var badge = $("app-version");
-      if (badge) badge.textContent = "v" + (s.version || "");
+      if (badge) {
+        badge.textContent = "v" + (s.version || "");
+        badge.title = "Listening on " + (s.host || "127.0.0.1") + ":" + (s.port || 8788);
+      }
       var tag = $("home-tagline");
       if (tag) tag.textContent = s.tagline || "";
-      var bind = $("bind-pill");
-      if (bind) bind.textContent = (s.host || "127.0.0.1") + ":" + (s.port || 8788);
       var xai = $("key-xai");
       if (xai) {
         xai.textContent = s.keys && s.keys.xai ? "present" : "absent";
@@ -290,6 +305,7 @@
         el.className = "pill " + (on ? "on" : "off");
       });
       operatorTz = (s.operator && s.operator.timezone) || "UTC";
+      tickDeskClock();
       return s;
     });
   }
@@ -302,7 +318,9 @@
     }
   }
 
+  var timezoneList = null;
   function timezoneOptions() {
+    if (timezoneList && timezoneList.length) return timezoneList;
     var zones = [];
     try {
       if (typeof Intl !== "undefined" && typeof Intl.supportedValuesOf === "function") {
@@ -312,13 +330,25 @@
       zones = [];
     }
     if (!zones.length) zones = TZ_FALLBACK.slice();
-    return zones;
+    timezoneList = zones;
+    return timezoneList;
   }
 
   function fillTimezoneSelect(selected) {
     var sel = $("op-timezone");
     if (!sel) return;
     var wanted = (selected || "").trim() || "UTC";
+    if (sel.options.length > 20) {
+      sel.value = wanted;
+      if (sel.value !== wanted) {
+        var extra = document.createElement("option");
+        extra.value = wanted;
+        extra.textContent = String(wanted).replace(/_/g, " ");
+        sel.insertBefore(extra, sel.firstChild);
+        sel.value = wanted;
+      }
+      return;
+    }
     var zones = timezoneOptions();
     if (zones.indexOf("UTC") < 0) zones = ["UTC"].concat(zones);
     if (wanted && zones.indexOf(wanted) < 0) zones = [wanted].concat(zones);
@@ -375,11 +405,132 @@
     });
   }
 
+  function deskClockHour24() {
+    var clock = (status && status.world_clock) || {};
+    return !!clock.hour24;
+  }
+
+  function deskClockFormatters(tz, use24) {
+    if (deskClockFmts.tz !== tz || deskClockFmts.hour24 !== use24) {
+      deskClockFmts.tz = tz;
+      deskClockFmts.hour24 = use24;
+      deskClockFmts.time = new Intl.DateTimeFormat("en-US", {
+        timeZone: tz,
+        hour: "numeric",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: !use24,
+      });
+      deskClockFmts.date = new Intl.DateTimeFormat("en-US", {
+        timeZone: tz,
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      });
+      deskClockFmts.zone = new Intl.DateTimeFormat("en-US", {
+        timeZone: tz,
+        timeZoneName: "short",
+      });
+    }
+    return deskClockFmts;
+  }
+
+  function tickDeskClock() {
+    if (typeof document !== "undefined" && document.hidden) return;
+    var timeEl = $("desk-clock-time");
+    var root = $("desk-clock");
+    if (!timeEl) return;
+    var tz = operatorTz || "UTC";
+    var now = new Date();
+    var use24 = deskClockHour24();
+    try {
+      var fmts = deskClockFormatters(tz, use24);
+      var timeStr = fmts.time.format(now);
+      timeEl.textContent = timeStr;
+      timeEl.dateTime = now.toISOString();
+      var dateStr = fmts.date.format(now);
+      var tzName = "";
+      var parts = fmts.zone.formatToParts(now);
+      var i;
+      for (i = 0; i < parts.length; i++) {
+        if (parts[i].type === "timeZoneName") tzName = parts[i].value;
+      }
+      var tip = tzName ? dateStr + " · " + tzName : dateStr;
+      var whenEl = $("desk-clock-when");
+      if (whenEl) whenEl.textContent = tip;
+      if (root) {
+        root.setAttribute("aria-label", timeStr + ". " + tip + ". Click for World Clock");
+      }
+    } catch (e) {
+      timeEl.textContent = now.toLocaleTimeString();
+      var whenFail = $("desk-clock-when");
+      if (whenFail) whenFail.textContent = tz;
+      if (root) root.setAttribute("aria-label", "Click for World Clock");
+    }
+  }
+
+  function startDeskClock() {
+    tickDeskClock();
+    if (deskClockTimer) window.clearInterval(deskClockTimer);
+    deskClockTimer = window.setInterval(tickDeskClock, 1000);
+  }
+
+  function crumbSep(nav) {
+    var sep = document.createElement("span");
+    sep.className = "crumb-sep";
+    sep.setAttribute("aria-hidden", "true");
+    sep.textContent = ">";
+    nav.appendChild(sep);
+  }
+
+  function crumbPart(nav, label, href, current) {
+    if (current || !href) {
+      var cur = document.createElement("span");
+      cur.className = "crumb-current";
+      cur.setAttribute("aria-current", "page");
+      cur.textContent = label;
+      nav.appendChild(cur);
+      return;
+    }
+    var a = document.createElement("a");
+    a.className = "crumb-link";
+    a.href = href;
+    a.textContent = label;
+    nav.appendChild(a);
+  }
+
+  function renderHomeCrumb(acct) {
+    var nav = $("home-crumb");
+    if (!nav) return;
+    empty(nav);
+    if (acct) {
+      crumbPart(nav, "Home", "#home", false);
+      crumbSep(nav);
+      crumbPart(nav, "Company", "#home/companies", false);
+      crumbSep(nav);
+      var cur = document.createElement("span");
+      cur.className = "crumb-current";
+      cur.setAttribute("aria-current", "page");
+      cur.appendChild(document.createTextNode(acct.name || acct.abbr || "Company"));
+      if (acct.abbr && acct.name && acct.abbr !== acct.name) {
+        var ab = document.createElement("span");
+        ab.className = "crumb-abbr";
+        ab.textContent = acct.abbr;
+        cur.appendChild(ab);
+      }
+      nav.appendChild(cur);
+      return;
+    }
+    crumbPart(nav, "Home", "#home", false);
+    crumbSep(nav);
+    if (homeTab === "companies") crumbPart(nav, "Companies", "", true);
+    else crumbPart(nav, "Agenda", "", true);
+  }
+
   function showHomeTab(tab) {
     homeTab = tab === "companies" ? "companies" : "agenda";
     var tabs = $("home-tabs");
-    if (tabs) {
-      empty(tabs);
+    if (tabs && !tabs.firstChild) {
       [["agenda", "Agenda"], ["companies", "Companies"]].forEach(function (pair) {
         var b = document.createElement("button");
         b.type = "button";
@@ -390,6 +541,10 @@
         });
         tabs.appendChild(b);
       });
+    } else if (tabs) {
+      var btns = tabs.querySelectorAll(".tab");
+      if (btns[0]) btns[0].classList.toggle("is-on", homeTab === "agenda");
+      if (btns[1]) btns[1].classList.toggle("is-on", homeTab === "companies");
     }
     var agenda = $("agenda-panel");
     var board = $("acct-board");
@@ -401,18 +556,50 @@
       board.hidden = homeTab !== "companies";
       board.classList.toggle("hidden", homeTab !== "companies");
     }
-    var q = $("home-q");
-    var btn = $("btn-refresh-health");
-    if (q) q.hidden = homeTab !== "companies";
-    if (btn) btn.hidden = homeTab !== "companies";
+    var tools = $("home-company-tools");
+    if (tools) {
+      tools.hidden = homeTab !== "companies";
+      tools.classList.toggle("hidden", homeTab !== "companies");
+    }
+    renderHomeCrumb(null);
     if (homeTab === "companies") loadHome();
     else loadAgenda();
+  }
+
+  function fetchAgendaLists(calList, inList) {
+    empty(calList);
+    empty(inList);
+    var loading = document.createElement("p");
+    loading.className = "muted";
+    loading.textContent = "Loading…";
+    calList.appendChild(loading.cloneNode(true));
+    inList.appendChild(loading);
+    return api("/api/home/agenda?date=" + encodeURIComponent(agendaDay)).then(function (data) {
+      renderAgendaMeetings(calList, data.meetings || []);
+      agendaInboxItems = data.inbox || [];
+      agendaProjOptions = data.project_filters || [];
+      fillAgendaProjFilter();
+      renderAgendaInbox(inList, agendaInboxItems);
+    }).catch(function (err) {
+      var p = document.createElement("p");
+      p.className = "muted";
+      p.textContent = String(err.message || err);
+      calList.appendChild(p);
+    });
   }
 
   function loadAgenda() {
     if (!agendaDay) agendaDay = todayYmd();
     var pane = $("agenda-panel");
     if (!pane) return Promise.resolve();
+    var lists = pane.querySelectorAll(".agenda-list");
+    var label = pane.querySelector(".agenda-day-label");
+    if (lists.length >= 2) {
+      if (label) label.textContent = formatDayLabel(agendaDay);
+      var inHead = pane.querySelectorAll(".agenda-col-head")[1];
+      if (inHead) ensureAgendaProjFilter(inHead, lists[1]);
+      return fetchAgendaLists(lists[0], lists[1]);
+    }
     empty(pane);
     var split = document.createElement("div");
     split.className = "agenda-split";
@@ -499,30 +686,182 @@
       renderAgendaInbox(inList, agendaInboxItems);
     });
     inHead.appendChild(inTitle);
+    ensureAgendaProjFilter(inHead, inList);
     inHead.appendChild(filter);
     inHead.appendChild(addTask);
     var inList = document.createElement("div");
     inList.className = "agenda-list";
+    inList.id = "agenda-inbox-list";
     inbox.appendChild(inHead);
     inbox.appendChild(inList);
     split.appendChild(cal);
     split.appendChild(inbox);
     pane.appendChild(split);
-    var loading = document.createElement("p");
-    loading.className = "muted";
-    loading.textContent = "Loading…";
-    calList.appendChild(loading.cloneNode(true));
-    inList.appendChild(loading);
-    return api("/api/home/agenda?date=" + encodeURIComponent(agendaDay)).then(function (data) {
-      renderAgendaMeetings(calList, data.meetings || []);
-      agendaInboxItems = data.inbox || [];
-      renderAgendaInbox(inList, agendaInboxItems);
-    }).catch(function (err) {
+    return fetchAgendaLists(calList, inList);
+  }
+
+  function agendaInboxList() {
+    return $("agenda-inbox-list") || document.querySelector("#agenda-panel .agenda-col:last-child .agenda-list");
+  }
+
+  function closeAgendaProjMenu() {
+    var menu = $("agenda-proj-menu");
+    if (!menu) return;
+    menu.hidden = true;
+    menu.classList.add("hidden");
+  }
+
+  function agendaProjLabel() {
+    if (!agendaProjFilter) return "Company : Project";
+    var hit = agendaProjOptions.filter(function (o) { return o.key === agendaProjFilter; })[0];
+    return (hit && hit.label) || "Company : Project";
+  }
+
+  function longestAgendaProjPx() {
+    if (!agendaProjProbe) {
+      agendaProjProbe = document.createElement("span");
+      agendaProjProbe.setAttribute("aria-hidden", "true");
+      agendaProjProbe.style.cssText = "position:absolute;left:-9999px;top:0;white-space:nowrap;visibility:hidden;pointer-events:none;font-size:0.84rem;font-weight:600;";
+      document.body.appendChild(agendaProjProbe);
+    }
+    var ref = document.querySelector(".agenda-proj-opt") || $("agenda-proj-btn");
+    if (ref) {
+      var cs = getComputedStyle(ref);
+      agendaProjProbe.style.fontFamily = cs.fontFamily;
+      agendaProjProbe.style.letterSpacing = cs.letterSpacing;
+    }
+    var widest = 0;
+    function consider(text) {
+      agendaProjProbe.textContent = text || "";
+      widest = Math.max(widest, agendaProjProbe.offsetWidth);
+    }
+    consider("All companies");
+    consider("Search company or project");
+    (agendaProjOptions || []).forEach(function (opt) { consider(opt.label || ""); });
+    return widest;
+  }
+
+  function placeAgendaProjMenu() {
+    var menu = $("agenda-proj-menu");
+    var btn = $("agenda-proj-btn");
+    if (!menu || !btn || menu.hidden) return;
+    var cap = Math.min(window.innerWidth - 16, 42 * 16);
+    var w = Math.min(cap, Math.max(18 * 16, Math.ceil(longestAgendaProjPx() + 50)));
+    var r = btn.getBoundingClientRect();
+    var top = r.bottom + 4;
+    var left = r.right - w;
+    if (left < 8) left = 8;
+    if (left + w > window.innerWidth - 8) left = Math.max(8, window.innerWidth - 8 - w);
+    menu.style.top = top + "px";
+    menu.style.left = left + "px";
+    menu.style.width = w + "px";
+  }
+
+  function fillAgendaProjFilter() {
+    var list = $("agenda-proj-list");
+    var btn = $("agenda-proj-btn");
+    if (btn) {
+      btn.textContent = agendaProjLabel();
+      btn.title = agendaProjLabel();
+    }
+    if (!list) return;
+    var q = (($("agenda-proj-q") && $("agenda-proj-q").value) || "").toLowerCase().trim();
+    empty(list);
+    function addOpt(key, label) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "agenda-proj-opt" + (agendaProjFilter === key ? " is-on" : "");
+      b.textContent = label;
+      b.title = label;
+      b.addEventListener("click", function () {
+        agendaProjFilter = key;
+        closeAgendaProjMenu();
+        fillAgendaProjFilter();
+        renderAgendaInbox(agendaInboxList(), agendaInboxItems);
+      });
+      list.appendChild(b);
+    }
+    if (!q) addOpt("", "All companies");
+    agendaProjOptions.forEach(function (opt) {
+      var label = opt.label || "";
+      if (q && label.toLowerCase().indexOf(q) < 0) return;
+      addOpt(opt.key || "", label);
+    });
+    if (!list.firstChild) {
       var p = document.createElement("p");
       p.className = "muted";
-      p.textContent = String(err.message || err);
-      calList.appendChild(p);
+      p.textContent = "No match.";
+      list.appendChild(p);
+    }
+    placeAgendaProjMenu();
+  }
+
+  function ensureAgendaProjFilter(inHead, inList) {
+    if ($("agenda-proj-filter")) return;
+    var wrap = document.createElement("div");
+    wrap.className = "agenda-proj-filter";
+    wrap.id = "agenda-proj-filter";
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "toolbar-filter agenda-proj-btn";
+    btn.id = "agenda-proj-btn";
+    btn.textContent = agendaProjLabel();
+    btn.setAttribute("aria-haspopup", "listbox");
+    btn.setAttribute("aria-label", "Filter by company and project");
+    var menu = document.createElement("div");
+    menu.className = "agenda-proj-menu hidden";
+    menu.id = "agenda-proj-menu";
+    menu.hidden = true;
+    var search = document.createElement("input");
+    search.type = "search";
+    search.id = "agenda-proj-q";
+    search.className = "search";
+    search.placeholder = "Search company or project";
+    search.setAttribute("aria-label", "Search company or project");
+    search.addEventListener("input", fillAgendaProjFilter);
+    search.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape") {
+        ev.preventDefault();
+        closeAgendaProjMenu();
+        btn.focus();
+      }
     });
+    var list = document.createElement("div");
+    list.id = "agenda-proj-list";
+    list.className = "agenda-proj-list";
+    list.setAttribute("role", "listbox");
+    menu.appendChild(search);
+    menu.appendChild(list);
+    btn.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      if (!menu.hidden) {
+        closeAgendaProjMenu();
+        return;
+      }
+      menu.hidden = false;
+      menu.classList.remove("hidden");
+      if (search) search.value = "";
+      fillAgendaProjFilter();
+      placeAgendaProjMenu();
+      search.focus();
+    });
+    wrap.appendChild(btn);
+    document.body.appendChild(menu);
+    var typeFilter = $("agenda-inbox-filter");
+    if (typeFilter && typeFilter.parentNode === inHead) inHead.insertBefore(wrap, typeFilter);
+    else inHead.appendChild(wrap);
+    if (!agendaProjBound) {
+      agendaProjBound = true;
+      document.addEventListener("click", function (ev) {
+        var root = $("agenda-proj-filter");
+        var openMenu = $("agenda-proj-menu");
+        if (root && root.contains(ev.target)) return;
+        if (openMenu && openMenu.contains(ev.target)) return;
+        closeAgendaProjMenu();
+      });
+      window.addEventListener("resize", placeAgendaProjMenu);
+      window.addEventListener("scroll", placeAgendaProjMenu, true);
+    }
   }
 
   function renderAgendaMeetings(root, items) {
@@ -565,8 +904,13 @@
     empty(root);
     var want = agendaInboxFilter || "all";
     var shown = (items || []).filter(function (item) {
-      if (want === "all") return true;
-      return item.kind === want;
+      if (want !== "all" && item.kind !== want) return false;
+      if (!agendaProjFilter) return true;
+      var aid = (item.account && item.account.account_id) || "";
+      var pid = item.project_id || "";
+      var parts = String(agendaProjFilter).split("|");
+      if (parts.length === 1) return aid === parts[0];
+      return aid === parts[0] && pid === parts[1];
     });
     if (!shown.length) {
       var p = document.createElement("p");
@@ -576,6 +920,7 @@
       else if (want === "slack") emptyMsg = "No new Slack.";
       else if (want === "teams") emptyMsg = "No new Teams.";
       else if (want === "task") emptyMsg = "No tasks.";
+      if (agendaProjFilter) emptyMsg = "Nothing for that company or project.";
       p.textContent = emptyMsg;
       root.appendChild(p);
       return;
@@ -680,13 +1025,14 @@
     due.type = "datetime-local";
     var cc = document.createElement("input");
     cc.id = "task-cc";
-    cc.placeholder = "cc emails, comma separated";
-    var peopleBox = document.createElement("div");
-    peopleBox.className = "task-people";
+    cc.className = "tag-input";
+    cc.placeholder = "Name or email";
     var body = document.createElement("textarea");
     body.id = "task-body";
     body.rows = 7;
     body.placeholder = "What needs to happen";
+    var peopleTagify = null;
+    var companyPeople = [];
     function companyLabel() {
       var opt = company.options[company.selectedIndex];
       return opt ? opt.getAttribute("data-name") || opt.textContent : "";
@@ -694,32 +1040,67 @@
     function refreshPreview() {
       preview.textContent = taskSubjectPreview(companyLabel(), name.value, kind.value);
     }
-    function fillPeople(aid, selected) {
-      empty(peopleBox);
-      if (!aid) return;
-      api("/api/people?account_id=" + encodeURIComponent(aid)).then(function (data) {
-        empty(peopleBox);
-        var picked = {};
-        (selected || []).forEach(function (addr) {
-          picked[String(addr).toLowerCase()] = true;
+    function peopleWhitelist(items) {
+      return (items || []).filter(function (p) { return p.email; }).map(function (p) {
+        return { value: p.email, name: p.name || p.email, email: p.email };
+      });
+    }
+    function ccEmails() {
+      if (peopleTagify) {
+        return peopleTagify.value.map(function (t) { return t.value || t.email; }).filter(Boolean);
+      }
+      return csvList(cc.value);
+    }
+    function setCcEmails(addrs) {
+      if (peopleTagify) {
+        peopleTagify.removeAllTags();
+        var tags = (addrs || []).map(function (addr) {
+          var want = String(addr || "").toLowerCase();
+          var hit = companyPeople.filter(function (p) {
+            return String(p.email || "").toLowerCase() === want;
+          })[0];
+          return hit
+            ? { value: hit.email, name: hit.name || hit.email, email: hit.email }
+            : { value: addr, name: addr };
         });
-        (data.items || []).forEach(function (p) {
-          if (!p.email) return;
-          var lab = document.createElement("label");
-          lab.className = "task-person";
-          var chk = document.createElement("input");
-          chk.type = "checkbox";
-          chk.value = p.email;
-          chk.checked = !!picked[String(p.email).toLowerCase()];
-          lab.appendChild(chk);
-          lab.appendChild(document.createTextNode(" " + (p.name || p.email)));
-          peopleBox.appendChild(lab);
-        });
+        if (tags.length) peopleTagify.addTags(tags);
+        return;
+      }
+      cc.value = (addrs || []).join(", ");
+    }
+    function bindPeopleTagify(selected) {
+      if (peopleTagify) {
+        try { peopleTagify.destroy(); } catch (e) {}
+        peopleTagify = null;
+      }
+      if (!window.Tagify) {
+        cc.value = (selected || []).join(", ");
+        return;
+      }
+      peopleTagify = new window.Tagify(cc, {
+        whitelist: peopleWhitelist(companyPeople),
+        tagTextProp: "name",
+        enforceWhitelist: false,
+        dropdown: { enabled: 0, maxItems: 20, searchKeys: ["value", "name", "email"], closeOnSelect: false },
+        delimiters: ",|\n",
+      });
+      setCcEmails(selected || []);
+    }
+    function loadCompanyPeople(aid, selected) {
+      if (!aid) {
+        companyPeople = [];
+        bindPeopleTagify(selected || []);
+        return Promise.resolve();
+      }
+      return api("/api/people?account_id=" + encodeURIComponent(aid)).then(function (data) {
+        companyPeople = data.items || [];
+        bindPeopleTagify(selected || []);
       });
     }
     company.addEventListener("change", function () {
       refreshPreview();
-      fillPeople(company.value, csvList(cc.value));
+      loadCompanyPeople(company.value, ccEmails());
+      assist.disabled = !company.value;
     });
     name.addEventListener("input", refreshPreview);
     kind.addEventListener("change", refreshPreview);
@@ -741,10 +1122,21 @@
     form.appendChild(labName);
     form.appendChild(labKind);
     form.appendChild(labDue);
+    var assist = document.createElement("button");
+    assist.type = "button";
+    assist.className = "btn";
+    assist.id = "btn-task-assist";
+    assist.textContent = "AI Assist";
+    assist.disabled = true;
+    assist.title = "Draft this task from the company, type, and desk context";
     var labCc = document.createElement("label");
-    labCc.className = "settings-span";
+    labCc.className = "task-cc-field";
     labCc.appendChild(document.createTextNode("CC"));
     labCc.appendChild(cc);
+    var ccRow = document.createElement("div");
+    ccRow.className = "task-cc-row settings-span";
+    ccRow.appendChild(assist);
+    ccRow.appendChild(labCc);
     var labBody = document.createElement("label");
     labBody.className = "settings-span";
     labBody.appendChild(document.createTextNode("Body"));
@@ -755,11 +1147,40 @@
     save.type = "button";
     save.className = "btn btn-primary";
     save.textContent = emailId ? "Save task" : "Create task";
-    save.addEventListener("click", function () {
-      var ccs = csvList(cc.value);
-      peopleBox.querySelectorAll("input:checked").forEach(function (chk) {
-        if (ccs.indexOf(chk.value) < 0) ccs.push(chk.value);
+    assist.addEventListener("click", function () {
+      if (!company.value) {
+        toast("Pick a company first");
+        return;
+      }
+      assist.disabled = true;
+      assist.textContent = "Working…";
+      api("/api/tasks/assist", {
+        method: "POST",
+        body: JSON.stringify({
+          account_id: company.value,
+          task_kind: kind.value,
+          task_name: name.value,
+          due_at: due.value,
+          body: body.value,
+          cc_addrs: ccEmails(),
+        }),
+      }).then(function (doc) {
+        if (doc.task_name) name.value = doc.task_name;
+        if (doc.task_kind) kind.value = doc.task_kind;
+        if (doc.due_at) due.value = dueInputValue(doc.due_at);
+        if (doc.body) body.value = doc.body;
+        if (doc.cc_addrs) setCcEmails(doc.cc_addrs);
+        refreshPreview();
+        toast(doc.result === "grok" ? "Task drafted with Grok" : "Task draft filled");
+      }).catch(function (err) {
+        toast(String(err.message || err));
+      }).then(function () {
+        assist.disabled = !company.value;
+        assist.textContent = "AI Assist";
       });
+    });
+    save.addEventListener("click", function () {
+      var ccs = ccEmails();
       var payload = {
         account_id: company.value,
         task_name: name.value,
@@ -782,8 +1203,7 @@
     actions.appendChild(save);
     sheet.appendChild(preview);
     sheet.appendChild(form);
-    sheet.appendChild(labCc);
-    sheet.appendChild(peopleBox);
+    sheet.appendChild(ccRow);
     sheet.appendChild(labBody);
     sheet.appendChild(actions);
     save.disabled = true;
@@ -809,36 +1229,48 @@
         name.value = doc.task_name || "";
         kind.value = doc.task_kind || TASK_KINDS[0];
         due.value = dueInputValue(doc.due_at);
-        cc.value = (doc.cc_addrs || []).join(", ");
         body.value = doc.content || "";
       } else if (item && item.account && item.account.account_id) {
         company.value = item.account.account_id;
       }
       refreshPreview();
-      fillPeople(company.value, csvList(cc.value));
-      save.disabled = false;
+      assist.disabled = !company.value;
+      var selectedCc = doc ? (doc.cc_addrs || []) : csvList(cc.value);
+      return loadCompanyPeople(company.value, selectedCc).then(function () {
+        save.disabled = false;
+      });
     }).catch(function (err) {
       save.disabled = false;
       toast(String(err.message || err));
     });
   }
 
-  function loadHome() {
+  function paintHomeBoard() {
     var q = ($("home-q") && $("home-q").value || "").toLowerCase();
+    var board = $("acct-board");
+    if (!board) return;
+    empty(board);
+    (homeItems || []).forEach(function (acct) {
+      var blob = ((acct.name || "") + " " + (acct.abbr || "")).toLowerCase();
+      if (q && blob.indexOf(q) < 0) return;
+      board.appendChild(homeCard(acct));
+    });
+    if (!board.firstChild) {
+      var p = document.createElement("p");
+      p.className = "muted";
+      p.textContent = "No accounts yet. Open Settings and load seed data.";
+      board.appendChild(p);
+    }
+  }
+
+  function loadHome(force) {
+    if (!force && homeItems) {
+      paintHomeBoard();
+      return Promise.resolve();
+    }
     return api("/api/home").then(function (data) {
-      var board = $("acct-board");
-      empty(board);
-      (data.items || []).forEach(function (acct) {
-        var blob = ((acct.name || "") + " " + (acct.abbr || "")).toLowerCase();
-        if (q && blob.indexOf(q) < 0) return;
-        board.appendChild(homeCard(acct));
-      });
-      if (!board.firstChild) {
-        var p = document.createElement("p");
-        p.className = "muted";
-        p.textContent = "No accounts yet. Open Settings and load seed data.";
-        board.appendChild(p);
-      }
+      homeItems = data.items || [];
+      paintHomeBoard();
     });
   }
 
@@ -1171,8 +1603,25 @@
     });
   }
 
+  function markAccountTab(tab) {
+    var tabs = $("account-tabs");
+    if (!tabs) return;
+    var want = tab || "timeline";
+    tabs.querySelectorAll(".tab").forEach(function (b, i) {
+      var names = ["timeline", "tickets", "email", "slack", "teams", "salesforce", "calendar", "projects", "people", "orgchart", "accountteam"];
+      b.classList.toggle("is-on", names[i] === want);
+    });
+  }
+
   function loadAccount(abbr, tab) {
-    if ((abbr || "").toLowerCase() !== lastAccountAbbr) {
+    var want = (abbr || "").toLowerCase();
+    if (currentAccount && lastAccountAbbr === want && $("account-tabs") && $("account-tabs").firstChild) {
+      currentTab = tab || "timeline";
+      markAccountTab(currentTab);
+      syncAccountTools(currentTab);
+      return Promise.resolve(renderPane(currentAccount, currentTab));
+    }
+    if (want !== lastAccountAbbr) {
       empty($("account-head"));
       empty($("account-tabs"));
       empty($("account-pane"));
@@ -1188,6 +1637,7 @@
         if (qEl) qEl.value = "";
       }
       renderAccountHead(acct);
+      renderHomeCrumb(acct);
       renderTabs(acct, tab);
       return api("/api/projects?account_id=" + encodeURIComponent(acct.account_id)).then(function (data) {
         accountProjects = data.items || [];
@@ -1233,20 +1683,17 @@
     var head = $("account-head");
     empty(head);
     var left = document.createElement("div");
-    var back = document.createElement("button");
-    back.type = "button";
-    back.className = "btn btn-ghost";
-    back.textContent = "All accounts";
-    back.addEventListener("click", function () {
-      location.hash = "#home/companies";
-    });
-    left.appendChild(back);
     var titleRow = document.createElement("div");
     titleRow.className = "account-title-row";
-    titleRow.appendChild(accountMark(acct, "lg"));
-    var h = document.createElement("h1");
-    h.textContent = acct.name || "";
-    titleRow.appendChild(h);
+    if (logoSrc(acct)) {
+      titleRow.appendChild(accountMark(acct, "lg"));
+    } else {
+      var sw = document.createElement("i");
+      sw.className = "acct-swatch acct-swatch-lg";
+      sw.style.background = acct.color || "#0B3D91";
+      sw.title = acct.name || acct.abbr || "";
+      titleRow.appendChild(sw);
+    }
     titleRow.appendChild(healthPill(acct.health));
     left.appendChild(titleRow);
     var renew = document.createElement("p");
@@ -1262,7 +1709,6 @@
     compose.textContent = "Compose";
     compose.addEventListener("click", function () {
       location.hash = "#compose/" + (acct.abbr || "");
-      if (window.CSMCompose) window.CSMCompose.open(acct);
     });
     actions.appendChild(compose);
     head.appendChild(actions);
@@ -1711,7 +2157,7 @@
 
   function closeDetail() {
     var box = $("detail-box");
-    if (!box) return;
+    if (!box || box.hidden) return;
     box.hidden = true;
     box.classList.add("hidden");
     empty(box);
@@ -3037,23 +3483,53 @@
     });
   }
 
+  function closeHelpItem(el) {
+    if (!el) return;
+    el.classList.remove("is-open");
+    var b = el.querySelector(".help-q");
+    var a = el.querySelector(".help-a");
+    var ic = el.querySelector(".help-q-icon");
+    if (b) b.setAttribute("aria-expanded", "false");
+    if (a) a.hidden = true;
+    if (ic) ic.textContent = "+";
+  }
+
+  function openHelpItem(el) {
+    if (!el) return;
+    el.classList.add("is-open");
+    var b = el.querySelector(".help-q");
+    var a = el.querySelector(".help-a");
+    var ic = el.querySelector(".help-q-icon");
+    if (b) b.setAttribute("aria-expanded", "true");
+    if (a) a.hidden = false;
+    if (ic) ic.textContent = "−";
+  }
+
+  function applyHelpTopic(topic) {
+    var box = $("help-body");
+    if (!box) return;
+    box.querySelectorAll(".help-item.is-open").forEach(closeHelpItem);
+    var jump = topic ? $("help-" + topic) : null;
+    if (jump) {
+      openHelpItem(jump);
+      jump.scrollIntoView({ block: "start", behavior: "smooth" });
+    }
+  }
+
   function loadHelp(topic) {
+    var box = $("help-body");
+    if (helpReady && box && box.firstChild) {
+      applyHelpTopic(topic);
+      return;
+    }
     api("/api/help").then(function (data) {
-      var box = $("help-body");
-      var toc = $("help-toc");
+      if (!box) box = $("help-body");
+      if (!box) return;
       empty(box);
-      if (toc) empty(toc);
       (data.groups || []).forEach(function (g) {
         var gid = g.id || "";
-        if (toc) {
-          var link = document.createElement("a");
-          link.href = "#help/" + gid;
-          link.textContent = g.title || gid;
-          if (topic === gid) link.className = "is-on";
-          toc.appendChild(link);
-        }
         var sec = document.createElement("section");
-        sec.className = "help-group card";
+        sec.className = "help-group";
         sec.id = "help-" + gid;
         var h = document.createElement("h2");
         h.textContent = g.title || "";
@@ -3062,21 +3538,39 @@
           var wrap = document.createElement("div");
           wrap.className = "help-item";
           wrap.id = "help-" + (item.id || "");
-          if (topic && (topic === item.id || topic === gid)) wrap.classList.add("is-target");
-          var hh = document.createElement("h3");
-          hh.textContent = item.h || "";
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "help-q";
+          btn.setAttribute("aria-expanded", "false");
+          var q = document.createElement("span");
+          q.className = "help-q-text";
+          q.textContent = item.h || "";
+          var icon = document.createElement("span");
+          icon.className = "help-q-icon";
+          icon.setAttribute("aria-hidden", "true");
+          icon.textContent = "+";
+          btn.appendChild(q);
+          btn.appendChild(icon);
+          var ans = document.createElement("div");
+          ans.className = "help-a";
+          ans.hidden = true;
           var p = document.createElement("p");
           p.textContent = item.p || "";
-          wrap.appendChild(hh);
-          wrap.appendChild(p);
+          ans.appendChild(p);
+          btn.addEventListener("click", function () {
+            var wasOpen = wrap.classList.contains("is-open");
+            box.querySelectorAll(".help-item.is-open").forEach(closeHelpItem);
+            if (!wasOpen) openHelpItem(wrap);
+          });
+          wrap.appendChild(btn);
+          wrap.appendChild(ans);
+          if (topic && (topic === item.id || topic === gid)) openHelpItem(wrap);
           sec.appendChild(wrap);
         });
         box.appendChild(sec);
       });
-      var jump = topic ? $("help-" + topic) : null;
-      if (jump) {
-        jump.scrollIntoView({ block: "start", behavior: "smooth" });
-      }
+      helpReady = true;
+      applyHelpTopic(topic);
     });
   }
 
@@ -3167,7 +3661,7 @@
           }).then(function () {
             toast(acct.quiet ? "Company visible on Home" : "Company quieted");
             loadSettings();
-            loadHome();
+            loadHome(true);
           });
         });
         var rm = document.createElement("button");
@@ -3179,7 +3673,7 @@
           api("/api/accounts/" + encodeURIComponent(acct.account_id), { method: "DELETE" }).then(function () {
             toast("Company removed");
             loadSettings();
-            loadHome();
+            loadHome(true);
           });
         });
         actions.appendChild(edit);
@@ -3195,8 +3689,41 @@
     return String(text || "").split(/[\n,]/).map(function (s) { return s.trim(); }).filter(Boolean);
   }
 
+  function connectorList(conn, name, key) {
+    var rows = ((conn || {})[name] || {})[key];
+    return rows && rows.length ? rows.slice() : [];
+  }
+
   function connectorField(conn, name, key) {
-    return (((conn || {})[name] || {})[key] || []).join("\n");
+    return connectorList(conn, name, key).join("\n");
+  }
+
+  function makeTagInput(placeholder, values) {
+    var input = document.createElement("input");
+    input.className = "tag-input";
+    input.placeholder = placeholder || "";
+    var inst = null;
+    return {
+      el: input,
+      bind: function () {
+        if (inst) return;
+        if (window.Tagify) {
+          inst = new window.Tagify(input, {
+            delimiters: ",|\n",
+            dropdown: { enabled: 0, maxItems: 20 },
+          });
+          if (values && values.length) inst.addTags(values);
+        } else if (values && values.length) {
+          input.value = values.join(", ");
+        }
+      },
+      values: function () {
+        if (inst) {
+          return inst.value.map(function (t) { return t && t.value; }).filter(Boolean);
+        }
+        return csvList(input.value);
+      },
+    };
   }
 
   function closeCrop() {
@@ -3370,7 +3897,7 @@
     box.classList.remove("hidden");
     empty(box);
     var sheet = document.createElement("article");
-    sheet.className = "sheet";
+    sheet.className = "sheet sheet-company";
     var head = document.createElement("header");
     var h = document.createElement("h2");
     h.textContent = acct ? "Edit company" : "Add company";
@@ -3450,7 +3977,7 @@
             acct.logo_updated_at = doc.logo_updated_at;
             pendingLogo = "";
             toast("Logo saved");
-            loadHome();
+            loadHome(true);
             loadSettings();
           }).catch(function (err) {
             toast(String(err.message || err));
@@ -3478,38 +4005,25 @@
     logoBtns.appendChild(removeLogo);
     logoWrap.appendChild(preview);
     logoWrap.appendChild(logoBtns);
-    var domains = document.createElement("textarea");
-    domains.rows = 3;
-    domains.placeholder = "@def.com, @def.co.uk";
-    domains.value = ((acct && acct.domains) || []).map(function (d) { return "@" + String(d).replace(/^@/, ""); }).join("\n");
-    var jira = document.createElement("textarea");
-    jira.rows = 2;
-    jira.placeholder = "def, DEFUK";
-    var slack = document.createElement("textarea");
-    slack.rows = 2;
-    slack.placeholder = "C0XXXX";
-    var teams = document.createElement("textarea");
-    teams.rows = 2;
-    teams.placeholder = "19:channel";
-    var sfdc = document.createElement("textarea");
-    sfdc.rows = 2;
-    sfdc.placeholder = "001XXXX";
-    if (acct && acct.connectors) {
-      jira.value = connectorField(acct.connectors, "jira", "project_keys");
-      slack.value = connectorField(acct.connectors, "slack", "channel_ids");
-      teams.value = connectorField(acct.connectors, "teams", "channel_ids");
-      sfdc.value = connectorField(acct.connectors, "salesforce", "account_ids");
-    }
+    var domainVals = ((acct && acct.domains) || []).map(function (d) {
+      return "@" + String(d).replace(/^@/, "");
+    });
+    var conn = (acct && acct.connectors) || {};
+    var domains = makeTagInput("@def.com", domainVals);
+    var jira = makeTagInput("DEFUK", connectorList(conn, "jira", "project_keys"));
+    var slack = makeTagInput("C0XXXX", connectorList(conn, "slack", "channel_ids"));
+    var teams = makeTagInput("19:channel", connectorList(conn, "teams", "channel_ids"));
+    var sfdc = makeTagInput("001XXXX", connectorList(conn, "salesforce", "account_ids"));
     form.appendChild(fieldLabel("Name", name));
     form.appendChild(fieldLabel("Slug", slug));
     form.appendChild(fieldLabel("Abbr", abbr));
     form.appendChild(fieldLabel("Color", colorRow));
     form.appendChild(fieldLabel("Logo", logoWrap));
-    form.appendChild(fieldLabel("Customer domains", domains));
-    form.appendChild(fieldLabel("Jira tags / project keys", jira));
-    form.appendChild(fieldLabel("Slack channels", slack));
-    form.appendChild(fieldLabel("Teams channels", teams));
-    form.appendChild(fieldLabel("Salesforce accounts", sfdc));
+    form.appendChild(fieldLabel("Customer domains", domains.el));
+    form.appendChild(fieldLabel("Jira tags / project keys", jira.el));
+    form.appendChild(fieldLabel("Slack channels", slack.el));
+    form.appendChild(fieldLabel("Teams channels", teams.el));
+    form.appendChild(fieldLabel("Salesforce accounts", sfdc.el));
     var foot = document.createElement("div");
     foot.className = "sheet-foot";
     var save = document.createElement("button");
@@ -3520,13 +4034,18 @@
     form.appendChild(foot);
     sheet.appendChild(form);
     box.appendChild(sheet);
+    domains.bind();
+    jira.bind();
+    slack.bind();
+    teams.bind();
+    sfdc.bind();
     form.addEventListener("submit", function (ev) {
       ev.preventDefault();
       var connectors = {
-        jira: { project_keys: csvList(jira.value) },
-        slack: { channel_ids: csvList(slack.value) },
-        teams: { channel_ids: csvList(teams.value) },
-        salesforce: { account_ids: csvList(sfdc.value) },
+        jira: { project_keys: jira.values() },
+        slack: { channel_ids: slack.values() },
+        teams: { channel_ids: teams.values() },
+        salesforce: { account_ids: sfdc.values() },
       };
       if (acct && acct.connectors) {
         connectors = Object.assign({}, acct.connectors, connectors);
@@ -3535,7 +4054,7 @@
         name: name.value,
         abbr: abbr.value,
         color: color.value,
-        domains: csvList(domains.value),
+        domains: domains.values(),
         connectors: connectors,
       };
       var req = acct
@@ -3553,7 +4072,7 @@
         closeDetail();
         toast("Company saved");
         loadSettings();
-        loadHome();
+        loadHome(true);
       }).catch(function (err) {
         toast(String(err.message || err));
       });
@@ -3654,8 +4173,8 @@
         if (ev.target === cropBox) closeCrop();
       });
     }
-    if ($("btn-world-clock")) {
-      $("btn-world-clock").addEventListener("click", function () {
+    if ($("desk-clock")) {
+      $("desk-clock").addEventListener("click", function () {
         if (window.CSMWorld) window.CSMWorld.open();
       });
     }
@@ -3676,7 +4195,10 @@
       var mini = $("app").classList.contains("is-mini");
       $("sidebar-toggle").setAttribute("aria-label", mini ? "Expand sidebar" : "Collapse sidebar");
     });
-    $("home-q").addEventListener("input", loadHome);
+    $("home-q").addEventListener("input", function () {
+      if (homeItems) paintHomeBoard();
+      else loadHome();
+    });
     var chatForm = $("home-chat-form");
     if (chatForm) {
       chatForm.addEventListener("submit", function (ev) {
@@ -3695,7 +4217,7 @@
         return Promise.all(jobs);
       }).then(function () {
         toast("Health refreshed");
-        loadHome();
+        loadHome(true);
       });
     });
     if ($("actions-due")) $("actions-due").addEventListener("change", loadActions);
@@ -3769,17 +4291,18 @@
     $("btn-seed").addEventListener("click", function () {
       api("/api/settings/seed", { method: "POST", body: "{}" }).then(function () {
         toast("Seed loaded");
-        loadHome();
+        loadHome(true);
       });
     });
     $("btn-reset").addEventListener("click", function () {
       if (!window.confirm("Reset the store? Type was confirmed in UI.")) return;
       api("/api/settings/reset", { method: "POST", body: JSON.stringify({ confirm: "RESET" }) }).then(function () {
         toast("Store reset");
-        loadHome();
+        loadHome(true);
       });
     });
     window.addEventListener("hashchange", route);
+    startDeskClock();
   }
 
   window.CSM = {
@@ -3801,6 +4324,10 @@
     },
     getWorldClock: function () {
       return (status && status.world_clock) || {};
+    },
+    setWorldClock: function (clock) {
+      if (!status) status = {};
+      status.world_clock = clock || {};
     },
   };
 

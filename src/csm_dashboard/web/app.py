@@ -15,14 +15,20 @@ from csm_dashboard.chat.desk_answer import answer_desk
 from csm_dashboard.chat.grok import GrokClient
 from csm_dashboard.chat.mentions import resolve_account
 from csm_dashboard.compose.context import build_compose_context
-from csm_dashboard.compose.grok import compose_with_grok, fallback_draft, fallback_reply
+from csm_dashboard.compose.grok import (
+    assist_task_with_grok,
+    compose_with_grok,
+    fallback_draft,
+    fallback_reply,
+    fallback_task_assist,
+)
 from csm_dashboard.config import ROOT, Settings, fixtures_dir, load_secrets, load_settings, save_secrets
 from csm_dashboard.connectors.registry import PULL_CONNECTORS, connector_mode, get_connector, list_connectors
 from csm_dashboard.ingest.route import route_event
-from csm_dashboard.prompts import desk_chat_public, help_public, prompt_system
+from csm_dashboard.prompts import help_public, prompt_system
 from csm_dashboard.seed.load import apply_seed, apply_sync_event
 from csm_dashboard.storage.errors import CouchbaseLiteNotAvailable
-from csm_dashboard.storage.repo import CsmRepo, utcnow
+from csm_dashboard.storage.repo import TASK_KINDS, CsmRepo, utcnow
 
 log = logging.getLogger(__name__)
 
@@ -94,24 +100,24 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
     def get_status():
         settings = _settings()
         secrets = load_secrets()
+        repo = repo_obj()
+        doc = repo.get_settings() or {}
         return {
             "version": __version__,
             "host": settings.host,
             "port": settings.port,
             "tagline": settings.tagline,
-            "operator": repo_obj().operator_profile(),
-            "world_clock": repo_obj().world_clock(),
+            "operator": repo.operator_profile(doc),
+            "world_clock": repo.world_clock(doc),
             "models": settings.model_list(),
             "default_model": settings.xai_default_model,
-            "ai": (repo_obj().get_settings() or {}).get("ai") or {"provider": "grok", "model": settings.xai_default_model},
+            "ai": (doc.get("ai") or {"provider": "grok", "model": settings.xai_default_model}),
             "keys": {
                 "xai": bool(settings.has_xai_key or secrets.get("xai_api_key")),
                 "openai": bool(secrets.get("openai_api_key")),
                 "gemini": bool(secrets.get("gemini_api_key")),
             },
             "connectors": list_connectors(),
-            "counts": repo_obj().counts(),
-            "chat": desk_chat_public(),
         }
 
     @app.get("/api/help")
@@ -135,12 +141,12 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
 
     @app.get("/api/settings")
     def get_settings():
-        doc = repo_obj().get_settings()
+        doc = repo_obj().get_settings() or {}
         return {
             **doc,
-            "operator": repo_obj().operator_profile(),
-            "world_clock": repo_obj().world_clock(),
-            "ai": (doc or {}).get("ai") or {"provider": "grok", "model": _settings().xai_default_model},
+            "operator": repo_obj().operator_profile(doc),
+            "world_clock": repo_obj().world_clock(doc),
+            "ai": doc.get("ai") or {"provider": "grok", "model": _settings().xai_default_model},
         }
 
     @app.put("/api/settings/keys")
@@ -199,7 +205,9 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
                     "logo_updated_at": acct.get("logo_updated_at") or "",
                     "health": acct.get("health"),
                     "contract": {"renewal_on": (acct.get("contract") or {}).get("renewal_on")},
-                    "stats": repo_obj().account_inbox_stats(aid),
+                    "stats": acct.get("stats")
+                    if isinstance(acct.get("stats"), dict) and acct["stats"].get("refreshed_at")
+                    else repo_obj().account_inbox_stats(aid),
                     "next_meeting": repo_obj().next_meeting(aid),
                 }
             )
@@ -537,6 +545,100 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         if not doc:
             raise HTTPException(404, "not found")
         return doc
+
+    @app.post("/api/tasks/assist")
+    def assist_task(body: dict):
+        account_id = str((body or {}).get("account_id") or "").strip()
+        acct = repo_obj().get_account(account_id)
+        if not acct:
+            raise HTTPException(400, "account required")
+        people = repo_obj().list_people(account_id)
+        tickets, _ = repo_obj().page_tickets(account_id, limit=8)
+        open_tickets = [
+            {
+                "key": t.get("key"),
+                "summary": t.get("summary"),
+                "status": t.get("status"),
+                "priority": t.get("priority"),
+            }
+            for t in tickets
+            if t.get("status") not in {"done", "cancelled"}
+        ][:5]
+        people_slice = [
+            {
+                "name": p.get("name"),
+                "email": p.get("email"),
+                "role": p.get("role"),
+                "title": p.get("title"),
+            }
+            for p in people
+            if p.get("email")
+        ]
+        kind = str((body or {}).get("task_kind") or "").strip()
+        if kind not in TASK_KINDS:
+            kind = TASK_KINDS[0]
+        hint = {
+            "account_id": account_id,
+            "company": acct.get("name") or acct.get("abbr"),
+            "abbr": acct.get("abbr"),
+            "health": acct.get("health"),
+            "task_kind": kind,
+            "task_name": str((body or {}).get("task_name") or "").strip(),
+            "due_at": str((body or {}).get("due_at") or "").strip(),
+            "body": str((body or {}).get("body") or "").strip(),
+            "cc_addrs": (body or {}).get("cc_addrs") or [],
+            "people": people_slice,
+            "open_tickets": open_tickets,
+        }
+        settings = _settings()
+        result = "fallback"
+        drafted = fallback_task_assist(
+            acct,
+            kind=kind,
+            name=hint["task_name"],
+            body=hint["body"],
+            people=people,
+        )
+        if settings.has_xai_key:
+            try:
+                client = GrokClient(settings.xai_api_key, settings.xai_base_url, settings.model_list())
+                drafted, _model = assist_task_with_grok(client, hint, settings)
+                result = "grok"
+            except Exception as exc:
+                log.warning("csm.task.assist result=fallback err=%s", exc)
+        allowed = {p.get("email", "").lower() for p in people_slice}
+        cc = []
+        for addr in drafted.get("cc_addrs") or []:
+            email = str(addr or "").strip()
+            if email and email.lower() in allowed and email not in cc:
+                cc.append(email)
+        use_kind = str(drafted.get("task_kind") or kind)
+        if use_kind not in TASK_KINDS:
+            use_kind = kind
+        due = str(drafted.get("due_at") or "")
+        if len(due) >= 16 and due[4] == "-" and due[10] == "T":
+            due = due[:16]
+        elif len(due) == 10 and due[4] == "-":
+            due = due + "T15:00"
+        else:
+            due = fallback_task_assist(acct, kind=use_kind)["due_at"]
+        out = {
+            "task_name": str(drafted.get("task_name") or hint["task_name"] or "").strip(),
+            "task_kind": use_kind,
+            "due_at": due,
+            "cc_addrs": cc,
+            "body": str(drafted.get("body") or hint["body"] or "").strip(),
+            "result": result,
+        }
+        if not out["task_name"]:
+            out["task_name"] = fallback_task_assist(acct, kind=use_kind)["task_name"]
+        log.info(
+            "csm.task.assist result=%s account_id=%s task_kind=%s",
+            result,
+            account_id,
+            out["task_kind"],
+        )
+        return out
 
     @app.post("/api/tasks")
     def create_task(body: dict):

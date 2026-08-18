@@ -291,6 +291,12 @@ class CsmRepo:
     def counts(self) -> dict[str, int]:
         return {name: self.store.count(name) for name in COLLECTIONS}
 
+    def _account_rows(self, collection: str, account_id: str) -> list[dict]:
+        fn = getattr(self.store, "query_by_account", None)
+        if callable(fn):
+            return fn(collection, account_id)
+        return [r for r in self.store.query_all(collection) if r.get("account_id") == account_id]
+
     # -- settings ----------------------------------------------------------
 
     def get_settings(self) -> dict:
@@ -336,8 +342,8 @@ class CsmRepo:
             )
         return _attach(saved, "settings") or saved
 
-    def world_clock(self) -> dict:
-        doc = self.get_settings() or {}
+    def world_clock(self, doc: dict | None = None) -> dict:
+        doc = doc if doc is not None else (self.get_settings() or {})
         stored = doc.get("world_clock") or {}
         op = doc.get("operator") or {}
         zones = _norm_timezone_list(stored.get("timezones") or op.get("timezones"))
@@ -403,11 +409,19 @@ class CsmRepo:
 
     def get_account_by_abbr(self, abbr: str) -> dict | None:
         want = _norm_abbr(abbr)
-        for row in self.store.query_all("accounts"):
+        fn = getattr(self.store, "query_eq", None)
+        rows = fn("accounts", "abbr", want) if callable(fn) else self.store.query_all("accounts")
+        for row in rows:
             if row.get("removed"):
                 continue
             if _norm_abbr(str(row.get("abbr") or "")) == want:
                 return row
+        if callable(fn):
+            for row in self.store.query_all("accounts"):
+                if row.get("removed"):
+                    continue
+                if _norm_abbr(str(row.get("abbr") or "")) == want:
+                    return row
         return None
 
     def patch_account(self, account_id: str, patch: dict) -> dict:
@@ -538,7 +552,7 @@ class CsmRepo:
         project_id: str | None = None,
         function: str | None = None,
     ) -> list[dict]:
-        rows = [r for r in self.store.query_all("people") if r.get("account_id") == account_id]
+        rows = self._account_rows("people", account_id)
         if kind:
             rows = [r for r in rows if r.get("kind") == kind]
         if project_id:
@@ -649,11 +663,7 @@ class CsmRepo:
         status: str | None = None,
         kind: str | None = None,
     ) -> list[dict]:
-        rows = [
-            r
-            for r in self.store.query_all("projects")
-            if r.get("account_id") == account_id and not r.get("removed")
-        ]
+        rows = [r for r in self._account_rows("projects", account_id) if not r.get("removed")]
         if status:
             rows = [r for r in rows if str(r.get("status") or "") == status]
         if kind:
@@ -701,7 +711,7 @@ class CsmRepo:
         ref_id: str | None = None,
         q: str | None = None,
     ) -> list[dict]:
-        rows = [r for r in self.store.query_all("notes") if r.get("account_id") == account_id]
+        rows = self._account_rows("notes", account_id)
         if ref_id:
             rows = [r for r in rows if str((r.get("ref") or {}).get("id") or "") == ref_id]
         needle = (q or "").strip().lower()
@@ -765,7 +775,7 @@ class CsmRepo:
         limit: int = 50,
         offset: int = 0,
     ) -> tuple[list[dict], int]:
-        rows = [r for r in self.store.query_all("tickets") if r.get("account_id") == account_id]
+        rows = self._account_rows("tickets", account_id)
         if status:
             rows = [r for r in rows if r.get("status") == status]
         if priority:
@@ -936,7 +946,7 @@ class CsmRepo:
         return _attach(doc, email_id) or doc
 
     def page_emails(self, account_id: str, *, thread_id: str | None = None, limit: int = 50, offset: int = 0):
-        rows = [r for r in self.store.query_all("emails") if r.get("account_id") == account_id]
+        rows = self._account_rows("emails", account_id)
         if thread_id:
             rows = [r for r in rows if r.get("thread_id") == thread_id]
         rows.sort(key=lambda r: str(r.get("sent_at") or ""))
@@ -970,7 +980,7 @@ class CsmRepo:
         return _attach(doc, thread_id) or doc
 
     def page_threads(self, account_id: str, *, limit: int = 50, offset: int = 0):
-        rows = [r for r in self.store.query_all("threads") if r.get("account_id") == account_id]
+        rows = self._account_rows("threads", account_id)
         rows.sort(key=lambda r: str(r.get("last_at") or ""), reverse=True)
         return rows[offset : offset + limit], len(rows)
 
@@ -1035,7 +1045,7 @@ class CsmRepo:
         return _attach(doc, message_id) or doc
 
     def page_slack(self, account_id: str, *, channel_id: str | None = None, limit: int = 50, before_ts: str | None = None):
-        rows = [r for r in self.store.query_all("slack_messages") if r.get("account_id") == account_id]
+        rows = self._account_rows("slack_messages", account_id)
         if channel_id:
             rows = [r for r in rows if r.get("channel_id") == channel_id]
         if before_ts:
@@ -1044,7 +1054,7 @@ class CsmRepo:
         return rows[-limit:], len(rows)
 
     def list_slack_channels(self, account_id: str) -> list[dict]:
-        return [r for r in self.store.query_all("slack_channels") if r.get("account_id") == account_id]
+        return self._account_rows("slack_channels", account_id)
 
     def upsert_teams_channel(self, doc: dict) -> dict:
         cid = str(doc.get("channel_id") or "")
@@ -1105,7 +1115,7 @@ class CsmRepo:
         return _attach(doc, message_id) or doc
 
     def page_teams(self, account_id: str, *, channel_id: str | None = None, limit: int = 50, before_ts: str | None = None):
-        rows = [r for r in self.store.query_all("teams_messages") if r.get("account_id") == account_id]
+        rows = self._account_rows("teams_messages", account_id)
         if channel_id:
             rows = [r for r in rows if r.get("channel_id") == channel_id]
         if before_ts:
@@ -1114,7 +1124,7 @@ class CsmRepo:
         return rows[-limit:], len(rows)
 
     def list_teams_channels(self, account_id: str) -> list[dict]:
-        return [r for r in self.store.query_all("teams_channels") if r.get("account_id") == account_id]
+        return self._account_rows("teams_channels", account_id)
 
     def upsert_salesforce_opportunity(self, doc: dict, *, emit_activity: bool = True) -> dict:
         ext = str(doc.get("external_id") or doc.get("_id") or "").removeprefix("sfo:") or hex12()
@@ -1146,7 +1156,7 @@ class CsmRepo:
         return _attach(self.store.get("salesforce_opportunities", opp_id), opp_id)
 
     def page_salesforce_opportunities(self, account_id: str, *, q: str | None = None) -> list[dict]:
-        rows = [r for r in self.store.query_all("salesforce_opportunities") if r.get("account_id") == account_id]
+        rows = self._account_rows("salesforce_opportunities", account_id)
         needle = (q or "").strip().lower()
         if needle:
             rows = [
@@ -1187,7 +1197,7 @@ class CsmRepo:
         return _attach(self.store.get("salesforce_cases", case_id), case_id)
 
     def page_salesforce_cases(self, account_id: str, *, q: str | None = None) -> list[dict]:
-        rows = [r for r in self.store.query_all("salesforce_cases") if r.get("account_id") == account_id]
+        rows = self._account_rows("salesforce_cases", account_id)
         needle = (q or "").strip().lower()
         if needle:
             rows = [
@@ -1235,7 +1245,7 @@ class CsmRepo:
         return _attach(doc, event_id) or doc
 
     def page_calendar(self, account_id: str, *, start: str | None = None, end: str | None = None):
-        rows = [r for r in self.store.query_all("calendar_events") if r.get("account_id") == account_id]
+        rows = self._account_rows("calendar_events", account_id)
         if start:
             rows = [r for r in rows if str(r.get("start_at") or "") >= start]
         if end:
@@ -1294,9 +1304,7 @@ class CsmRepo:
         due: str = "all",
         today: str | None = None,
     ) -> list[dict]:
-        rows = self.store.query_all("action_items")
-        if account_id:
-            rows = [r for r in rows if r.get("account_id") == account_id]
+        rows = self._account_rows("action_items", account_id) if account_id else self.store.query_all("action_items")
         if status:
             rows = [r for r in rows if r.get("status") == status]
         day = today or utcnow()[:10]
@@ -1365,7 +1373,7 @@ class CsmRepo:
         return _attach(doc, draft_id) or doc
 
     def list_drafts(self, account_id: str) -> list[dict]:
-        rows = [r for r in self.store.query_all("drafts") if r.get("account_id") == account_id]
+        rows = self._account_rows("drafts", account_id)
         rows.sort(key=lambda r: str(r.get("updated_at") or ""), reverse=True)
         return rows
 
@@ -1428,7 +1436,7 @@ class CsmRepo:
         return self.save_chat(doc, chat_id=chat_id)
 
     def list_chats(self, account_id: str) -> list[dict]:
-        rows = [r for r in self.store.query_all("chats") if r.get("account_id") == account_id]
+        rows = self._account_rows("chats", account_id)
         rows.sort(key=lambda r: str(r.get("updated_at") or ""), reverse=True)
         rows.sort(key=lambda r: 0 if r.get("bookmarked") else 1)
         return rows
@@ -1539,7 +1547,7 @@ class CsmRepo:
         if callable(fn):
             rows = fn(account_id, since=since, kind=kind, limit=fetch_limit, offset=fetch_offset)
         else:
-            rows = [r for r in self.store.query_all("activities") if r.get("account_id") == account_id]
+            rows = self._account_rows("activities", account_id)
             if since:
                 rows = [r for r in rows if str(r.get("at") or "") >= since]
             if kind:
@@ -1613,6 +1621,7 @@ class CsmRepo:
             raw = utcnow()[:10]
         meetings: list[dict] = []
         inbox: list[dict] = []
+        project_filters: list[dict] = []
         for acct in self.list_accounts():
             aid = acct.get("account_id") or acct.get("_id") or ""
             slim = {
@@ -1623,6 +1632,30 @@ class CsmRepo:
                 "has_logo": self.account_has_logo(aid, acct),
                 "logo_updated_at": acct.get("logo_updated_at") or "",
             }
+            company_label = slim["name"] or slim["abbr"] or aid
+            project_filters.append(
+                {
+                    "key": aid,
+                    "account_id": aid,
+                    "project_id": "",
+                    "label": company_label,
+                }
+            )
+            proj_names: dict[str, str] = {}
+            for proj in self.list_projects(aid):
+                pid = str(proj.get("_id") or "")
+                pname = str(proj.get("name") or pid)
+                if not pid:
+                    continue
+                proj_names[pid] = pname
+                project_filters.append(
+                    {
+                        "key": aid + "|" + pid,
+                        "account_id": aid,
+                        "project_id": pid,
+                        "label": company_label + ":" + pname,
+                    }
+                )
             for ev in self.page_calendar(aid):
                 start = str(ev.get("start_at") or "")
                 if start[:10] != raw:
@@ -1653,6 +1686,7 @@ class CsmRepo:
                         continue
                 elif not op.get("unread"):
                     continue
+                mail_pid = str(mail.get("project_id") or "")
                 inbox.append(
                     {
                         "kind": "task" if is_task else "email",
@@ -1662,6 +1696,8 @@ class CsmRepo:
                         "from_name": mail.get("from_addr") or "",
                         "due_at": str(op.get("due_at") or ""),
                         "task_kind": str(op.get("task_kind") or ""),
+                        "project_id": mail_pid,
+                        "project_name": proj_names.get(mail_pid) or "",
                         "account": slim,
                         "ref": {"collection": "emails", "id": mail.get("_id") or "", "thread_id": mail.get("thread_id") or ""},
                     }
@@ -1670,6 +1706,7 @@ class CsmRepo:
             for msg in slack:
                 if not (msg.get("operator") or {}).get("unread"):
                     continue
+                slack_pid = str(msg.get("project_id") or "")
                 inbox.append(
                     {
                         "kind": "slack",
@@ -1677,6 +1714,8 @@ class CsmRepo:
                         "title": msg.get("user_name") or msg.get("user") or "Slack",
                         "body": str(msg.get("text") or "")[:220],
                         "from_name": msg.get("user_name") or "",
+                        "project_id": slack_pid,
+                        "project_name": proj_names.get(slack_pid) or "",
                         "account": slim,
                         "ref": {"collection": "slack_messages", "id": msg.get("_id") or ""},
                     }
@@ -1685,6 +1724,7 @@ class CsmRepo:
             for msg in teams:
                 if not (msg.get("operator") or {}).get("unread"):
                     continue
+                teams_pid = str(msg.get("project_id") or "")
                 inbox.append(
                     {
                         "kind": "teams",
@@ -1692,13 +1732,20 @@ class CsmRepo:
                         "title": msg.get("user_name") or msg.get("user") or "Teams",
                         "body": str(msg.get("text") or "")[:220],
                         "from_name": msg.get("user_name") or "",
+                        "project_id": teams_pid,
+                        "project_name": proj_names.get(teams_pid) or "",
                         "account": slim,
                         "ref": {"collection": "teams_messages", "id": msg.get("_id") or ""},
                     }
                 )
         meetings.sort(key=lambda r: str(r.get("start_at") or ""))
         inbox.sort(key=lambda r: str(r.get("at") or ""), reverse=True)
-        return {"date": raw, "meetings": meetings, "inbox": inbox[:inbox_limit]}
+        return {
+            "date": raw,
+            "meetings": meetings,
+            "inbox": inbox[:inbox_limit],
+            "project_filters": project_filters,
+        }
 
     def account_inbox_stats(self, account_id: str) -> dict:
         tickets, _ = self.page_tickets(account_id, limit=500)
@@ -1771,7 +1818,16 @@ class CsmRepo:
     def expand_account(self, account: dict) -> dict:
         out = dict(account)
         team = out.get("team") or {}
-        people = {p.get("_id"): p for p in self.store.query_all("people")}
+        needed: set[str] = set()
+        for row in (team.get("account") or []) + (team.get("ps") or []):
+            pid = row.get("person_id")
+            if pid:
+                needed.add(pid)
+        people = {}
+        for pid in needed:
+            person = self.get_person(pid)
+            if person:
+                people[pid] = person
 
         def _expand(rows: list) -> list:
             expanded = []
@@ -1787,9 +1843,9 @@ class CsmRepo:
 
     def account_input_counts(self, account_id: str) -> dict[str, int]:
         def n(collection: str) -> int:
-            return sum(1 for r in self.store.query_all(collection) if r.get("account_id") == account_id)
+            return len(self._account_rows(collection, account_id))
 
-        people = [r for r in self.store.query_all("people") if r.get("account_id") == account_id]
+        people = self._account_rows("people", account_id)
         return {
             "timeline": n("activities"),
             "tickets": n("tickets"),
@@ -1804,8 +1860,8 @@ class CsmRepo:
             "accountteam": sum(1 for p in people if p.get("kind") in {"account_team", "ps_team"}),
         }
 
-    def operator_profile(self) -> dict:
-        stored = (self.get_settings() or {}).get("operator") or {}
+    def operator_profile(self, doc: dict | None = None) -> dict:
+        stored = ((doc if doc is not None else self.get_settings()) or {}).get("operator") or {}
         from csm_dashboard.config import load_settings
 
         cfg = load_settings()

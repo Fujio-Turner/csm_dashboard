@@ -157,6 +157,33 @@
     }
   }
 
+  var tzFmtCache = {};
+
+  function tzFormatters(tz) {
+    var hit = tzFmtCache[tz];
+    if (hit) return hit;
+    try {
+      hit = {
+        parts: new Intl.DateTimeFormat("en-US", {
+          timeZone: tz,
+          weekday: "short",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          hourCycle: "h23",
+          timeZoneName: "short",
+        }),
+        month: new Intl.DateTimeFormat("en-US", { timeZone: tz, month: "short" }),
+      };
+    } catch (e) {
+      hit = null;
+    }
+    tzFmtCache[tz] = hit;
+    return hit;
+  }
+
   function localParts(date, tz) {
     var out = {
       year: 0,
@@ -168,19 +195,10 @@
       monthName: "",
       tzName: "",
     };
+    var fmts = tzFormatters(tz);
+    if (!fmts) return out;
     try {
-      var parts = new Intl.DateTimeFormat("en-US", {
-        timeZone: tz,
-        weekday: "short",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        hourCycle: "h23",
-        timeZoneName: "short",
-      }).formatToParts(date);
-      parts.forEach(function (p) {
+      fmts.parts.formatToParts(date).forEach(function (p) {
         if (p.type === "year") out.year = +p.value;
         if (p.type === "month") out.month = +p.value;
         if (p.type === "day") out.day = +p.value;
@@ -189,7 +207,7 @@
         if (p.type === "weekday") out.weekday = p.value;
         if (p.type === "timeZoneName") out.tzName = p.value;
       });
-      out.monthName = new Intl.DateTimeFormat("en-US", { timeZone: tz, month: "short" }).format(date);
+      out.monthName = fmts.month.format(date);
     } catch (e) {}
     return out;
   }
@@ -374,7 +392,9 @@
         }),
       })
       .then(function () {
-        if (csm().refreshStatus) return csm().refreshStatus();
+        if (csm().setWorldClock) {
+          csm().setWorldClock({ timezones: zones.slice(), hour24: hour24 });
+        }
       })
       .catch(function (err) {
         if (csm().toast) csm().toast("Could not save timezones");
@@ -612,10 +632,7 @@
       if (loc.weekday === "Sat" || loc.weekday === "Sun") btn.classList.add("is-weekend");
       var num = document.createElement("b");
       var sub = document.createElement("span");
-      if (now >= inst && now < next) {
-        num.textContent = formatClock(loc);
-        sub.textContent = "now";
-      } else if (loc.hour === 0 && loc.minute === 0) {
+      if (loc.hour === 0 && loc.minute === 0) {
         btn.classList.add("is-date");
         num.textContent = loc.weekday;
         sub.textContent = loc.monthName + " " + loc.day;

@@ -5,6 +5,18 @@ import pytest
 from csm_dashboard.ingest.identity import activity_doc_id
 
 
+def test_account_rows_skips_other_books(repo):
+    repo.create_account({"name": "Acme", "slug": "acme", "abbr": "ACME", "color": "#0B3D91"})
+    repo.create_account({"name": "North", "slug": "nwin", "abbr": "NWIN", "color": "#14532d"})
+    repo.create_person({"account_id": "acct:acme", "name": "Pat"})
+    repo.create_person({"account_id": "acct:nwin", "name": "Kim"})
+    only = repo._account_rows("people", "acct:acme")
+    assert len(only) == 1
+    assert only[0]["name"] == "Pat"
+    counts = repo.account_input_counts("acct:acme")
+    assert counts["people"] == 1
+
+
 def test_create_account_and_abbr_lookup(repo):
     doc = repo.create_account({"name": "Acme", "slug": "acme", "abbr": "acme", "color": "#0B3D91"})
     assert doc["account_id"] == "acct:acme"

@@ -195,6 +195,26 @@ class CBLStore:
             rows = self._cbl.execute_query(sql)
         return [_unwrap_row(row, collection) for row in rows]
 
+    def query_by_account(self, collection: str, account_id: str) -> list[dict]:
+        sql = f"SELECT META().id AS _id, * FROM {collection} WHERE account_id = $aid"
+        try:
+            rows = self.query(sql, {"aid": account_id})
+            return [_unwrap_row(row, collection) for row in rows]
+        except Exception as exc:
+            log.warning("csm.query.by_account_failed collection=%s err=%s", collection, exc)
+            return [r for r in self.query_all(collection) if r.get("account_id") == account_id]
+
+    def query_eq(self, collection: str, field: str, value: object) -> list[dict]:
+        if field not in {"abbr", "slug", "account_id", "kind", "status"}:
+            return [r for r in self.query_all(collection) if r.get(field) == value]
+        sql = f"SELECT META().id AS _id, * FROM {collection} WHERE {field} = $v"
+        try:
+            rows = self.query(sql, {"v": value})
+            return [_unwrap_row(row, collection) for row in rows]
+        except Exception as exc:
+            log.warning("csm.query.eq_failed collection=%s field=%s err=%s", collection, field, exc)
+            return [r for r in self.query_all(collection) if r.get(field) == value]
+
     def query(self, sql: str, params: dict | None = None) -> list[dict]:
         params_json = json.dumps(params) if params else None
         with self._lock:

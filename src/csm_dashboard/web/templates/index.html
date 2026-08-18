@@ -17,7 +17,6 @@
         <img src="/static/logo.svg" width="32" height="32" alt="">
         <div class="brand-text">
           <strong>CSM Desk</strong>
-          <small id="app-version">v{{ version }}</small>
         </div>
         <button class="sidebar-toggle" type="button" id="sidebar-toggle" aria-label="Expand sidebar">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
@@ -29,27 +28,35 @@
         <a class="nav-item" href="#settings" data-nav="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9c.3.6.9 1 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span class="nav-label">Settings</span></a>
       </nav>
       <div class="side-foot">
-        <button class="btn btn-icon" type="button" id="btn-world-clock" data-tip="World clock" title="World clock" aria-label="World clock">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><ellipse cx="12" cy="12" rx="4" ry="9"/></svg>
-        </button>
-        <p class="side-caption" id="bind-pill"></p>
+        <p class="side-version" id="app-version" title="Listening address">v{{ version }}</p>
       </div>
     </aside>
     <main class="workspace">
       <section class="view is-on" data-view="home" id="view-home">
-        <header class="page-head" id="home-head">
-          <div>
-            <h1>Home</h1>
+        <header class="home-top" id="home-top">
+          <div class="home-top-main">
+            <nav class="crumb" id="home-crumb" aria-label="Breadcrumb"></nav>
+            <div class="home-top-row" id="home-head">
+              <div class="tabs" id="home-tabs"></div>
+              <div class="home-company-tools" id="home-company-tools" hidden>
+                <input class="search" id="home-q" type="search" placeholder="Filter by name or abbr">
+                <button class="btn" type="button" id="btn-refresh-health">Refresh health</button>
+              </div>
+            </div>
           </div>
-          <div class="toolbar-actions">
-            <input class="search" id="home-q" type="search" placeholder="Filter by name or abbr" hidden>
-            <button class="btn" type="button" id="btn-refresh-health" hidden>Refresh health</button>
-          </div>
+          <button class="desk-clock" id="desk-clock" type="button" aria-label="World clock">
+            <span class="desk-clock-now">
+              <time class="desk-clock-time" id="desk-clock-time" datetime="">--:--:--</time>
+            </span>
+            <span class="desk-clock-alt" id="desk-clock-alt">
+              <span class="desk-clock-when" id="desk-clock-when"></span>
+              <span class="desk-clock-hint">Click for World Clock</span>
+            </span>
+          </button>
         </header>
         <div class="home-split">
           <div class="home-main">
             <div class="home-desk" id="home-desk">
-              <div class="tabs" id="home-tabs"></div>
               <div class="agenda-panel" id="agenda-panel"></div>
               <div class="acct-board hidden" id="acct-board" hidden></div>
             </div>
@@ -127,11 +134,10 @@
         <header class="page-head">
           <div>
             <h1>Help</h1>
-            <p class="muted">How the desk, chat, world clock, and settings fit together.</p>
+            <p class="muted">Click a question to see the answer.</p>
           </div>
         </header>
         <div class="help-page">
-          <nav class="help-toc" id="help-toc" aria-label="Help sections"></nav>
           <div class="help-body" id="help-body"></div>
         </div>
       </section>

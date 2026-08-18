@@ -32,6 +32,9 @@ def test_seed_home_compose_send(client):
     assert any("ACME" in ((m.get("account") or {}).get("abbr") or "") for m in meets)
     inbox = agenda.json()["inbox"]
     assert inbox
+    filters = agenda.json().get("project_filters") or []
+    assert filters
+    assert any(":" in (p.get("label") or "") for p in filters)
     kinds = {i["kind"] for i in inbox}
     assert kinds & {"email", "slack", "teams"}
     ats = [i["at"] for i in inbox]
@@ -73,6 +76,16 @@ def test_seed_home_compose_send(client):
     assert "Review(s)" in again.json()["subject"]
     inbox2 = client.get("/api/home/agenda", params={"date": "2026-08-18"}).json()["inbox"]
     assert any(i["kind"] == "task" and "Call Pat again" in i["title"] for i in inbox2)
+    assist = client.post(
+        "/api/tasks/assist",
+        json={"account_id": aid, "task_kind": "Follow up(s)", "task_name": ""},
+    )
+    assert assist.status_code == 200
+    drafted = assist.json()
+    assert drafted["result"] == "fallback"
+    assert drafted["task_name"]
+    assert drafted["task_kind"] == "Follow up(s)"
+    assert drafted["due_at"]
     tickets = client.get("/api/tickets", params={"account_id": aid})
     assert tickets.json()["total"] >= 5
     composed = client.post("/api/drafts/compose", json={"account_id": aid})
