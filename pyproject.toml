@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "csm-dashboard"
+version = "0.1.32"
+description = "Local Customer Success Manager desk. Multi-account tickets, mail, Slack, calendar, and Grok drafts."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.32",
+  "httpx>=0.27",
+  "python-dotenv>=1.0",
+  "pydantic>=2.8",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "pytest-asyncio>=0.24",
+  "jsonschema>=4.23",
+  "pyyaml>=6.0",
+]
+
+[project.scripts]
+csm-dashboard = "csm_dashboard.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+csm_dashboard = ["web/static/*", "web/templates/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"

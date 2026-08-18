@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://csm-dashboard.local/schema/compose_request.schema.json",
+  "title": "Compose request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "account_id"
+  ],
+  "properties": {
+    "account_id": {
+      "type": "string"
+    },
+    "thread_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "ticket_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "slack_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

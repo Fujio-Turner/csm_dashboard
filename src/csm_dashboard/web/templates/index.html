@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CSM Dashboard</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@yaireo/tagify@4.32.2/dist/tagify.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/app.css?v={{ version }}">
+</head>
+<body>
+  <div class="app is-mini" id="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="/static/logo.svg" width="32" height="32" alt="">
+        <div class="brand-text">
+          <strong>CSM Desk</strong>
+          <small id="app-version">v{{ version }}</small>
+        </div>
+        <button class="sidebar-toggle" type="button" id="sidebar-toggle" aria-label="Expand sidebar">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+        </button>
+      </div>
+      <nav class="nav">
+        <a class="nav-item is-on" href="#home" data-nav="home"><svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg><span class="nav-label">Home</span></a>
+        <a class="nav-item" href="#help" data-nav="help"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.1.9-1.1 1.8v.3M12 17h.01"/></svg><span class="nav-label">Help</span></a>
+        <a class="nav-item" href="#settings" data-nav="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9c.3.6.9 1 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span class="nav-label">Settings</span></a>
+      </nav>
+      <div class="side-foot">
+        <button class="btn btn-icon" type="button" id="btn-world-clock" data-tip="World clock" title="World clock" aria-label="World clock">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><ellipse cx="12" cy="12" rx="4" ry="9"/></svg>
+        </button>
+        <p class="side-caption" id="bind-pill"></p>
+      </div>
+    </aside>
+    <main class="workspace">
+      <section class="view is-on" data-view="home" id="view-home">
+        <header class="page-head" id="home-head">
+          <div>
+            <h1>Home</h1>
+          </div>
+          <div class="toolbar-actions">
+            <input class="search" id="home-q" type="search" placeholder="Filter by name or abbr" hidden>
+            <button class="btn" type="button" id="btn-refresh-health" hidden>Refresh health</button>
+          </div>
+        </header>
+        <div class="home-split">
+          <div class="home-main">
+            <div class="home-desk" id="home-desk">
+              <div class="tabs" id="home-tabs"></div>
+              <div class="agenda-panel" id="agenda-panel"></div>
+              <div class="acct-board hidden" id="acct-board" hidden></div>
+            </div>
+            <div class="account-desk hidden" id="view-account" hidden>
+              <header class="page-head account-head compact" id="account-head"></header>
+              <div class="account-tools" id="account-tools">
+                <input class="search" id="account-q" type="search" placeholder="Search, or type / for types" autocomplete="off">
+                <div class="search-suggest hidden" id="account-suggest" hidden></div>
+                <select class="toolbar-filter" id="account-project" hidden>
+                  <option value="">All projects</option>
+                </select>
+              </div>
+              <div class="tabs" id="account-tabs"></div>
+              <div class="pane" id="account-pane"></div>
+            </div>
+          </div>
+          <aside class="home-chat" id="home-chat">
+            <header class="home-chat-head">
+              <div>
+                <h2 id="chat-title">Desk chat</h2>
+                <p class="muted" id="chat-sub">Tag a book with #{ACME} or a person with @bob</p>
+              </div>
+              <div class="chat-actions">
+                <button class="btn btn-icon" type="button" id="btn-chat-history" data-tip="History" title="History" aria-label="History">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4.2l2.6 1.6"/></svg>
+                </button>
+                <button class="btn btn-icon" type="button" id="btn-chat-bookmark" data-tip="Bookmark" title="Bookmark" aria-label="Bookmark" aria-pressed="false">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5h10v15l-5-3.2-5 3.2z"/></svg>
+                </button>
+                <button class="btn btn-icon" type="button" id="btn-chat-new" data-tip="New chat" title="New chat" aria-label="New chat">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h11v8H8.2L5 17.5V7z"/><path d="M17 5.5v6M14 8.5h6"/></svg>
+                </button>
+              </div>
+            </header>
+            <div class="chat-history hidden" id="chat-history" hidden></div>
+            <div class="home-chat-log" id="home-chat-log"></div>
+            <div class="home-chat-suggest" id="home-chat-suggest"></div>
+            <form class="home-chat-form" id="home-chat-form">
+              <textarea id="home-chat-input" rows="3" placeholder="Is there any issue with #{ACME}?"></textarea>
+              <button class="btn btn-primary" type="submit">Ask</button>
+            </form>
+          </aside>
+        </div>
+      </section>
+      <section class="view" data-view="actions" id="view-actions">
+        <header class="page-head">
+          <h1>Actions</h1>
+          <div class="toolbar-actions">
+            <select class="toolbar-filter" id="actions-due">
+              <option value="all">All due</option>
+              <option value="overdue">Overdue</option>
+              <option value="today">Today</option>
+            </select>
+            <select class="toolbar-filter" id="actions-status">
+              <option value="open">Open</option>
+              <option value="done">Done</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="">Any status</option>
+            </select>
+          </div>
+        </header>
+        <div id="actions-list"></div>
+      </section>
+      <section class="view" data-view="reports" id="view-reports">
+        <header class="page-head">
+          <h1>Reports</h1>
+          <div class="toolbar-actions">
+            <select class="toolbar-filter" id="report-account"></select>
+            <button class="btn btn-primary" type="button" id="btn-gen-report">Generate weekly</button>
+          </div>
+        </header>
+        <div id="reports-list"></div>
+      </section>
+      <section class="view" data-view="help" id="view-help">
+        <header class="page-head">
+          <div>
+            <h1>Help</h1>
+            <p class="muted">How the desk, chat, world clock, and settings fit together.</p>
+          </div>
+        </header>
+        <div class="help-page">
+          <nav class="help-toc" id="help-toc" aria-label="Help sections"></nav>
+          <div class="help-body" id="help-body"></div>
+        </div>
+      </section>
+      <section class="view" data-view="settings" id="view-settings">
+        <header class="page-head">
+          <div>
+            <h1>Settings</h1>
+            <p class="muted">You, customer books, AI keys, and connectors.</p>
+          </div>
+        </header>
+        <div class="settings-page">
+          <section class="settings-section">
+            <header class="settings-section-head">
+              <div>
+                <h2>You</h2>
+                <p class="muted">Mail from your domain is treated as internal, not a customer book. Timezone pins You on the world clock.</p>
+              </div>
+            </header>
+            <article class="card">
+              <div class="settings-form">
+                <label>Name <input id="op-name" autocomplete="name"></label>
+                <label>Phone <input id="op-phone" type="tel" autocomplete="tel" placeholder="optional"></label>
+                <label>Email <input id="op-email" type="email" autocomplete="email" placeholder="bob@abc.com"></label>
+                <label>Timezone <select id="op-timezone"></select></label>
+              </div>
+              <div class="settings-actions">
+                <button class="btn btn-primary" type="button" id="btn-save-operator">Save profile</button>
+              </div>
+            </article>
+          </section>
+          <section class="settings-section">
+            <header class="settings-section-head">
+              <div>
+                <h2>Companies</h2>
+                <p class="muted">Quiet hides a book from Home. Remove archives it. Edit color, logo, domains, and Slack / Teams / Salesforce / Jira tags.</p>
+              </div>
+              <button class="btn btn-primary" type="button" id="btn-add-company">Add company</button>
+            </header>
+            <article class="card card-flush">
+              <div id="company-list"></div>
+            </article>
+          </section>
+          <section class="settings-section">
+            <header class="settings-section-head">
+              <div>
+                <h2>Integrations</h2>
+                <p class="muted">Keys stay in <code>data/secrets.json</code> (mode 0600). Connector mode lives in <code>config.json</code>.</p>
+              </div>
+            </header>
+            <div class="settings-split">
+              <article class="card">
+                <header class="card-head">
+                  <div>
+                    <h3>AI</h3>
+                    <p class="muted">Compose uses Grok when that key is present.</p>
+                  </div>
+                </header>
+                <div class="settings-form">
+                  <label>Provider
+                    <select id="ai-provider">
+                      <option value="grok">xAI / Grok</option>
+                      <option value="openai">OpenAI</option>
+                      <option value="gemini">Google Gemini</option>
+                    </select>
+                  </label>
+                  <label>Model <input id="ai-model" placeholder="grok-4.6"></label>
+                </div>
+                <div class="key-stack">
+                  <div class="key-row">
+                    <div class="key-head"><span>xAI / Grok</span><span class="pill" id="key-xai">absent</span></div>
+                    <label>xAI API key <input id="xai-key" type="password" autocomplete="off"></label>
+                  </div>
+                  <div class="key-row">
+                    <div class="key-head"><span>OpenAI</span><span class="pill" id="key-openai">absent</span></div>
+                    <label>OpenAI API key <input id="openai-key" type="password" autocomplete="off"></label>
+                  </div>
+                  <div class="key-row">
+                    <div class="key-head"><span>Gemini</span><span class="pill" id="key-gemini">absent</span></div>
+                    <label>Gemini API key <input id="gemini-key" type="password" autocomplete="off"></label>
+                  </div>
+                </div>
+                <div class="settings-actions">
+                  <button class="btn" type="button" id="btn-test-ai">Test provider</button>
+                  <button class="btn btn-primary" type="button" id="btn-save-key">Save keys</button>
+                </div>
+              </article>
+              <article class="card">
+                <header class="card-head">
+                  <div>
+                    <h3>Connectors</h3>
+                    <p class="muted">Test checks health and shows the auth method.</p>
+                  </div>
+                </header>
+                <div id="connector-list"></div>
+              </article>
+            </div>
+          </section>
+          <section class="settings-section settings-lab">
+            <header class="settings-section-head">
+              <div>
+                <h2>Lab</h2>
+                <p class="muted">Three demo books: ACME navy, NWIN forest, GLX burgundy. Seed is idempotent. Reset keeps your profile and world clock.</p>
+              </div>
+            </header>
+            <article class="card">
+              <div class="settings-actions settings-actions-start">
+                <button class="btn btn-primary" type="button" id="btn-seed">Load seed data</button>
+                <button class="btn btn-cancel" type="button" id="btn-reset">Reset store</button>
+              </div>
+            </article>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+  <div class="lightbox hidden" id="compose-box" hidden></div>
+  <div class="lightbox hidden" id="detail-box" hidden></div>
+  <div class="lightbox hidden" id="crop-box" hidden></div>
+  <div class="lightbox hidden" id="world-box" hidden></div>
+  <div class="lightbox hidden" id="task-box" hidden></div>
+  <div class="toasts" id="toasts"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify@4.32.2"></script>
+  <script src="/static/app.js?v={{ version }}"></script>
+  <script src="/static/compose.js?v={{ version }}"></script>
+  <script src="/static/worldclock.js?v={{ version }}"></script>
+</body>
+</html>

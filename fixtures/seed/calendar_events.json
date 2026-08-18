@@ -1,0 +1,205 @@
+[
+  {
+    "type": "calendar_event",
+    "account_id": "acct:acme",
+    "provider": "stub",
+    "external_id": "evt-acme-qbr",
+    "title": "ACME QBR",
+    "start_at": "2026-08-17T16:00:00Z",
+    "end_at": "2026-08-17T17:00:00Z",
+    "attendees": [
+      {
+        "email": "pat.nguyen@acme.com",
+        "name": "Pat Nguyen"
+      }
+    ],
+    "location": "Meet",
+    "operator": {
+      "prep_note": ""
+    },
+    "sources": {}
+  },
+  {
+    "type": "calendar_event",
+    "account_id": "acct:acme",
+    "provider": "stub",
+    "external_id": "evt-acme-tam",
+    "title": "ACME TAM working session",
+    "start_at": "2026-08-18T15:00:00Z",
+    "end_at": "2026-08-18T16:00:00Z",
+    "attendees": [
+      {
+        "email": "pat.nguyen@acme.com",
+        "name": "Pat Nguyen"
+      }
+    ],
+    "location": "Meet",
+    "operator": {
+      "prep_note": ""
+    },
+    "sources": {}
+  },
+  {
+    "type": "calendar_event",
+    "account_id": "acct:acme",
+    "provider": "stub",
+    "external_id": "evt-acme-old",
+    "title": "ACME weekly",
+    "start_at": "2026-08-03T16:00:00Z",
+    "end_at": "2026-08-03T16:30:00Z",
+    "attendees": [
+      {
+        "email": "pat.nguyen@acme.com",
+        "name": "Pat Nguyen"
+      }
+    ],
+    "location": "Meet",
+    "operator": {
+      "prep_note": ""
+    },
+    "sources": {}
+  },
+  {
+    "type": "calendar_event",
+    "account_id": "acct:acme",
+    "provider": "stub",
+    "external_id": "evt-acme-ps",
+    "title": "Scan rollout checkpoint",
+    "start_at": "2026-08-20T14:00:00Z",
+    "end_at": "2026-08-20T15:00:00Z",
+    "attendees": [
+      {
+        "email": "sam.ortiz@acme.com",
+        "name": "Sam Ortiz"
+      }
+    ],
+    "location": "Meet",
+    "operator": {
+      "prep_note": "",
+      "unread": true
+    },
+    "sources": {},
+    "status": "proposed"
+  },
+  {
+    "type": "calendar_event",
+    "account_id": "acct:northwind",
+    "provider": "stub",
+    "external_id": "evt-nwin-old",
+    "title": "NWIN monthly",
+    "start_at": "2026-07-02T16:00:00Z",
+    "end_at": "2026-07-02T17:00:00Z",
+    "attendees": [
+      {
+        "email": "kim.hale@northwind.example",
+        "name": "Kim Hale"
+      }
+    ],
+    "location": "Meet",
+    "operator": {
+      "prep_note": ""
+    },
+    "sources": {}
+  },
+  {
+    "type": "calendar_event",
+    "account_id": "acct:northwind",
+    "provider": "stub",
+    "external_id": "evt-nwin-missed",
+    "title": "NWIN incident review",
+    "start_at": "2026-08-10T16:00:00Z",
+    "end_at": "2026-08-10T16:30:00Z",
+    "attendees": [
+      {
+        "email": "kim.hale@northwind.example",
+        "name": "Kim Hale"
+      }
+    ],
+    "location": "Meet",
+    "operator": {
+      "prep_note": ""
+    },
+    "sources": {}
+  },
+  {
+    "type": "calendar_event",
+    "account_id": "acct:northwind",
+    "provider": "stub",
+    "external_id": "evt-nwin-renew",
+    "title": "NWIN renewal",
+    "start_at": "2026-08-25T16:00:00Z",
+    "end_at": "2026-08-25T17:00:00Z",
+    "attendees": [
+      {
+        "email": "rob.singh@northwind.example",
+        "name": "Rob Singh"
+      }
+    ],
+    "location": "Meet",
+    "operator": {
+      "prep_note": "",
+      "unread": true
+    },
+    "sources": {}
+  },
+  {
+    "type": "calendar_event",
+    "account_id": "acct:globex",
+    "provider": "stub",
+    "external_id": "evt-glx-kick",
+    "title": "GLX kickoff",
+    "start_at": "2026-08-10T16:00:00Z",
+    "end_at": "2026-08-10T18:00:00Z",
+    "attendees": [
+      {
+        "email": "ava.chen@globex.example",
+        "name": "Ava Chen"
+      }
+    ],
+    "location": "Meet",
+    "operator": {
+      "prep_note": ""
+    },
+    "sources": {}
+  },
+  {
+    "type": "calendar_event",
+    "account_id": "acct:globex",
+    "provider": "stub",
+    "external_id": "evt-glx-plant",
+    "title": "GLX plant walk",
+    "start_at": "2026-08-14T16:00:00Z",
+    "end_at": "2026-08-14T17:00:00Z",
+    "attendees": [
+      {
+        "email": "ava.chen@globex.example",
+        "name": "Ava Chen"
+      }
+    ],
+    "location": "Meet",
+    "operator": {
+      "prep_note": ""
+    },
+    "sources": {}
+  },
+  {
+    "type": "calendar_event",
+    "account_id": "acct:globex",
+    "provider": "stub",
+    "external_id": "evt-glx-next",
+    "title": "GLX weekly",
+    "start_at": "2026-08-21T16:00:00Z",
+    "end_at": "2026-08-21T16:30:00Z",
+    "attendees": [
+      {
+        "email": "ava.chen@globex.example",
+        "name": "Ava Chen"
+      }
+    ],
+    "location": "Meet",
+    "operator": {
+      "prep_note": ""
+    },
+    "sources": {}
+  }
+]

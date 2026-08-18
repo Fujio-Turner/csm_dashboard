@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://csm-dashboard.local/schema/operator_patch.schema.json",
+  "title": "Operator patch",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [],
+  "properties": {
+    "triage": {
+      "type": "string"
+    },
+    "ignore": {
+      "type": "boolean"
+    },
+    "unread": {
+      "type": "boolean"
+    },
+    "pinned": {
+      "type": "boolean"
+    },
+    "pin": {
+      "type": "boolean"
+    },
+    "prep_note": {
+      "type": "string"
+    }
+  }
+}

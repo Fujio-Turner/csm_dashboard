@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://csm-dashboard.local/schema/ticket.schema.json",
+  "title": "Ticket",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "type",
+    "account_id",
+    "key",
+    "summary"
+  ],
+  "properties": {
+    "status": {
+      "enum": [
+        "open",
+        "in_progress",
+        "waiting",
+        "done",
+        "cancelled"
+      ]
+    },
+    "priority": {
+      "enum": [
+        "p1",
+        "p2",
+        "p3",
+        "p4"
+      ]
+    }
+  }
+}

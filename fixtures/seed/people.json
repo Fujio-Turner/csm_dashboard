@@ -1,0 +1,333 @@
+[
+  {
+    "_id": "person:acme-pat",
+    "type": "person",
+    "account_id": "acct:acme",
+    "kind": "customer",
+    "name": "Pat Nguyen",
+    "email": "pat.nguyen@acme.com",
+    "title": "VP Operations",
+    "role": "champion",
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z",
+    "location": "Chicago HQ",
+    "reports_to": "",
+    "project_ids": [
+      "proj:acme-scan",
+      "proj:acme-sso"
+    ],
+    "functions": [
+      "Ops"
+    ],
+    "owns_all_projects": true
+  },
+  {
+    "_id": "person:acme-lee",
+    "type": "person",
+    "account_id": "acct:acme",
+    "kind": "customer",
+    "name": "Sam Ortiz",
+    "email": "sam.ortiz@acme.com",
+    "title": "Warehouse lead",
+    "role": "technical",
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z",
+    "location": "DC3 warehouse",
+    "reports_to": "person:acme-pat",
+    "project_ids": [
+      "proj:acme-scan"
+    ],
+    "functions": [
+      "Ops"
+    ]
+  },
+  {
+    "_id": "person:acme-bob",
+    "type": "person",
+    "account_id": "acct:acme",
+    "kind": "customer",
+    "name": "Bob Hale",
+    "email": "bob.hale@acme.com",
+    "title": "Plant ops",
+    "role": "technical",
+    "external_ids": {
+      "teams": "bob-hale"
+    },
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z",
+    "location": "DC3 floor",
+    "reports_to": "person:acme-pat",
+    "project_ids": [
+      "proj:acme-scan"
+    ],
+    "functions": [
+      "Ops"
+    ]
+  },
+  {
+    "_id": "person:nwin-kim",
+    "type": "person",
+    "account_id": "acct:northwind",
+    "kind": "customer",
+    "name": "Kim Hale",
+    "email": "kim.hale@northwind.example",
+    "title": "IT Director",
+    "role": "champion",
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z",
+    "location": "Seattle",
+    "reports_to": "",
+    "project_ids": [
+      "proj:nwin-renew"
+    ],
+    "functions": [
+      "DBA"
+    ]
+  },
+  {
+    "_id": "person:nwin-rob",
+    "type": "person",
+    "account_id": "acct:northwind",
+    "kind": "customer",
+    "name": "Rob Singh",
+    "email": "rob.singh@northwind.example",
+    "title": "CFO",
+    "role": "economic_buyer",
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z",
+    "location": "Seattle",
+    "reports_to": "person:nwin-kim",
+    "project_ids": [
+      "proj:nwin-renew"
+    ],
+    "functions": [
+      "Accounting"
+    ]
+  },
+  {
+    "_id": "person:glx-ava",
+    "type": "person",
+    "account_id": "acct:globex",
+    "kind": "customer",
+    "name": "Ava Chen",
+    "email": "ava.chen@globex.example",
+    "title": "Plant manager",
+    "role": "champion",
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z",
+    "location": "Cleveland plant",
+    "reports_to": "",
+    "project_ids": [
+      "proj:glx-onboard"
+    ],
+    "functions": [
+      "Ops"
+    ]
+  },
+  {
+    "_id": "person:ae01",
+    "type": "person",
+    "account_id": "acct:acme",
+    "kind": "account_team",
+    "name": "Riley Park",
+    "email": "riley@example.com",
+    "title": "Account Executive",
+    "role": "ae",
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z",
+    "location": "New York",
+    "reports_to": "",
+    "project_ids": [
+      "proj:acme-scan"
+    ],
+    "functions": []
+  },
+  {
+    "_id": "person:ae02",
+    "type": "person",
+    "account_id": "acct:globex",
+    "kind": "account_team",
+    "name": "Morgan Diaz",
+    "email": "morgan@example.com",
+    "title": "Account Executive",
+    "role": "ae",
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z",
+    "location": "Chicago",
+    "reports_to": "",
+    "project_ids": [
+      "proj:glx-onboard"
+    ],
+    "functions": []
+  },
+  {
+    "_id": "person:csm01",
+    "type": "person",
+    "account_id": "acct:acme",
+    "kind": "account_team",
+    "name": "Jordan Lee",
+    "email": "jordan@example.com",
+    "title": "CSM",
+    "role": "csm",
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z",
+    "location": "Remote",
+    "reports_to": "person:ae01",
+    "project_ids": [
+      "proj:acme-scan",
+      "proj:acme-sso"
+    ],
+    "functions": [
+      "Ops"
+    ]
+  },
+  {
+    "_id": "person:tam01",
+    "type": "person",
+    "account_id": "acct:acme",
+    "kind": "account_team",
+    "name": "Chris Vale",
+    "email": "chris@example.com",
+    "title": "TAM",
+    "role": "tam",
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z",
+    "location": "Austin",
+    "reports_to": "person:csm01",
+    "project_ids": [
+      "proj:acme-sso"
+    ],
+    "functions": [
+      "DBA"
+    ]
+  },
+  {
+    "_id": "person:ps01",
+    "type": "person",
+    "account_id": "acct:acme",
+    "kind": "ps_team",
+    "name": "Alex Rivera",
+    "email": "alex@example.com",
+    "title": "PS lead",
+    "role": "ps_lead",
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z",
+    "location": "Denver",
+    "reports_to": "person:csm01",
+    "project_ids": [
+      "proj:acme-scan"
+    ],
+    "functions": [
+      "DBA"
+    ]
+  },
+  {
+    "_id": "person:ps02",
+    "type": "person",
+    "account_id": "acct:northwind",
+    "kind": "ps_team",
+    "name": "Quinn Brooks",
+    "email": "quinn@example.com",
+    "title": "PS consultant",
+    "role": "ps_consultant",
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z",
+    "location": "Portland",
+    "reports_to": "person:nwin-csm",
+    "project_ids": [
+      "proj:nwin-renew"
+    ],
+    "functions": [
+      "DBA"
+    ]
+  },
+  {
+    "_id": "person:nwin-csm",
+    "type": "person",
+    "account_id": "acct:northwind",
+    "kind": "account_team",
+    "name": "Jordan Lee",
+    "email": "jordan@example.com",
+    "title": "CSM",
+    "role": "csm",
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z",
+    "location": "Remote",
+    "reports_to": "",
+    "project_ids": [
+      "proj:nwin-renew"
+    ],
+    "functions": [
+      "Ops"
+    ]
+  },
+  {
+    "_id": "person:glx-csm",
+    "type": "person",
+    "account_id": "acct:globex",
+    "kind": "account_team",
+    "name": "Jordan Lee",
+    "email": "jordan@example.com",
+    "title": "CSM",
+    "role": "csm",
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z",
+    "location": "Remote",
+    "reports_to": "person:ae02",
+    "project_ids": [
+      "proj:glx-onboard"
+    ],
+    "functions": [
+      "Ops"
+    ]
+  },
+  {
+    "_id": "person:glx-ps",
+    "type": "person",
+    "account_id": "acct:globex",
+    "kind": "ps_team",
+    "name": "Alex Rivera",
+    "email": "alex@example.com",
+    "title": "PS lead",
+    "role": "ps_lead",
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z",
+    "location": "Denver",
+    "reports_to": "person:glx-csm",
+    "project_ids": [
+      "proj:glx-onboard"
+    ],
+    "functions": [
+      "DBA"
+    ]
+  }
+]

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://csm-dashboard.local/schema/action_item.schema.json",
+  "title": "Action item",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "type",
+    "account_id",
+    "title"
+  ],
+  "properties": {
+    "status": {
+      "enum": [
+        "open",
+        "done",
+        "cancelled",
+        "snoozed"
+      ]
+    },
+    "kind": {
+      "enum": [
+        "email",
+        "call",
+        "meeting",
+        "slack",
+        "ticket",
+        "internal",
+        "other"
+      ]
+    }
+  }
+}

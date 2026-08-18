@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://csm-dashboard.local/schema/salesforce_opportunity.schema.json",
+  "title": "Salesforce opportunity",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["type", "account_id", "name"],
+  "properties": {
+    "type": { "const": "salesforce_opportunity" },
+    "stage": {
+      "enum": [
+        "prospecting",
+        "qualification",
+        "proposal",
+        "negotiation",
+        "closed_won",
+        "closed_lost"
+      ]
+    },
+    "kind": {
+      "enum": ["renewal", "upsell", "new", "other"]
+    }
+  }
+}

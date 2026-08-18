@@ -1,0 +1,142 @@
+[
+  {
+    "type": "teams_message",
+    "account_id": "acct:acme",
+    "channel_id": "19:acme-success",
+    "ts": "1723908000.000000",
+    "thread_id": "",
+    "user": "bob.hale",
+    "user_name": "bob.hale",
+    "text": "Tried the pin on DC3 \u2014 still dying.",
+    "permalink": "https://teams.microsoft.com/l/message/19:acme-success/0",
+    "operator": {
+      "pin": false,
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "teams_message",
+    "account_id": "acct:acme",
+    "channel_id": "19:acme-success",
+    "ts": "1723908000.000001",
+    "thread_id": "",
+    "user": "jordan",
+    "user_name": "jordan",
+    "text": "Thanks Bob. Logging on ACME-12.",
+    "permalink": "https://teams.microsoft.com/l/message/19:acme-success/1",
+    "operator": {
+      "pin": false,
+      "unread": false
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "teams_message",
+    "account_id": "acct:acme",
+    "channel_id": "19:acme-success",
+    "ts": "1723908000.000002",
+    "thread_id": "",
+    "user": "pat.nguyen",
+    "user_name": "pat.nguyen",
+    "text": "Need a date before QBR.",
+    "permalink": "https://teams.microsoft.com/l/message/19:acme-success/2",
+    "operator": {
+      "pin": false,
+      "unread": false
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "teams_message",
+    "account_id": "acct:northwind",
+    "channel_id": "19:nwin-success",
+    "ts": "1723908000.000003",
+    "thread_id": "",
+    "user": "kim.hale",
+    "user_name": "kim.hale",
+    "text": "Still dark on the auth P1.",
+    "permalink": "https://teams.microsoft.com/l/message/19:nwin-success/3",
+    "operator": {
+      "pin": false,
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "teams_message",
+    "account_id": "acct:northwind",
+    "channel_id": "19:nwin-success",
+    "ts": "1723908000.000004",
+    "thread_id": "",
+    "user": "jordan",
+    "user_name": "jordan",
+    "text": "Calling Rob today.",
+    "permalink": "https://teams.microsoft.com/l/message/19:nwin-success/4",
+    "operator": {
+      "pin": false,
+      "unread": false
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "teams_message",
+    "account_id": "acct:globex",
+    "channel_id": "19:glx-onboard",
+    "ts": "1723908000.000005",
+    "thread_id": "",
+    "user": "ava.chen",
+    "user_name": "ava.chen",
+    "text": "VPN allowlist is in.",
+    "permalink": "https://teams.microsoft.com/l/message/19:glx-onboard/5",
+    "operator": {
+      "pin": false,
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "teams_message",
+    "account_id": "acct:globex",
+    "channel_id": "19:glx-onboard",
+    "ts": "1723908000.000006",
+    "thread_id": "",
+    "user": "jordan",
+    "user_name": "jordan",
+    "text": "Ack \u2014 ticket GLX-8.",
+    "permalink": "https://teams.microsoft.com/l/message/19:glx-onboard/6",
+    "operator": {
+      "pin": false,
+      "unread": false
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  }
+]

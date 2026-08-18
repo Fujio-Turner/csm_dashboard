@@ -1,0 +1,863 @@
+[
+  {
+    "_id": "act:36fbeb4c6e329da6",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "ticket_updated",
+    "at": "2026-08-17T09:00:00Z",
+    "title": "ACME-12 In Progress",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:ACME-12"
+    },
+    "source_ref": "jira:ticket:ACME-12:created:2026-08-17T09:00:00Z",
+    "actor": "jira",
+    "body": "",
+    "project_id": "proj:acme-scan"
+  },
+  {
+    "_id": "act:67a495db00dcf6cc",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "ticket_updated",
+    "at": "2026-08-16T11:00:00Z",
+    "title": "ACME-18 Open",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:ACME-18"
+    },
+    "source_ref": "jira:ticket:ACME-18:created:2026-08-16T11:00:00Z",
+    "actor": "jira",
+    "body": "",
+    "project_id": "proj:acme-sso"
+  },
+  {
+    "_id": "act:806aa56a64dfc350",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "ticket_updated",
+    "at": "2026-08-14T10:00:00Z",
+    "title": "ACME-21 Waiting",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:ACME-21"
+    },
+    "source_ref": "jira:ticket:ACME-21:created:2026-08-14T10:00:00Z",
+    "actor": "jira",
+    "body": "",
+    "project_id": "proj:acme-scan"
+  },
+  {
+    "_id": "act:5f0dc70e3aa17d52",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "ticket_updated",
+    "at": "2026-08-12T10:00:00Z",
+    "title": "ACME-9 Done",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:ACME-9"
+    },
+    "source_ref": "jira:ticket:ACME-9:updated:2026-08-12T10:00:00Z",
+    "actor": "jira",
+    "body": "",
+    "project_id": "proj:acme-scan"
+  },
+  {
+    "_id": "act:8e4f5eff77aa2556",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "ticket_updated",
+    "at": "2026-08-15T10:00:00Z",
+    "title": "ACME-30 Open",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:ACME-30"
+    },
+    "source_ref": "jira:ticket:ACME-30:created:2026-08-15T10:00:00Z",
+    "actor": "jira",
+    "body": "",
+    "project_id": "proj:acme-scan"
+  },
+  {
+    "_id": "act:d07bb3b2167aff7a",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "ticket_updated",
+    "at": "2026-08-17T07:00:00Z",
+    "title": "ACME-31 Open",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:ACME-31"
+    },
+    "source_ref": "jira:ticket:ACME-31:created:2026-08-17T07:00:00Z",
+    "actor": "jira",
+    "body": "",
+    "project_id": "proj:acme-scan"
+  },
+  {
+    "_id": "act:a5bb54fe418a6fd5",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "ticket_updated",
+    "at": "2026-08-15T18:00:00Z",
+    "title": "NWIN-4 Open",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:NWIN-4"
+    },
+    "source_ref": "jira:ticket:NWIN-4:created:2026-08-15T18:00:00Z",
+    "actor": "jira",
+    "body": "",
+    "project_id": "proj:nwin-renew"
+  },
+  {
+    "_id": "act:19695a2ab559c901",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "ticket_updated",
+    "at": "2026-08-16T12:00:00Z",
+    "title": "NWIN-7 Open",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:NWIN-7"
+    },
+    "source_ref": "jira:ticket:NWIN-7:created:2026-08-16T12:00:00Z",
+    "actor": "jira",
+    "body": "",
+    "project_id": "proj:nwin-renew"
+  },
+  {
+    "_id": "act:e4984964ed8b1c49",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "ticket_updated",
+    "at": "2026-08-08T12:00:00Z",
+    "title": "NWIN-11 Waiting",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:NWIN-11"
+    },
+    "source_ref": "jira:ticket:NWIN-11:created:2026-08-08T12:00:00Z",
+    "actor": "jira",
+    "body": "",
+    "project_id": "proj:nwin-renew"
+  },
+  {
+    "_id": "act:48b6655b90378502",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "ticket_updated",
+    "at": "2026-08-14T12:00:00Z",
+    "title": "NWIN-12 Open",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:NWIN-12"
+    },
+    "source_ref": "jira:ticket:NWIN-12:created:2026-08-14T12:00:00Z",
+    "actor": "jira",
+    "body": "",
+    "project_id": "proj:nwin-renew"
+  },
+  {
+    "_id": "act:3d344d8e49601ed4",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "ticket_updated",
+    "at": "2026-08-13T12:00:00Z",
+    "title": "NWIN-19 Open",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:NWIN-19"
+    },
+    "source_ref": "jira:ticket:NWIN-19:created:2026-08-13T12:00:00Z",
+    "actor": "jira",
+    "body": "",
+    "project_id": "proj:nwin-renew"
+  },
+  {
+    "_id": "act:fa9491dc8b02cae8",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "ticket_updated",
+    "at": "2026-08-01T12:00:00Z",
+    "title": "NWIN-2 Cancelled",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:NWIN-2"
+    },
+    "source_ref": "jira:ticket:NWIN-2:created:2026-08-01T12:00:00Z",
+    "actor": "jira",
+    "body": "",
+    "project_id": "proj:nwin-renew"
+  },
+  {
+    "_id": "act:0131f5aeb9603553",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "ticket_updated",
+    "at": "2026-08-12T12:00:00Z",
+    "title": "GLX-3 Done",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:GLX-3"
+    },
+    "source_ref": "jira:ticket:GLX-3:updated:2026-08-12T12:00:00Z",
+    "actor": "jira",
+    "body": "",
+    "project_id": "proj:glx-onboard"
+  },
+  {
+    "_id": "act:a04aa4cc7f9f6621",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "ticket_updated",
+    "at": "2026-08-16T12:00:00Z",
+    "title": "GLX-5 Open",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:GLX-5"
+    },
+    "source_ref": "jira:ticket:GLX-5:created:2026-08-16T12:00:00Z",
+    "actor": "jira",
+    "body": "",
+    "project_id": "proj:glx-onboard"
+  },
+  {
+    "_id": "act:c8e78833cc87c570",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "ticket_updated",
+    "at": "2026-08-17T12:00:00Z",
+    "title": "GLX-6 Open",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:GLX-6"
+    },
+    "source_ref": "jira:ticket:GLX-6:created:2026-08-17T12:00:00Z",
+    "actor": "jira",
+    "body": "",
+    "project_id": "proj:glx-onboard"
+  },
+  {
+    "_id": "act:8ff9372846c034c3",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "ticket_updated",
+    "at": "2026-08-17T13:00:00Z",
+    "title": "GLX-8 In Progress",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:GLX-8"
+    },
+    "source_ref": "jira:ticket:GLX-8:created:2026-08-17T13:00:00Z",
+    "actor": "jira",
+    "body": "",
+    "project_id": "proj:glx-onboard"
+  },
+  {
+    "_id": "act:0ac17c394fb98974",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "ticket_updated",
+    "at": "2026-08-11T12:00:00Z",
+    "title": "GLX-9 Done",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:GLX-9"
+    },
+    "source_ref": "jira:ticket:GLX-9:updated:2026-08-11T12:00:00Z",
+    "actor": "jira",
+    "body": "",
+    "project_id": "proj:glx-onboard"
+  },
+  {
+    "_id": "act:0009897e715bef76",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "email_in",
+    "at": "2026-08-15T14:00:00Z",
+    "title": "ACME-12 workaround",
+    "ref": {
+      "collection": "emails",
+      "id": "em:421321c475293ec4ff86"
+    },
+    "source_ref": "mail:<acme-root@acme.com>",
+    "actor": "pat.nguyen@acme.com",
+    "body": "",
+    "project_id": "proj:acme-scan"
+  },
+  {
+    "_id": "act:7f72c851a7ba9c5e",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "email_out",
+    "at": "2026-08-15T16:00:00Z",
+    "title": "Re: ACME-12 workaround",
+    "ref": {
+      "collection": "emails",
+      "id": "em:b336bb6ea0684ce32647"
+    },
+    "source_ref": "mail:<acme-2@example.com>",
+    "actor": "jordan@example.com",
+    "body": "",
+    "project_id": "proj:acme-scan"
+  },
+  {
+    "_id": "act:6c02c84405508f85",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "email_in",
+    "at": "2026-08-16T09:00:00Z",
+    "title": "Re: ACME-12 workaround",
+    "ref": {
+      "collection": "emails",
+      "id": "em:8265cd5d2be08d1a6e5e"
+    },
+    "source_ref": "mail:<acme-3@acme.com>",
+    "actor": "pat.nguyen@acme.com",
+    "body": "",
+    "project_id": "proj:acme-scan"
+  },
+  {
+    "_id": "act:1762bd4ec83d9a98",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "email_out",
+    "at": "2026-08-16T18:00:00Z",
+    "title": "Re: ACME-12 workaround",
+    "ref": {
+      "collection": "emails",
+      "id": "em:da92ccbfde082e9551b7"
+    },
+    "source_ref": "mail:<acme-4@example.com>",
+    "actor": "jordan@example.com",
+    "body": "",
+    "project_id": "proj:acme-scan"
+  },
+  {
+    "_id": "act:430bbc06fe7de9a7",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "email_in",
+    "at": "2026-08-17T14:22:00Z",
+    "title": "Re: ACME-12 workaround",
+    "ref": {
+      "collection": "emails",
+      "id": "em:c55edb1be32de4e2f08e"
+    },
+    "source_ref": "mail:<acme-5@acme.com>",
+    "actor": "pat.nguyen@acme.com",
+    "body": "",
+    "project_id": "proj:acme-scan"
+  },
+  {
+    "_id": "act:8acff2ddbfcdbe4f",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "email_in",
+    "at": "2026-08-16T11:30:00Z",
+    "title": "SSO timeout after 8 hours",
+    "ref": {
+      "collection": "emails",
+      "id": "em:4fcbdb37410cd4682b62"
+    },
+    "source_ref": "mail:<acme-sso@acme.com>",
+    "actor": "sam.ortiz@acme.com",
+    "body": "",
+    "project_id": "proj:acme-sso"
+  },
+  {
+    "_id": "act:da56d8d4d32e9f54",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "email_in",
+    "at": "2026-08-15T19:00:00Z",
+    "title": "Friday auth outage",
+    "ref": {
+      "collection": "emails",
+      "id": "em:9814cb03426845084636"
+    },
+    "source_ref": "mail:<nwin-root@northwind.example>",
+    "actor": "kim.hale@northwind.example",
+    "body": "",
+    "project_id": "proj:nwin-renew"
+  },
+  {
+    "_id": "act:1e64a7ad158b299c",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "email_out",
+    "at": "2026-08-16T08:00:00Z",
+    "title": "Re: Friday auth outage",
+    "ref": {
+      "collection": "emails",
+      "id": "em:2dc90399a25efcd3fbc1"
+    },
+    "source_ref": "mail:<nwin-2@example.com>",
+    "actor": "jordan@example.com",
+    "body": "",
+    "project_id": "proj:nwin-renew"
+  },
+  {
+    "_id": "act:4c01935eb8b162c5",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "email_in",
+    "at": "2026-08-16T20:00:00Z",
+    "title": "Re: Friday auth outage",
+    "ref": {
+      "collection": "emails",
+      "id": "em:8fe5494c49712ab28392"
+    },
+    "source_ref": "mail:<nwin-3@northwind.example>",
+    "actor": "kim.hale@northwind.example",
+    "body": "",
+    "project_id": "proj:nwin-renew"
+  },
+  {
+    "_id": "act:0249565d40f0272a",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "email_in",
+    "at": "2026-08-17T10:00:00Z",
+    "title": "Re: Friday auth outage",
+    "ref": {
+      "collection": "emails",
+      "id": "em:d5ad69979a7320665905"
+    },
+    "source_ref": "mail:<nwin-4@northwind.example>",
+    "actor": "rob.singh@northwind.example",
+    "body": "",
+    "project_id": "proj:nwin-renew"
+  },
+  {
+    "_id": "act:4a616c1f9792416b",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "email_in",
+    "at": "2026-08-11T16:00:00Z",
+    "title": "Kickoff recap",
+    "ref": {
+      "collection": "emails",
+      "id": "em:2491981d33cb842885f2"
+    },
+    "source_ref": "mail:<glx-root@globex.example>",
+    "actor": "ava.chen@globex.example",
+    "body": "",
+    "project_id": "proj:glx-onboard"
+  },
+  {
+    "_id": "act:609a5370baa6b088",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "email_out",
+    "at": "2026-08-12T09:00:00Z",
+    "title": "Re: Kickoff recap",
+    "ref": {
+      "collection": "emails",
+      "id": "em:8327a066f41d212e2a4d"
+    },
+    "source_ref": "mail:<glx-2@example.com>",
+    "actor": "jordan@example.com",
+    "body": "",
+    "project_id": "proj:glx-onboard"
+  },
+  {
+    "_id": "act:b65d033e7f883f7f",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "email_in",
+    "at": "2026-08-13T15:00:00Z",
+    "title": "Re: Kickoff recap",
+    "ref": {
+      "collection": "emails",
+      "id": "em:0015a0b30a744d8826fa"
+    },
+    "source_ref": "mail:<glx-3@globex.example>",
+    "actor": "ava.chen@globex.example",
+    "body": "",
+    "project_id": "proj:glx-onboard"
+  },
+  {
+    "_id": "act:40a9cde592639d7e",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "email_out",
+    "at": "2026-08-14T11:00:00Z",
+    "title": "Re: Kickoff recap",
+    "ref": {
+      "collection": "emails",
+      "id": "em:6eb19d226a00fa53be14"
+    },
+    "source_ref": "mail:<glx-4@example.com>",
+    "actor": "jordan@example.com",
+    "body": "",
+    "project_id": "proj:glx-onboard"
+  },
+  {
+    "_id": "act:30d53ed391dd2836",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "meeting",
+    "at": "2026-08-17T16:00:00Z",
+    "title": "ACME QBR",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-acme-qbr"
+    },
+    "source_ref": "cal:stub:evt-acme-qbr",
+    "actor": "calendar",
+    "body": ""
+  },
+  {
+    "_id": "act:d6f2a91143e6b39c",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "meeting",
+    "at": "2026-08-18T15:00:00Z",
+    "title": "ACME TAM working session",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-acme-tam"
+    },
+    "source_ref": "cal:stub:evt-acme-tam",
+    "actor": "calendar",
+    "body": ""
+  },
+  {
+    "_id": "act:1f75d36d308edb80",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "meeting",
+    "at": "2026-08-03T16:00:00Z",
+    "title": "ACME weekly",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-acme-old"
+    },
+    "source_ref": "cal:stub:evt-acme-old",
+    "actor": "calendar",
+    "body": ""
+  },
+  {
+    "_id": "act:1c1ca2fa07d3a1e9",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "meeting",
+    "at": "2026-08-20T14:00:00Z",
+    "title": "Scan rollout checkpoint",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-acme-ps"
+    },
+    "source_ref": "cal:stub:evt-acme-ps",
+    "actor": "calendar",
+    "body": "",
+    "project_id": "proj:acme-scan"
+  },
+  {
+    "_id": "act:687c1a2285190a02",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "meeting",
+    "at": "2026-07-02T16:00:00Z",
+    "title": "NWIN monthly",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-nwin-old"
+    },
+    "source_ref": "cal:stub:evt-nwin-old",
+    "actor": "calendar",
+    "body": "",
+    "project_id": "proj:nwin-renew"
+  },
+  {
+    "_id": "act:9bb91d17c5f128ab",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "meeting",
+    "at": "2026-08-10T16:00:00Z",
+    "title": "NWIN incident review",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-nwin-missed"
+    },
+    "source_ref": "cal:stub:evt-nwin-missed",
+    "actor": "calendar",
+    "body": "",
+    "project_id": "proj:nwin-renew"
+  },
+  {
+    "_id": "act:4ef5ca6b05a5a38c",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "meeting",
+    "at": "2026-08-25T16:00:00Z",
+    "title": "NWIN renewal",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-nwin-renew"
+    },
+    "source_ref": "cal:stub:evt-nwin-renew",
+    "actor": "calendar",
+    "body": "",
+    "project_id": "proj:nwin-renew"
+  },
+  {
+    "_id": "act:28e8471531d26b54",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "meeting",
+    "at": "2026-08-10T16:00:00Z",
+    "title": "GLX kickoff",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-glx-kick"
+    },
+    "source_ref": "cal:stub:evt-glx-kick",
+    "actor": "calendar",
+    "body": "",
+    "project_id": "proj:glx-onboard"
+  },
+  {
+    "_id": "act:e81af5673625f102",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "meeting",
+    "at": "2026-08-14T16:00:00Z",
+    "title": "GLX plant walk",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-glx-plant"
+    },
+    "source_ref": "cal:stub:evt-glx-plant",
+    "actor": "calendar",
+    "body": "",
+    "project_id": "proj:glx-onboard"
+  },
+  {
+    "_id": "act:b2930c4f9f4a75ba",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "meeting",
+    "at": "2026-08-21T16:00:00Z",
+    "title": "GLX weekly",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-glx-next"
+    },
+    "source_ref": "cal:stub:evt-glx-next",
+    "actor": "calendar",
+    "body": "",
+    "project_id": "proj:glx-onboard"
+  },
+  {
+    "_id": "act:3719342639adba01",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "slack",
+    "at": "2026-08-17T13:20:00Z",
+    "title": "Scanner died again in DC3",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0ACME1:1723900000_000100"
+    },
+    "source_ref": "slack:C0ACME1:1723900000.000100",
+    "actor": "pat.nguyen",
+    "body": "",
+    "project_id": "proj:acme-scan"
+  },
+  {
+    "_id": "act:8575c4b45c367837",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "slack",
+    "at": "2026-08-17T13:35:00Z",
+    "title": "TAM is looking at the logs",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0ACME1:1723900001_000100"
+    },
+    "source_ref": "slack:C0ACME1:1723900001.000100",
+    "actor": "jordan",
+    "body": "",
+    "project_id": "proj:acme-scan"
+  },
+  {
+    "_id": "act:e23b14c42202790f",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "slack",
+    "at": "2026-08-16T15:10:00Z",
+    "title": "Can we get a date for the pin?",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0ACME1:1723900003_000100"
+    },
+    "source_ref": "slack:C0ACME1:1723900003.000100",
+    "actor": "jordan",
+    "body": "",
+    "project_id": "proj:acme-scan"
+  },
+  {
+    "_id": "act:77f85e137174febe",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "teams",
+    "at": "2026-08-17T14:05:00Z",
+    "title": "Tried the pin on DC3 \u2014 still dying.",
+    "ref": {
+      "collection": "teams_messages",
+      "id": "tmm:19:acme-success:1723908000_000000"
+    },
+    "source_ref": "teams:19:acme-success:1723908000.000000",
+    "actor": "bob.hale",
+    "body": "",
+    "project_id": "proj:acme-scan"
+  },
+  {
+    "_id": "act:57879768fdf59445",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "teams",
+    "at": "2026-08-17T14:12:00Z",
+    "title": "Thanks Bob. Logging on ACME-12.",
+    "ref": {
+      "collection": "teams_messages",
+      "id": "tmm:19:acme-success:1723908000_000001"
+    },
+    "source_ref": "teams:19:acme-success:1723908000.000001",
+    "actor": "jordan",
+    "body": "",
+    "project_id": "proj:acme-scan"
+  },
+  {
+    "_id": "act:2395b9230a96fd6b",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "salesforce",
+    "at": "2026-08-16T18:00:00Z",
+    "title": "ACME Enterprise Renewal FY27 \u00b7 negotiation",
+    "ref": {
+      "collection": "salesforce_opportunities",
+      "id": "sfo:006ACME0001"
+    },
+    "source_ref": "sfdc:opp:006ACME0001:negotiation:2026-08-16T18:00:00Z",
+    "actor": "salesforce",
+    "body": "",
+    "project_id": "proj:acme-scan"
+  },
+  {
+    "_id": "act:4641eff0e21c8845",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "salesforce",
+    "at": "2026-08-15T12:00:00Z",
+    "title": "Warehouse scanners add-on \u00b7 proposal",
+    "ref": {
+      "collection": "salesforce_opportunities",
+      "id": "sfo:006ACME0002"
+    },
+    "source_ref": "sfdc:opp:006ACME0002:proposal:2026-08-15T12:00:00Z",
+    "actor": "salesforce",
+    "body": "",
+    "project_id": "proj:acme-scan"
+  },
+  {
+    "_id": "act:91c1a06794143182",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "salesforce",
+    "at": "2026-08-17T09:10:00Z",
+    "title": "Case 00081234 \u00b7 Handheld scanners brick on OS 14",
+    "ref": {
+      "collection": "salesforce_cases",
+      "id": "sfc:00081234"
+    },
+    "source_ref": "sfdc:case:00081234:working:2026-08-17T09:10:00Z",
+    "actor": "salesforce",
+    "body": "",
+    "project_id": "proj:acme-scan"
+  },
+  {
+    "_id": "act:ca52a7fa9d27c49d",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "salesforce",
+    "at": "2026-08-16T11:20:00Z",
+    "title": "Case 00081290 \u00b7 SSO session timeout after 8 hours",
+    "ref": {
+      "collection": "salesforce_cases",
+      "id": "sfc:00081290"
+    },
+    "source_ref": "sfdc:case:00081290:new:2026-08-16T11:20:00Z",
+    "actor": "salesforce",
+    "body": "",
+    "project_id": "proj:acme-sso"
+  },
+  {
+    "_id": "act:dc37ecbec0e89b73",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "salesforce",
+    "at": "2026-08-14T09:00:00Z",
+    "title": "Northwind Renewal \u2014 at risk \u00b7 qualification",
+    "ref": {
+      "collection": "salesforce_opportunities",
+      "id": "sfo:006NWIN0001"
+    },
+    "source_ref": "sfdc:opp:006NWIN0001:qualification:2026-08-14T09:00:00Z",
+    "actor": "salesforce",
+    "body": "",
+    "project_id": "proj:nwin-renew"
+  },
+  {
+    "_id": "act:513662aefef6f5f7",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "salesforce",
+    "at": "2026-08-15T08:00:00Z",
+    "title": "Case 00070111 \u00b7 Auth outage \u2014 champion dark",
+    "ref": {
+      "collection": "salesforce_cases",
+      "id": "sfc:00070111"
+    },
+    "source_ref": "sfdc:case:00070111:escalated:2026-08-15T08:00:00Z",
+    "actor": "salesforce",
+    "body": "",
+    "project_id": "proj:nwin-renew"
+  },
+  {
+    "_id": "act:95647d2b5b0be573",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "salesforce",
+    "at": "2026-08-13T16:00:00Z",
+    "title": "Plant 2 expansion \u00b7 prospecting",
+    "ref": {
+      "collection": "salesforce_opportunities",
+      "id": "sfo:006GLX0001"
+    },
+    "source_ref": "sfdc:opp:006GLX0001:prospecting:2026-08-13T16:00:00Z",
+    "actor": "salesforce",
+    "body": "",
+    "project_id": "proj:glx-onboard"
+  },
+  {
+    "_id": "act:5eea1d37cc88395c",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "salesforce",
+    "at": "2026-08-13T14:00:00Z",
+    "title": "Case 00030008 \u00b7 VPN allowlist for plant 2",
+    "ref": {
+      "collection": "salesforce_cases",
+      "id": "sfc:00030008"
+    },
+    "source_ref": "sfdc:case:00030008:waiting:2026-08-13T14:00:00Z",
+    "actor": "salesforce",
+    "body": "",
+    "project_id": "proj:glx-onboard"
+  }
+]

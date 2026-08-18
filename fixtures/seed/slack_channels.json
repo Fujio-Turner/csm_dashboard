@@ -1,0 +1,26 @@
+[
+  {
+    "type": "slack_channel",
+    "account_id": "acct:acme",
+    "channel_id": "C0ACME1",
+    "name": "acme-success",
+    "is_private": false,
+    "topic": "ACME production"
+  },
+  {
+    "type": "slack_channel",
+    "account_id": "acct:northwind",
+    "channel_id": "C0NWIN1",
+    "name": "northwind-success",
+    "is_private": false,
+    "topic": "Northwind"
+  },
+  {
+    "type": "slack_channel",
+    "account_id": "acct:globex",
+    "channel_id": "C0GLX1",
+    "name": "globex-onboard",
+    "is_private": false,
+    "topic": "Globex onboarding"
+  }
+]

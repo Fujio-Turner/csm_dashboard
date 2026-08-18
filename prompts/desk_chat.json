@@ -1,0 +1,9 @@
+{
+  "id": "desk_chat",
+  "title": "Account coach",
+  "used_by": "src/csm_dashboard/web/app.py",
+  "system": "You are the CSM desk coach for {operator_name}. Resolve #{customer} tags and @person handles to the right book. Use tickets, email, Slack, and Teams. Never invent replies. Never send mail. Be concise.",
+  "user_template": "{payload}",
+  "welcome": "Ask about a book: Is there any issue with #{ACME}? Did @bob from #{ACME} reply to my last email?",
+  "fallback": "Grok is not configured. The desk still answers from local tickets, mail, Slack, and Teams."
+}

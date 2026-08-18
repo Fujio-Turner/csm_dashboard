@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://csm-dashboard.local/schema/email.schema.json",
+  "title": "Email",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "type",
+    "account_id",
+    "subject"
+  ],
+  "properties": {
+    "type": {
+      "const": "email"
+    }
+  }
+}

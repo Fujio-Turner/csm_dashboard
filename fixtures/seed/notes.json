@@ -1,0 +1,86 @@
+[
+  {
+    "_id": "note:acme-pref",
+    "type": "note",
+    "account_id": "acct:acme",
+    "ref": {
+      "collection": "accounts",
+      "id": "acct:acme"
+    },
+    "body": "Pat prefers email before Slack.",
+    "author": "you",
+    "created_at": "2026-08-12T00:00:00Z"
+  },
+  {
+    "_id": "note:acme-12-call",
+    "type": "note",
+    "account_id": "acct:acme",
+    "ref": {
+      "collection": "activities",
+      "id": "act:36fbeb4c6e329da6"
+    },
+    "body": "Call Pat after the next firmware drop.",
+    "author": "you",
+    "created_at": "2026-08-17T10:00:00Z"
+  },
+  {
+    "_id": "note:acme-dc3",
+    "type": "note",
+    "account_id": "acct:acme",
+    "ref": {
+      "collection": "accounts",
+      "id": "acct:acme"
+    },
+    "body": "DC3 is the only site on the new OS image.",
+    "author": "you",
+    "created_at": "2026-08-12T00:00:00Z"
+  },
+  {
+    "_id": "note:nwin-dark",
+    "type": "note",
+    "account_id": "acct:northwind",
+    "ref": {
+      "collection": "accounts",
+      "id": "acct:northwind"
+    },
+    "body": "Kim has gone dark since the outage. Rob is the economic buyer.",
+    "author": "you",
+    "created_at": "2026-08-12T00:00:00Z"
+  },
+  {
+    "_id": "note:nwin-risk",
+    "type": "note",
+    "account_id": "acct:northwind",
+    "ref": {
+      "collection": "accounts",
+      "id": "acct:northwind"
+    },
+    "body": "Renewal 2026-09-05. Two P1s open.",
+    "author": "you",
+    "created_at": "2026-08-12T00:00:00Z"
+  },
+  {
+    "_id": "note:glx-good",
+    "type": "note",
+    "account_id": "acct:globex",
+    "ref": {
+      "collection": "accounts",
+      "id": "acct:globex"
+    },
+    "body": "Clean kickoff. Plant 2 is the expansion.",
+    "author": "you",
+    "created_at": "2026-08-12T00:00:00Z"
+  },
+  {
+    "_id": "note:glx-badge",
+    "type": "note",
+    "account_id": "acct:globex",
+    "ref": {
+      "collection": "accounts",
+      "id": "acct:globex"
+    },
+    "body": "Badge list arrived 2026-08-13.",
+    "author": "you",
+    "created_at": "2026-08-12T00:00:00Z"
+  }
+]

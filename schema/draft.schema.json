@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://csm-dashboard.local/schema/draft.schema.json",
+  "title": "Draft",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "type",
+    "account_id"
+  ],
+  "properties": {
+    "status": {
+      "enum": [
+        "composing",
+        "ready",
+        "sent",
+        "failed",
+        "discarded"
+      ]
+    }
+  }
+}

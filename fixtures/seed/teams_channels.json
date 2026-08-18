@@ -1,0 +1,26 @@
+[
+  {
+    "type": "teams_channel",
+    "account_id": "acct:acme",
+    "channel_id": "19:acme-success",
+    "name": "ACME Success",
+    "team_name": "Acme",
+    "topic": "ACME production"
+  },
+  {
+    "type": "teams_channel",
+    "account_id": "acct:northwind",
+    "channel_id": "19:nwin-success",
+    "name": "NWIN Success",
+    "team_name": "Northwind",
+    "topic": "Renewal"
+  },
+  {
+    "type": "teams_channel",
+    "account_id": "acct:globex",
+    "channel_id": "19:glx-onboard",
+    "name": "GLX Onboard",
+    "team_name": "Globex",
+    "topic": "Kickoff"
+  }
+]

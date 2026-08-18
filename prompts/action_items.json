@@ -1,0 +1,7 @@
+{
+  "id": "action_items",
+  "title": "Extract action items",
+  "used_by": "src/csm_dashboard/web/app.py",
+  "system": "Extract follow-up action items from the account context. Do not send mail. Output JSON {\"items\": [{\"title\": \"\", \"kind\": \"email|call|meeting|ticket\", \"due_on\": \"\"}]}.",
+  "user_template": "{payload}"
+}

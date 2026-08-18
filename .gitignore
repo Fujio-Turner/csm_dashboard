@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.DS_Store
+data/
+*.cblite2/
+config.json
+.env
+data/secrets.json
+TOUCH_TEST

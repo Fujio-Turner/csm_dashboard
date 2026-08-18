@@ -1,0 +1,278 @@
+[
+  {
+    "_id": "acct:acme",
+    "type": "account",
+    "account_id": "acct:acme",
+    "name": "Acme Corporation",
+    "abbr": "ACME",
+    "slug": "acme",
+    "color": "#0B3D91",
+    "domains": [
+      "acme.com",
+      "acme.co.uk"
+    ],
+    "connectors": {
+      "jira": {
+        "project_keys": [
+          "ACME"
+        ],
+        "jql": "project = ACME ORDER BY updated DESC"
+      },
+      "slack": {
+        "channel_ids": [
+          "C0ACME1"
+        ]
+      },
+      "calendar": {
+        "attendee_domains": [
+          "acme.com",
+          "acme.co.uk"
+        ]
+      },
+      "mail": {
+        "labels": []
+      },
+      "teams": {
+        "channel_ids": [
+          "19:acme-success"
+        ],
+        "team_name": "ACME"
+      },
+      "salesforce": {
+        "account_ids": [
+          "001ACME0001"
+        ],
+        "org": "acme.my.salesforce.com"
+      }
+    },
+    "health": {
+      "score": 62,
+      "score_max": 100,
+      "scored_by": "rules",
+      "rules_score": 62,
+      "status": "watch",
+      "breakdown": [],
+      "override": null
+    },
+    "contract": {
+      "source": "operator",
+      "renewal_on": "2026-11-01",
+      "start_on": "2024-11-01",
+      "arr": 240000,
+      "currency": "USD",
+      "tier": "enterprise"
+    },
+    "team": {
+      "account": [
+        {
+          "person_id": "person:ae01",
+          "role": "ae"
+        },
+        {
+          "person_id": "person:csm01",
+          "role": "csm"
+        },
+        {
+          "person_id": "person:tam01",
+          "role": "tam"
+        }
+      ],
+      "ps": [
+        {
+          "person_id": "person:ps01",
+          "role": "ps_lead"
+        }
+      ]
+    },
+    "next_action": {
+      "kind": "email",
+      "due_on": "2026-08-18",
+      "title": "Send ACME-12 workaround",
+      "action_id": "actn:acme-fw"
+    },
+    "stats": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-17T15:00:00Z"
+  },
+  {
+    "_id": "acct:northwind",
+    "type": "account",
+    "account_id": "acct:northwind",
+    "name": "Northwind Traders",
+    "abbr": "NWIN",
+    "slug": "northwind",
+    "color": "#1B5E20",
+    "domains": [
+      "northwind.example"
+    ],
+    "connectors": {
+      "jira": {
+        "project_keys": [
+          "NWIN"
+        ],
+        "jql": "project = NWIN ORDER BY updated DESC"
+      },
+      "slack": {
+        "channel_ids": [
+          "C0NWIN1"
+        ]
+      },
+      "calendar": {
+        "attendee_domains": [
+          "northwind.example"
+        ]
+      },
+      "mail": {
+        "labels": []
+      },
+      "teams": {
+        "channel_ids": [
+          "19:nwin-success"
+        ],
+        "team_name": "NWIN"
+      },
+      "salesforce": {
+        "account_ids": [
+          "001NWIN0001"
+        ],
+        "org": "example.my.salesforce.com"
+      }
+    },
+    "health": {
+      "score": 28,
+      "score_max": 100,
+      "scored_by": "rules",
+      "rules_score": 28,
+      "status": "watch",
+      "breakdown": [],
+      "override": null
+    },
+    "contract": {
+      "source": "operator",
+      "renewal_on": "2026-09-05",
+      "start_on": "2024-11-01",
+      "arr": 180000,
+      "currency": "USD",
+      "tier": "enterprise"
+    },
+    "team": {
+      "account": [
+        {
+          "person_id": "person:ae01",
+          "role": "ae"
+        },
+        {
+          "person_id": "person:csm01",
+          "role": "csm"
+        }
+      ],
+      "ps": [
+        {
+          "person_id": "person:ps02",
+          "role": "ps_consultant"
+        }
+      ]
+    },
+    "next_action": {
+      "kind": "call",
+      "due_on": "2026-08-10",
+      "title": "Reach champion",
+      "action_id": "actn:nwin-call"
+    },
+    "stats": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-17T15:00:00Z"
+  },
+  {
+    "_id": "acct:globex",
+    "type": "account",
+    "account_id": "acct:globex",
+    "name": "Globex Industrial",
+    "abbr": "GLX",
+    "slug": "globex",
+    "color": "#7B1E3A",
+    "domains": [
+      "globex.example"
+    ],
+    "connectors": {
+      "jira": {
+        "project_keys": [
+          "GLX"
+        ],
+        "jql": "project = GLX ORDER BY updated DESC"
+      },
+      "slack": {
+        "channel_ids": [
+          "C0GLX1"
+        ]
+      },
+      "calendar": {
+        "attendee_domains": [
+          "globex.example"
+        ]
+      },
+      "mail": {
+        "labels": []
+      },
+      "teams": {
+        "channel_ids": [
+          "19:glx-onboard"
+        ],
+        "team_name": "GLX"
+      },
+      "salesforce": {
+        "account_ids": [
+          "001GLX0001"
+        ],
+        "org": "example.my.salesforce.com"
+      }
+    },
+    "health": {
+      "score": 84,
+      "score_max": 100,
+      "scored_by": "rules",
+      "rules_score": 84,
+      "status": "watch",
+      "breakdown": [],
+      "override": null
+    },
+    "contract": {
+      "source": "operator",
+      "renewal_on": "2027-03-01",
+      "start_on": "2024-11-01",
+      "arr": 96000,
+      "currency": "USD",
+      "tier": "enterprise"
+    },
+    "team": {
+      "account": [
+        {
+          "person_id": "person:ae02",
+          "role": "ae"
+        },
+        {
+          "person_id": "person:csm01",
+          "role": "csm"
+        }
+      ],
+      "ps": [
+        {
+          "person_id": "person:ps01",
+          "role": "ps_lead"
+        }
+      ]
+    },
+    "next_action": {
+      "kind": "meeting",
+      "due_on": "2026-08-20",
+      "title": "Kickoff recap",
+      "action_id": "actn:glx-recap"
+    },
+    "stats": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-17T15:00:00Z"
+  }
+]

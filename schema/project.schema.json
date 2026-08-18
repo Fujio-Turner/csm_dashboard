@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://csm-dashboard.local/schema/project.schema.json",
+  "title": "Project",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "type",
+    "account_id",
+    "name"
+  ],
+  "properties": {
+    "status": {
+      "enum": [
+        "planned",
+        "active",
+        "blocked",
+        "done",
+        "cancelled"
+      ]
+    },
+    "kind": {
+      "enum": [
+        "implementation",
+        "qbr",
+        "training",
+        "migration",
+        "other"
+      ]
+    }
+  }
+}

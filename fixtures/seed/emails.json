@@ -1,0 +1,462 @@
+[
+  {
+    "type": "email",
+    "account_id": "acct:acme",
+    "direction": "inbound",
+    "message_id": "<acme-root@acme.com>",
+    "in_reply_to": "",
+    "references": "",
+    "from_addr": "pat.nguyen@acme.com",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "ACME-12 workaround",
+    "sent_at": "2026-08-15T14:00:00Z",
+    "snippet": "Scanner died again.",
+    "body_text": "The handheld still dies after 20 minutes on OS 14.",
+    "body_bytes": 50,
+    "has_attachments": false,
+    "operator": {
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "thread_id": "thr:421321c475293ec4",
+    "_id": "em:421321c475293ec4ff86"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:acme",
+    "direction": "outbound",
+    "message_id": "<acme-2@example.com>",
+    "in_reply_to": "<acme-root@acme.com>",
+    "references": "<acme-root@acme.com>",
+    "from_addr": "jordan@example.com",
+    "to_addrs": [
+      "pat.nguyen@acme.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Re: ACME-12 workaround",
+    "sent_at": "2026-08-15T16:00:00Z",
+    "snippet": "We have a firmware pin.",
+    "body_text": "Pat \u2014 we have a firmware pin. TAM will send steps tonight.",
+    "body_bytes": 60,
+    "has_attachments": false,
+    "operator": {
+      "unread": false
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "thread_id": "thr:421321c475293ec4",
+    "_id": "em:b336bb6ea0684ce32647"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:acme",
+    "direction": "inbound",
+    "message_id": "<acme-3@acme.com>",
+    "in_reply_to": "<acme-2@example.com>",
+    "references": "<acme-2@example.com>",
+    "from_addr": "pat.nguyen@acme.com",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Re: ACME-12 workaround",
+    "sent_at": "2026-08-16T09:00:00Z",
+    "snippet": "Tried it on DC1.",
+    "body_text": "Tried the pin on DC1. DC3 still fails.",
+    "body_bytes": 38,
+    "has_attachments": false,
+    "operator": {
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "thread_id": "thr:b336bb6ea0684ce3",
+    "_id": "em:8265cd5d2be08d1a6e5e"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:acme",
+    "direction": "outbound",
+    "message_id": "<acme-4@example.com>",
+    "in_reply_to": "<acme-3@acme.com>",
+    "references": "<acme-3@acme.com>",
+    "from_addr": "jordan@example.com",
+    "to_addrs": [
+      "pat.nguyen@acme.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Re: ACME-12 workaround",
+    "sent_at": "2026-08-16T18:00:00Z",
+    "snippet": "New build tomorrow.",
+    "body_text": "New build tomorrow morning. Booking TAM.",
+    "body_bytes": 40,
+    "has_attachments": false,
+    "operator": {
+      "unread": false
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "thread_id": "thr:8265cd5d2be08d1a",
+    "_id": "em:da92ccbfde082e9551b7"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:acme",
+    "direction": "inbound",
+    "message_id": "<acme-5@acme.com>",
+    "in_reply_to": "<acme-4@example.com>",
+    "references": "<acme-4@example.com>",
+    "from_addr": "pat.nguyen@acme.com",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Re: ACME-12 workaround",
+    "sent_at": "2026-08-17T14:22:00Z",
+    "snippet": "The handheld still dies\u2026",
+    "body_text": "The handheld still dies after 20 minutes on the DC3 floor. Need a date.",
+    "body_bytes": 71,
+    "has_attachments": false,
+    "operator": {
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "thread_id": "thr:da92ccbfde082e95",
+    "_id": "em:c55edb1be32de4e2f08e"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:acme",
+    "direction": "inbound",
+    "message_id": "<acme-sso@acme.com>",
+    "in_reply_to": "",
+    "references": "",
+    "from_addr": "sam.ortiz@acme.com",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "SSO timeout after 8 hours",
+    "sent_at": "2026-08-16T11:30:00Z",
+    "snippet": "Night shift gets kicked.",
+    "body_text": "Night shift gets kicked after 8 hours. Related to ACME-18?",
+    "body_bytes": 58,
+    "has_attachments": false,
+    "operator": {
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "thread_id": "thr:4fcbdb37410cd468",
+    "_id": "em:4fcbdb37410cd4682b62"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:northwind",
+    "direction": "inbound",
+    "message_id": "<nwin-root@northwind.example>",
+    "in_reply_to": "",
+    "references": "",
+    "from_addr": "kim.hale@northwind.example",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Friday auth outage",
+    "sent_at": "2026-08-15T19:00:00Z",
+    "snippet": "We missed cutoff.",
+    "body_text": "We missed the cutoff. This is the second P1 this month.",
+    "body_bytes": 55,
+    "has_attachments": false,
+    "operator": {
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "thread_id": "thr:9814cb0342684508",
+    "_id": "em:9814cb03426845084636"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:northwind",
+    "direction": "outbound",
+    "message_id": "<nwin-2@example.com>",
+    "in_reply_to": "<nwin-root@northwind.example>",
+    "references": "<nwin-root@northwind.example>",
+    "from_addr": "jordan@example.com",
+    "to_addrs": [
+      "kim.hale@northwind.example"
+    ],
+    "cc_addrs": [],
+    "subject": "Re: Friday auth outage",
+    "sent_at": "2026-08-16T08:00:00Z",
+    "snippet": "Incident doc attached.",
+    "body_text": "Kim \u2014 incident doc is in the ticket. Can we talk Tuesday?",
+    "body_bytes": 59,
+    "has_attachments": false,
+    "operator": {
+      "unread": false
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "thread_id": "thr:9814cb0342684508",
+    "_id": "em:2dc90399a25efcd3fbc1"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:northwind",
+    "direction": "inbound",
+    "message_id": "<nwin-3@northwind.example>",
+    "in_reply_to": "<nwin-2@example.com>",
+    "references": "<nwin-2@example.com>",
+    "from_addr": "kim.hale@northwind.example",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Re: Friday auth outage",
+    "sent_at": "2026-08-16T20:00:00Z",
+    "snippet": "I am out until the 28th.",
+    "body_text": "I am out until the 28th. Rob can talk numbers.",
+    "body_bytes": 46,
+    "has_attachments": false,
+    "operator": {
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "thread_id": "thr:2dc90399a25efcd3",
+    "_id": "em:8fe5494c49712ab28392"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:northwind",
+    "direction": "inbound",
+    "message_id": "<nwin-4@northwind.example>",
+    "in_reply_to": "<nwin-3@example.com>",
+    "references": "<nwin-3@example.com>",
+    "from_addr": "rob.singh@northwind.example",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Re: Friday auth outage",
+    "sent_at": "2026-08-17T10:00:00Z",
+    "snippet": "Renewal is at risk.",
+    "body_text": "If auth is this shaky the renewal is at risk.",
+    "body_bytes": 45,
+    "has_attachments": false,
+    "operator": {
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "thread_id": "thr:98f2e73a2be57e75",
+    "_id": "em:d5ad69979a7320665905"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:globex",
+    "direction": "inbound",
+    "message_id": "<glx-root@globex.example>",
+    "in_reply_to": "",
+    "references": "",
+    "from_addr": "ava.chen@globex.example",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Kickoff recap",
+    "sent_at": "2026-08-11T16:00:00Z",
+    "snippet": "Great start.",
+    "body_text": "Great start yesterday. Plant 2 wants a date.",
+    "body_bytes": 44,
+    "has_attachments": false,
+    "operator": {
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "thread_id": "thr:2491981d33cb8428",
+    "_id": "em:2491981d33cb842885f2"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:globex",
+    "direction": "outbound",
+    "message_id": "<glx-2@example.com>",
+    "in_reply_to": "<glx-root@globex.example>",
+    "references": "<glx-root@globex.example>",
+    "from_addr": "jordan@example.com",
+    "to_addrs": [
+      "ava.chen@globex.example"
+    ],
+    "cc_addrs": [],
+    "subject": "Re: Kickoff recap",
+    "sent_at": "2026-08-12T09:00:00Z",
+    "snippet": "Drafting the plan.",
+    "body_text": "Drafting the plan. PS will hold Thursday.",
+    "body_bytes": 41,
+    "has_attachments": false,
+    "operator": {
+      "unread": false
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "thread_id": "thr:2491981d33cb8428",
+    "_id": "em:8327a066f41d212e2a4d"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:globex",
+    "direction": "inbound",
+    "message_id": "<glx-3@globex.example>",
+    "in_reply_to": "<glx-2@example.com>",
+    "references": "<glx-2@example.com>",
+    "from_addr": "ava.chen@globex.example",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Re: Kickoff recap",
+    "sent_at": "2026-08-13T15:00:00Z",
+    "snippet": "Thursday works.",
+    "body_text": "Thursday works. Sending badge list.",
+    "body_bytes": 35,
+    "has_attachments": false,
+    "operator": {
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "thread_id": "thr:8327a066f41d212e",
+    "_id": "em:0015a0b30a744d8826fa"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:globex",
+    "direction": "outbound",
+    "message_id": "<glx-4@example.com>",
+    "in_reply_to": "<glx-3@globex.example>",
+    "references": "<glx-3@globex.example>",
+    "from_addr": "jordan@example.com",
+    "to_addrs": [
+      "ava.chen@globex.example"
+    ],
+    "cc_addrs": [],
+    "subject": "Re: Kickoff recap",
+    "sent_at": "2026-08-14T11:00:00Z",
+    "snippet": "Got the list.",
+    "body_text": "Got the list. See you Thursday.",
+    "body_bytes": 31,
+    "has_attachments": false,
+    "operator": {
+      "unread": false
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "thread_id": "thr:0015a0b30a744d88",
+    "_id": "em:6eb19d226a00fa53be14"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:acme",
+    "direction": "outbound",
+    "message_id": "<acme-bob-1@example.com>",
+    "in_reply_to": "",
+    "references": "",
+    "from_addr": "jordan@example.com",
+    "to_addrs": [
+      "bob.hale@acme.com"
+    ],
+    "cc_addrs": [],
+    "subject": "DC3 scanner pin for ACME-12",
+    "sent_at": "2026-08-16T19:00:00Z",
+    "snippet": "Bob \u2014 can you try the pin on DC3 tonight?",
+    "body_text": "Bob \u2014 can you try the pin on DC3 tonight and tell me if it holds?",
+    "body_bytes": 70,
+    "has_attachments": false,
+    "operator": {
+      "unread": false
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "email",
+    "account_id": "acct:acme",
+    "direction": "inbound",
+    "message_id": "<acme-bob-2@acme.com>",
+    "in_reply_to": "<acme-bob-1@example.com>",
+    "references": "<acme-bob-1@example.com>",
+    "from_addr": "bob.hale@acme.com",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Re: DC3 scanner pin for ACME-12",
+    "sent_at": "2026-08-17T07:15:00Z",
+    "snippet": "Tried it. DC3 still dies after 20 minutes.",
+    "body_text": "Tried it. DC3 still dies after 20 minutes. Need a new build.",
+    "body_bytes": 62,
+    "has_attachments": false,
+    "operator": {
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  }
+]

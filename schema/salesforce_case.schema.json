@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://csm-dashboard.local/schema/salesforce_case.schema.json",
+  "title": "Salesforce case",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["type", "account_id", "case_number"],
+  "properties": {
+    "type": { "const": "salesforce_case" },
+    "priority": {
+      "enum": ["critical", "high", "medium", "low"]
+    },
+    "status": {
+      "enum": ["new", "working", "waiting", "escalated", "closed"]
+    }
+  }
+}

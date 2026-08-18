@@ -1,0 +1,23 @@
+services:
+  csm_dashboard:
+    container_name: csm-dashboard
+    build: .
+    image: csm-dashboard:0.1.0
+    platform: linux/amd64
+    restart: unless-stopped
+    ports:
+      - "${CSM_DASHBOARD_PORT:-8788}:8788"
+    environment:
+      CSM_DASHBOARD_DB_PATH: /data/csm_dashboard.cblite2
+      CSM_DASHBOARD_BIND: 0.0.0.0
+      XAI_API_KEY: ${XAI_API_KEY:-}
+      CBLITE_LIB_PATH: /opt/cblite/lib/x86_64-linux-gnu/libcblite.so
+      LD_LIBRARY_PATH: /opt/cblite/lib/x86_64-linux-gnu:/opt/cblite/lib
+    volumes:
+      - ./data:/data
+      - ./config.json:/app/config.json:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8788/healthz')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5

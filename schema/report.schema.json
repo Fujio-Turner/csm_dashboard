@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://csm-dashboard.local/schema/report.schema.json",
+  "title": "Report",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "type",
+    "account_id",
+    "title"
+  ],
+  "properties": {
+    "kind": {
+      "enum": [
+        "weekly",
+        "qbr"
+      ]
+    }
+  }
+}

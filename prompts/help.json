@@ -1,0 +1,134 @@
+{
+  "id": "help",
+  "kind": "ui",
+  "title": "Help",
+  "groups": [
+    {
+      "id": "start",
+      "title": "Start here",
+      "items": [
+        {
+          "id": "what",
+          "h": "What this is",
+          "p": "A local Customer Success Manager desk. One operator, many customer books. Tickets, mail, Slack, Teams, Salesforce, and calendar sit on one account so you do not reply to the wrong company."
+        },
+        {
+          "id": "colors",
+          "h": "Color and abbreviation",
+          "p": "Every book has a color chip and a 2–6 character abbreviation. They follow every row, tile, and chat so ACME and NORTHWIND never mix."
+        }
+      ]
+    },
+    {
+      "id": "home",
+      "title": "Home",
+      "items": [
+        {
+          "id": "agenda",
+          "h": "Agenda",
+          "p": "Home opens on Agenda. Left: meetings for the selected day (arrows change the day). Right: new email, Slack, Teams, and tasks, newest first. The + in that pane creates a task — a mail to yourself. Subject is Tasks: Company : name {type}. The body holds the note and When Due By. You can CC people and edit the task later because it is just an email."
+        },
+        {
+          "id": "companies-tab",
+          "h": "Companies tab",
+          "p": "Companies shows one tile per book: health, next meeting, and counts for new tickets, email, Slack/Teams, and calendar invites. Click a tile to open that book in the left pane. Chat stays on the right and is scoped to that book."
+        }
+      ]
+    },
+    {
+      "id": "chat",
+      "title": "Chat",
+      "items": [
+        {
+          "id": "desk-chat",
+          "h": "Desk chat",
+          "p": "The right pane is always chat. On Home it covers the whole desk. With a book open it is only about that account. Ask things like “Is there any issue with #{ACME}?” or “Did @bob from #{ACME} reply?”"
+        },
+        {
+          "id": "chat-tools",
+          "h": "History, bookmark, new",
+          "p": "The three icons at the top of chat are History (earlier threads), Bookmark (pin this one), and New chat (clean thread). Hover an icon for its name."
+        }
+      ]
+    },
+    {
+      "id": "account",
+      "title": "A customer book",
+      "items": [
+        {
+          "id": "slash",
+          "h": "Search and slash",
+          "p": "Type in the account search to filter the current tab. Start with / to jump types: /note, /project, /people, /email, /ticket, /slack, /teams, /calendar, /sf."
+        },
+        {
+          "id": "compose",
+          "h": "Compose and reply",
+          "p": "Compose drafts from tickets, recent mail, Slack, Teams, and calendar. Grok writes when a key is present; otherwise a template is saved. Open a thread and click Suggest reply for a draft on that conversation. Send is off in this version."
+        }
+      ]
+    },
+    {
+      "id": "people",
+      "title": "People and projects",
+      "items": [
+        {
+          "id": "tag-input",
+          "h": "Tag an input",
+          "p": "Open a timeline card and assign a project. That is how mail, tickets, Slack, Teams, and Salesforce land on the right book of work."
+        },
+        {
+          "id": "people-projects",
+          "h": "People on a project",
+          "p": "A person can belong to one or more projects. Add or edit them on People, the org chart, or Account team. Directors can own every project — check All projects, or type /project all."
+        },
+        {
+          "id": "project-crud",
+          "h": "Add and edit projects",
+          "p": "On Projects, search or filter by type and status — a book can have hundreds. Add project opens a form: type, status, an owner from the people list, an optional group email, and tags (type and press Enter). Click a row to edit or remove it."
+        },
+        {
+          "id": "functions",
+          "h": "Functions",
+          "p": "Besides projects, tag a person Ops, Accounting, or DBA — or leave them untagged. Search finds those labels."
+        }
+      ]
+    },
+    {
+      "id": "clock",
+      "title": "World clock",
+      "items": [
+        {
+          "id": "world-clock",
+          "h": "Compare timezones",
+          "p": "The globe at the bottom of the sidebar opens a converter. Search a city (Los Angeles, even “las angoles”), add or remove rows, and drag the handle to reorder. Hover a column to compare; click two hours to mark a meeting window. Your timezone is the You row. Picks are saved in the local database and survive refresh and restart."
+        }
+      ]
+    },
+    {
+      "id": "setup",
+      "title": "Settings",
+      "items": [
+        {
+          "id": "profile",
+          "h": "You",
+          "p": "Name, phone, email, and timezone live under You. Mail from your domain is treated as internal. The timezone pins the You row on the world clock and drives Agenda’s idea of today."
+        },
+        {
+          "id": "companies",
+          "h": "Companies",
+          "p": "Add a customer book. Quiet hides it from Home. Remove archives it. Edit to set color, crop a logo, and map domains plus Slack, Teams, Salesforce, and Jira tags so inbound mail lands on the right book."
+        },
+        {
+          "id": "ai-keys",
+          "h": "AI and connectors",
+          "p": "Keys stay in data/secrets.json (mode 0600). Compose uses Grok when that key is present. Connector mode lives in config.json; Test checks health and auth."
+        },
+        {
+          "id": "seed",
+          "h": "Lab data",
+          "p": "Load seed data writes three books: ACME (navy), NWIN (forest), GLX (burgundy). Seed is idempotent. Reset wipes books and keeps your settings, including the world clock."
+        }
+      ]
+    }
+  ]
+}

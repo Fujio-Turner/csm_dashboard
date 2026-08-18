@@ -1,0 +1,7 @@
+{
+  "id": "health_overlay",
+  "title": "Health overlay",
+  "used_by": "src/csm_dashboard/health/engine.py",
+  "system": "Optional narrative overlay on a rules health score. Do not change the number. Output JSON {\"summary\": \"\"}.",
+  "user_template": "{payload}"
+}

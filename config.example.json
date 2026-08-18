@@ -1,0 +1,46 @@
+{
+  "server": { "host": "127.0.0.1", "port": 8788 },
+  "cblite": { "db_path": "data/csm_dashboard.cblite2" },
+  "xai": {
+    "base_url": "https://api.x.ai/v1",
+    "default_model": "grok-4.6",
+    "models": ["grok-4.6", "grok-4.5", "grok-4-fast"]
+  },
+  "operator": {
+    "name": "Jordan Lee",
+    "email": "jordan@example.com",
+    "role": "csm"
+  },
+  "desk": {
+    "tagline": "Accounts · tickets · mail · Slack · Teams · Salesforce",
+    "thread_tail": 8,
+    "slack_tail": 20,
+    "teams_tail": 20,
+    "max_context_chars": 24000,
+    "timeline_page": 50,
+    "home_meetings_hours": 24
+  },
+  "accounts": {
+    "abbr_min": 2,
+    "abbr_max": 6,
+    "default_color": "#0B3D91"
+  },
+  "health": {
+    "ticket_max": 25,
+    "responsiveness_max": 20,
+    "engagement_max": 20,
+    "actions_max": 15,
+    "renewal_max": 20
+  },
+  "connectors": {
+    "smtp_imap": { "mode": "stub" },
+    "google_mail": { "mode": "stub" },
+    "microsoft365": { "mode": "stub" },
+    "jira": { "mode": "stub" },
+    "slack": { "mode": "stub" },
+    "teams": { "mode": "stub" },
+    "salesforce": { "mode": "stub" },
+    "google_cal": { "mode": "stub" },
+    "m365_cal": { "mode": "stub" }
+  }
+}

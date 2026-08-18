@@ -1,0 +1,29 @@
+CSM Dashboard
+Copyright © 2026 Fujio Turner. All rights reserved.
+
+------------------------------------------------------------------------------
+
+DEFAULT LICENSE FOR THIS REPOSITORY
+
+Unless an individual file declares a different license in its own header,
+every file in this repository is licensed under the
+
+    Business Source License 1.1 (BUSL-1.1)
+
+with the following parameters:
+
+    Licensor:             Fujio Turner
+    Licensed Work:        CSM Dashboard
+    Additional Use Grant: None.  No production use of the Licensed Work
+                          is permitted without a commercial license from
+                          the Licensor.
+    Change Date:          2030-08-17
+    Change License:       Apache License, Version 2.0
+    Contact:              mail@fuj.io
+
+The full text of the Business Source License 1.1, with the parameters
+above, lives at:
+
+    licenses/BSL-1.1.txt
+
+------------------------------------------------------------------------------

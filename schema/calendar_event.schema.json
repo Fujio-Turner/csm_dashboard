@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://csm-dashboard.local/schema/calendar_event.schema.json",
+  "title": "Calendar event",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "type",
+    "title"
+  ],
+  "properties": {
+    "type": {
+      "const": "calendar_event"
+    }
+  }
+}

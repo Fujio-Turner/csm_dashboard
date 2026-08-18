@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://csm-dashboard.local/schema/config.schema.json",
+  "title": "Config",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "server"
+  ],
+  "properties": {
+    "server": {
+      "type": "object",
+      "properties": {
+        "host": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer"
+        }
+      }
+    },
+    "connectors": {
+      "type": "object"
+    }
+  }
+}

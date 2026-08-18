@@ -1,0 +1,6 @@
+{
+  "$comment": "libcblite version/edition csm_dashboard targets. Docker reads this at build time.",
+  "version": "4.0.3",
+  "edition": "community",
+  "platform": "linux-x86_64"
+}

@@ -1,0 +1,178 @@
+[
+  {
+    "_id": "thr:421321c475293ec4",
+    "type": "thread",
+    "account_id": "acct:acme",
+    "subject": "Re: ACME-12 workaround",
+    "last_at": "2026-08-15T16:00:00Z",
+    "message_count": 2,
+    "participants": [
+      "jordan@example.com",
+      "pat.nguyen@acme.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:b336bb6ea0684ce3",
+    "type": "thread",
+    "account_id": "acct:acme",
+    "subject": "Re: ACME-12 workaround",
+    "last_at": "2026-08-16T09:00:00Z",
+    "message_count": 1,
+    "participants": [
+      "jordan@example.com",
+      "pat.nguyen@acme.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:8265cd5d2be08d1a",
+    "type": "thread",
+    "account_id": "acct:acme",
+    "subject": "Re: ACME-12 workaround",
+    "last_at": "2026-08-16T18:00:00Z",
+    "message_count": 1,
+    "participants": [
+      "jordan@example.com",
+      "pat.nguyen@acme.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:da92ccbfde082e95",
+    "type": "thread",
+    "account_id": "acct:acme",
+    "subject": "Re: ACME-12 workaround",
+    "last_at": "2026-08-17T14:22:00Z",
+    "message_count": 1,
+    "participants": [
+      "jordan@example.com",
+      "pat.nguyen@acme.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:4fcbdb37410cd468",
+    "type": "thread",
+    "account_id": "acct:acme",
+    "subject": "SSO timeout after 8 hours",
+    "last_at": "2026-08-16T11:30:00Z",
+    "message_count": 1,
+    "participants": [
+      "jordan@example.com",
+      "sam.ortiz@acme.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:9814cb0342684508",
+    "type": "thread",
+    "account_id": "acct:northwind",
+    "subject": "Re: Friday auth outage",
+    "last_at": "2026-08-16T08:00:00Z",
+    "message_count": 2,
+    "participants": [
+      "jordan@example.com",
+      "kim.hale@northwind.example"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:2dc90399a25efcd3",
+    "type": "thread",
+    "account_id": "acct:northwind",
+    "subject": "Re: Friday auth outage",
+    "last_at": "2026-08-16T20:00:00Z",
+    "message_count": 1,
+    "participants": [
+      "jordan@example.com",
+      "kim.hale@northwind.example"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:98f2e73a2be57e75",
+    "type": "thread",
+    "account_id": "acct:northwind",
+    "subject": "Re: Friday auth outage",
+    "last_at": "2026-08-17T10:00:00Z",
+    "message_count": 1,
+    "participants": [
+      "jordan@example.com",
+      "rob.singh@northwind.example"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:2491981d33cb8428",
+    "type": "thread",
+    "account_id": "acct:globex",
+    "subject": "Re: Kickoff recap",
+    "last_at": "2026-08-12T09:00:00Z",
+    "message_count": 2,
+    "participants": [
+      "ava.chen@globex.example",
+      "jordan@example.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:8327a066f41d212e",
+    "type": "thread",
+    "account_id": "acct:globex",
+    "subject": "Re: Kickoff recap",
+    "last_at": "2026-08-13T15:00:00Z",
+    "message_count": 1,
+    "participants": [
+      "ava.chen@globex.example",
+      "jordan@example.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:0015a0b30a744d88",
+    "type": "thread",
+    "account_id": "acct:globex",
+    "subject": "Re: Kickoff recap",
+    "last_at": "2026-08-14T11:00:00Z",
+    "message_count": 1,
+    "participants": [
+      "ava.chen@globex.example",
+      "jordan@example.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  }
+]

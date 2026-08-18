@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://csm-dashboard.local/schema/chat_thread.schema.json",
+  "title": "Chat",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "type",
+    "account_id"
+  ],
+  "properties": {
+    "bookmarked": {
+      "type": "boolean"
+    },
+    "title": {
+      "type": "string"
+    }
+  }
+}

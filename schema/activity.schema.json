@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://csm-dashboard.local/schema/activity.schema.json",
+  "title": "Activity",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "type",
+    "account_id",
+    "kind",
+    "at"
+  ],
+  "properties": {
+    "kind": {
+      "enum": [
+        "email_in",
+        "email_out",
+        "ticket_created",
+        "ticket_updated",
+        "slack",
+        "teams",
+        "salesforce",
+        "meeting",
+        "note",
+        "action",
+        "draft",
+        "report",
+        "sync",
+        "health",
+        "project"
+      ]
+    }
+  }
+}

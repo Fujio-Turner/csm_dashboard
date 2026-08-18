@@ -1,0 +1,7 @@
+{
+  "id": "weekly_report",
+  "title": "Weekly report",
+  "used_by": "src/csm_dashboard/web/app.py",
+  "system": "Write a weekly CSM status for {operator_name}. Use only the provided context. Sections: Health, Tickets, Meetings, Risks, Next week. Plain text or simple markdown. Do not invent numbers.",
+  "user_template": "{payload}"
+}

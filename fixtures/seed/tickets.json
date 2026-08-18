@@ -1,0 +1,609 @@
+[
+  {
+    "_id": "tkt:jira:ACME-12",
+    "type": "ticket",
+    "account_id": "acct:acme",
+    "source": "jira",
+    "key": "ACME-12",
+    "external_id": "12",
+    "summary": "Scanner firmware bricks on OS 14",
+    "status": "in_progress",
+    "status_raw": "In Progress",
+    "priority": "p1",
+    "priority_raw": "Highest",
+    "issue_type": "bug",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/ACME-12",
+    "project_key": "ACME",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-17T09:00:00Z",
+    "resolved_at": "",
+    "comment_count": 1,
+    "last_comment_at": "2026-08-17T08:50:00Z",
+    "comments": [
+      {
+        "at": "2026-08-17T08:50:00Z",
+        "author": "pat.nguyen@acme.com",
+        "text": "Still dying after 20 minutes on the DC3 floor."
+      }
+    ],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:acme-scan"
+  },
+  {
+    "_id": "tkt:jira:ACME-18",
+    "type": "ticket",
+    "account_id": "acct:acme",
+    "source": "jira",
+    "key": "ACME-18",
+    "external_id": "18",
+    "summary": "SSO timeout after 8 hours",
+    "status": "open",
+    "status_raw": "Open",
+    "priority": "p2",
+    "priority_raw": "High",
+    "issue_type": "bug",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/ACME-18",
+    "project_key": "ACME",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-16T11:00:00Z",
+    "resolved_at": "",
+    "comment_count": 0,
+    "last_comment_at": "",
+    "comments": [],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:acme-sso"
+  },
+  {
+    "_id": "tkt:jira:ACME-21",
+    "type": "ticket",
+    "account_id": "acct:acme",
+    "source": "jira",
+    "key": "ACME-21",
+    "external_id": "21",
+    "summary": "Add scan-to-ERP mapping",
+    "status": "waiting",
+    "status_raw": "Waiting",
+    "priority": "p3",
+    "priority_raw": "Medium",
+    "issue_type": "task",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/ACME-21",
+    "project_key": "ACME",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-14T10:00:00Z",
+    "resolved_at": "",
+    "comment_count": 0,
+    "last_comment_at": "",
+    "comments": [],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:acme-scan"
+  },
+  {
+    "_id": "tkt:jira:ACME-9",
+    "type": "ticket",
+    "account_id": "acct:acme",
+    "source": "jira",
+    "key": "ACME-9",
+    "external_id": "9",
+    "summary": "Label printer driver",
+    "status": "done",
+    "status_raw": "Done",
+    "priority": "p3",
+    "priority_raw": "Medium",
+    "issue_type": "task",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/ACME-9",
+    "project_key": "ACME",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-12T10:00:00Z",
+    "resolved_at": "2026-08-16T00:00:00Z",
+    "comment_count": 0,
+    "last_comment_at": "",
+    "comments": [],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:acme-scan"
+  },
+  {
+    "_id": "tkt:jira:ACME-30",
+    "type": "ticket",
+    "account_id": "acct:acme",
+    "source": "jira",
+    "key": "ACME-30",
+    "external_id": "30",
+    "summary": "Training videos for DC2",
+    "status": "open",
+    "status_raw": "Open",
+    "priority": "p4",
+    "priority_raw": "Low",
+    "issue_type": "task",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/ACME-30",
+    "project_key": "ACME",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-15T10:00:00Z",
+    "resolved_at": "",
+    "comment_count": 0,
+    "last_comment_at": "",
+    "comments": [],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:acme-scan"
+  },
+  {
+    "_id": "tkt:jira:ACME-31",
+    "type": "ticket",
+    "account_id": "acct:acme",
+    "source": "jira",
+    "key": "ACME-31",
+    "external_id": "31",
+    "summary": "Nightly inventory job slow",
+    "status": "open",
+    "status_raw": "Open",
+    "priority": "p2",
+    "priority_raw": "High",
+    "issue_type": "bug",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/ACME-31",
+    "project_key": "ACME",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-17T07:00:00Z",
+    "resolved_at": "",
+    "comment_count": 0,
+    "last_comment_at": "",
+    "comments": [],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:acme-scan"
+  },
+  {
+    "_id": "tkt:jira:NWIN-4",
+    "type": "ticket",
+    "account_id": "acct:northwind",
+    "source": "jira",
+    "key": "NWIN-4",
+    "external_id": "4",
+    "summary": "Auth outage on Friday",
+    "status": "open",
+    "status_raw": "Open",
+    "priority": "p1",
+    "priority_raw": "Highest",
+    "issue_type": "bug",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/NWIN-4",
+    "project_key": "NWIN",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-15T18:00:00Z",
+    "resolved_at": "",
+    "comment_count": 1,
+    "last_comment_at": "2026-08-15T18:10:00Z",
+    "comments": [
+      {
+        "at": "2026-08-15T18:10:00Z",
+        "author": "kim.hale@northwind.example",
+        "text": "We missed the cutoff. Call me."
+      }
+    ],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:nwin-renew"
+  },
+  {
+    "_id": "tkt:jira:NWIN-7",
+    "type": "ticket",
+    "account_id": "acct:northwind",
+    "source": "jira",
+    "key": "NWIN-7",
+    "external_id": "7",
+    "summary": "Invoice export wrong currency",
+    "status": "open",
+    "status_raw": "Open",
+    "priority": "p1",
+    "priority_raw": "Highest",
+    "issue_type": "bug",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/NWIN-7",
+    "project_key": "NWIN",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-16T12:00:00Z",
+    "resolved_at": "",
+    "comment_count": 0,
+    "last_comment_at": "",
+    "comments": [],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:nwin-renew"
+  },
+  {
+    "_id": "tkt:jira:NWIN-11",
+    "type": "ticket",
+    "account_id": "acct:northwind",
+    "source": "jira",
+    "key": "NWIN-11",
+    "external_id": "11",
+    "summary": "User provisioning lag",
+    "status": "waiting",
+    "status_raw": "Waiting",
+    "priority": "p2",
+    "priority_raw": "High",
+    "issue_type": "bug",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/NWIN-11",
+    "project_key": "NWIN",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-08T12:00:00Z",
+    "resolved_at": "",
+    "comment_count": 0,
+    "last_comment_at": "",
+    "comments": [],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:nwin-renew"
+  },
+  {
+    "_id": "tkt:jira:NWIN-12",
+    "type": "ticket",
+    "account_id": "acct:northwind",
+    "source": "jira",
+    "key": "NWIN-12",
+    "external_id": "12",
+    "summary": "SSO mapping for contractors",
+    "status": "open",
+    "status_raw": "Open",
+    "priority": "p2",
+    "priority_raw": "High",
+    "issue_type": "bug",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/NWIN-12",
+    "project_key": "NWIN",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-14T12:00:00Z",
+    "resolved_at": "",
+    "comment_count": 0,
+    "last_comment_at": "",
+    "comments": [],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:nwin-renew"
+  },
+  {
+    "_id": "tkt:jira:NWIN-19",
+    "type": "ticket",
+    "account_id": "acct:northwind",
+    "source": "jira",
+    "key": "NWIN-19",
+    "external_id": "19",
+    "summary": "QBR deck numbers",
+    "status": "open",
+    "status_raw": "Open",
+    "priority": "p3",
+    "priority_raw": "Medium",
+    "issue_type": "task",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/NWIN-19",
+    "project_key": "NWIN",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-13T12:00:00Z",
+    "resolved_at": "",
+    "comment_count": 0,
+    "last_comment_at": "",
+    "comments": [],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:nwin-renew"
+  },
+  {
+    "_id": "tkt:jira:NWIN-2",
+    "type": "ticket",
+    "account_id": "acct:northwind",
+    "source": "jira",
+    "key": "NWIN-2",
+    "external_id": "2",
+    "summary": "Sandbox refresh",
+    "status": "cancelled",
+    "status_raw": "Cancelled",
+    "priority": "p4",
+    "priority_raw": "Low",
+    "issue_type": "task",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/NWIN-2",
+    "project_key": "NWIN",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-01T12:00:00Z",
+    "resolved_at": "",
+    "comment_count": 0,
+    "last_comment_at": "",
+    "comments": [],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:nwin-renew"
+  },
+  {
+    "_id": "tkt:jira:GLX-3",
+    "type": "ticket",
+    "account_id": "acct:globex",
+    "source": "jira",
+    "key": "GLX-3",
+    "external_id": "3",
+    "summary": "Kickoff environment",
+    "status": "done",
+    "status_raw": "Done",
+    "priority": "p3",
+    "priority_raw": "Medium",
+    "issue_type": "task",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/GLX-3",
+    "project_key": "GLX",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-12T12:00:00Z",
+    "resolved_at": "2026-08-16T00:00:00Z",
+    "comment_count": 0,
+    "last_comment_at": "",
+    "comments": [],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:glx-onboard"
+  },
+  {
+    "_id": "tkt:jira:GLX-5",
+    "type": "ticket",
+    "account_id": "acct:globex",
+    "source": "jira",
+    "key": "GLX-5",
+    "external_id": "5",
+    "summary": "Add second plant code",
+    "status": "open",
+    "status_raw": "Open",
+    "priority": "p3",
+    "priority_raw": "Medium",
+    "issue_type": "task",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/GLX-5",
+    "project_key": "GLX",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-16T12:00:00Z",
+    "resolved_at": "",
+    "comment_count": 0,
+    "last_comment_at": "",
+    "comments": [],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:glx-onboard"
+  },
+  {
+    "_id": "tkt:jira:GLX-6",
+    "type": "ticket",
+    "account_id": "acct:globex",
+    "source": "jira",
+    "key": "GLX-6",
+    "external_id": "6",
+    "summary": "Training date hold",
+    "status": "open",
+    "status_raw": "Open",
+    "priority": "p4",
+    "priority_raw": "Low",
+    "issue_type": "task",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/GLX-6",
+    "project_key": "GLX",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-17T12:00:00Z",
+    "resolved_at": "",
+    "comment_count": 0,
+    "last_comment_at": "",
+    "comments": [],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:glx-onboard"
+  },
+  {
+    "_id": "tkt:jira:GLX-8",
+    "type": "ticket",
+    "account_id": "acct:globex",
+    "source": "jira",
+    "key": "GLX-8",
+    "external_id": "8",
+    "summary": "VPN allowlist",
+    "status": "in_progress",
+    "status_raw": "In Progress",
+    "priority": "p2",
+    "priority_raw": "High",
+    "issue_type": "bug",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/GLX-8",
+    "project_key": "GLX",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-17T13:00:00Z",
+    "resolved_at": "",
+    "comment_count": 0,
+    "last_comment_at": "",
+    "comments": [],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:glx-onboard"
+  },
+  {
+    "_id": "tkt:jira:GLX-9",
+    "type": "ticket",
+    "account_id": "acct:globex",
+    "source": "jira",
+    "key": "GLX-9",
+    "external_id": "9",
+    "summary": "Welcome packet typos",
+    "status": "done",
+    "status_raw": "Done",
+    "priority": "p4",
+    "priority_raw": "Low",
+    "issue_type": "task",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/GLX-9",
+    "project_key": "GLX",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-11T12:00:00Z",
+    "resolved_at": "2026-08-16T00:00:00Z",
+    "comment_count": 0,
+    "last_comment_at": "",
+    "comments": [],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:glx-onboard"
+  }
+]

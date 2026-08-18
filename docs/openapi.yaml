@@ -1,0 +1,1069 @@
+openapi: 3.1.0
+info:
+  title: CSM Dashboard API
+  version: 0.1.0
+  description: Local Customer Success Manager desk. Hand-maintained source of truth.
+servers:
+  - url: http://127.0.0.1:8788
+tags:
+  - name: meta
+  - name: settings
+  - name: accounts
+  - name: people
+  - name: projects
+  - name: tickets
+  - name: mail
+  - name: slack
+  - name: teams
+  - name: salesforce
+  - name: calendar
+  - name: actions
+  - name: drafts
+  - name: reports
+  - name: chat
+  - name: sync
+paths:
+  /healthz:
+    get:
+      tags: [meta]
+      operationId: healthz
+      responses:
+        "200":
+          description: ok
+  /openapi.yaml:
+    get:
+      tags: [meta]
+      operationId: getOpenApiYaml
+      responses:
+        "200":
+          description: spec
+  /api/status:
+    get:
+      tags: [meta]
+      operationId: getStatus
+      responses:
+        "200":
+          description: status
+  /api/help:
+    get:
+      tags: [meta]
+      operationId: getHelp
+      responses:
+        "200":
+          description: help
+  /api/settings:
+    get:
+      tags: [settings]
+      operationId: getSettings
+      responses:
+        "200":
+          description: settings
+    put:
+      tags: [settings]
+      operationId: putSettings
+      responses:
+        "200":
+          description: saved
+  /api/settings/providers/test:
+    post:
+      tags: [settings]
+      operationId: testProvider
+      responses:
+        "200":
+          description: provider key check
+  /api/settings/keys:
+    put:
+      tags: [settings]
+      operationId: putKeys
+      responses:
+        "200":
+          description: keys written to secrets.json
+  /api/settings/seed:
+    post:
+      tags: [settings]
+      operationId: seedDemo
+      responses:
+        "200":
+          description: seed applied
+  /api/settings/reset:
+    post:
+      tags: [settings]
+      operationId: resetStore
+      responses:
+        "200":
+          description: reset
+        "400":
+          description: confirm missing
+  /api/home:
+    get:
+      tags: [accounts]
+      operationId: getHome
+      responses:
+        "200":
+          description: home cards
+  /api/home/agenda:
+    get:
+      tags: [accounts]
+      operationId: getHomeAgenda
+      parameters:
+        - in: query
+          name: date
+          schema: { type: string }
+      responses:
+        "200":
+          description: meetings for the day plus new mail, chat, and tasks
+  /api/accounts:
+    get:
+      tags: [accounts]
+      operationId: listAccounts
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string }
+      responses:
+        "200":
+          description: list
+    post:
+      tags: [accounts]
+      operationId: createAccount
+      responses:
+        "200":
+          description: created
+        "409":
+          description: abbr or slug taken
+  /api/accounts/by-abbr/{abbr}:
+    get:
+      tags: [accounts]
+      operationId: getAccountByAbbr
+      parameters:
+        - in: path
+          name: abbr
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: account
+        "404":
+          description: missing
+  /api/accounts/{account_id}:
+    get:
+      tags: [accounts]
+      operationId: getAccount
+      parameters:
+        - in: path
+          name: account_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: account
+    patch:
+      tags: [accounts]
+      operationId: patchAccount
+      parameters:
+        - in: path
+          name: account_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: patched
+        "409":
+          description: slug_immutable or abbr clash
+    delete:
+      tags: [accounts]
+      operationId: deleteAccount
+      parameters:
+        - in: path
+          name: account_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: removed
+        "404":
+          description: not found
+  /api/accounts/{account_id}/logo:
+    get:
+      tags: [accounts]
+      operationId: getAccountLogo
+      parameters:
+        - in: path
+          name: account_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: image
+        "404":
+          description: not found
+    post:
+      tags: [accounts]
+      operationId: uploadAccountLogo
+      parameters:
+        - in: path
+          name: account_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: saved
+        "400":
+          description: invalid image
+        "404":
+          description: not found
+    delete:
+      tags: [accounts]
+      operationId: deleteAccountLogo
+      parameters:
+        - in: path
+          name: account_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: removed
+        "404":
+          description: not found
+  /api/accounts/{account_id}/rescore:
+    post:
+      tags: [accounts]
+      operationId: rescoreAccount
+      parameters:
+        - in: path
+          name: account_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: scored
+  /api/accounts/{account_id}/timeline:
+    get:
+      tags: [accounts]
+      operationId: listTimeline
+      parameters:
+        - in: path
+          name: account_id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: since
+          schema: { type: string }
+        - in: query
+          name: kind
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer }
+        - in: query
+          name: offset
+          schema: { type: integer }
+        - in: query
+          name: project_id
+          schema: { type: string }
+        - in: query
+          name: q
+          schema: { type: string }
+      responses:
+        "200":
+          description: timeline
+  /api/activities/{activity_id}:
+    get:
+      tags: [accounts]
+      operationId: getActivity
+      parameters:
+        - in: path
+          name: activity_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: activity
+        "404":
+          description: not found
+    patch:
+      tags: [accounts]
+      operationId: patchActivity
+      parameters:
+        - in: path
+          name: activity_id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                project_id: { type: string }
+      responses:
+        "200":
+          description: tagged
+        "400":
+          description: unknown project
+        "404":
+          description: not found
+  /api/people:
+    get:
+      tags: [people]
+      operationId: listPeople
+      parameters:
+        - in: query
+          name: account_id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: kind
+          schema: { type: string }
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: project_id
+          schema: { type: string }
+        - in: query
+          name: function
+          schema: { type: string }
+      responses:
+        "200":
+          description: people
+    post:
+      tags: [people]
+      operationId: createPerson
+      responses:
+        "200":
+          description: created
+  /api/people/{person_id}:
+    patch:
+      tags: [people]
+      operationId: patchPerson
+      parameters:
+        - in: path
+          name: person_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: patched
+  /api/projects:
+    get:
+      tags: [projects]
+      operationId: listProjects
+      parameters:
+        - in: query
+          name: account_id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: kind
+          schema: { type: string }
+      responses:
+        "200":
+          description: projects
+    post:
+      tags: [projects]
+      operationId: createProject
+      responses:
+        "200":
+          description: created
+  /api/projects/{project_id}:
+    patch:
+      tags: [projects]
+      operationId: patchProject
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: patched
+    delete:
+      tags: [projects]
+      operationId: deleteProject
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: removed
+  /api/tickets:
+    get:
+      tags: [tickets]
+      operationId: listTickets
+      parameters:
+        - in: query
+          name: account_id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: priority
+          schema: { type: string }
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: project_id
+          schema: { type: string }
+      responses:
+        "200":
+          description: tickets
+  /api/tickets/{ticket_id}:
+    get:
+      tags: [tickets]
+      operationId: getTicket
+      parameters:
+        - in: path
+          name: ticket_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: ticket
+  /api/tickets/{ticket_id}/operator:
+    patch:
+      tags: [tickets]
+      operationId: patchTicketOperator
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: ../schema/operator_patch.schema.json
+      parameters:
+        - in: path
+          name: ticket_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: patched
+  /api/threads:
+    get:
+      tags: [mail]
+      operationId: listThreads
+      parameters:
+        - in: query
+          name: account_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: threads
+  /api/threads/{thread_id}:
+    get:
+      tags: [mail]
+      operationId: getThread
+      parameters:
+        - in: path
+          name: thread_id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: include
+          schema: { type: string }
+      responses:
+        "200":
+          description: thread
+  /api/threads/{thread_id}/suggest-reply:
+    post:
+      tags: [mail]
+      operationId: suggestThreadReply
+      parameters:
+        - in: path
+          name: thread_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: suggested reply
+        "404":
+          description: not found
+  /api/threads/{thread_id}/operator:
+    patch:
+      tags: [mail]
+      operationId: patchThreadOperator
+      parameters:
+        - in: path
+          name: thread_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: patched
+  /api/emails:
+    get:
+      tags: [mail]
+      operationId: listEmails
+      parameters:
+        - in: query
+          name: account_id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: thread_id
+          schema: { type: string }
+      responses:
+        "200":
+          description: emails
+  /api/emails/{email_id}:
+    get:
+      tags: [mail]
+      operationId: getEmail
+      parameters:
+        - in: path
+          name: email_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: email
+  /api/tasks:
+    post:
+      tags: [mail]
+      operationId: createTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200":
+          description: created self-email task
+  /api/tasks/{email_id}:
+    get:
+      tags: [mail]
+      operationId: getTask
+      parameters:
+        - in: path
+          name: email_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: task email
+    put:
+      tags: [mail]
+      operationId: updateTask
+      parameters:
+        - in: path
+          name: email_id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200":
+          description: updated task
+  /api/emails/{email_id}/operator:
+    patch:
+      tags: [mail]
+      operationId: patchEmailOperator
+      parameters:
+        - in: path
+          name: email_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: patched
+  /api/slack/channels:
+    get:
+      tags: [slack]
+      operationId: listSlackChannels
+      parameters:
+        - in: query
+          name: account_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: channels
+  /api/slack/messages:
+    get:
+      tags: [slack]
+      operationId: listSlackMessages
+      parameters:
+        - in: query
+          name: account_id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: channel_id
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer }
+      responses:
+        "200":
+          description: messages
+  /api/slack/messages/{message_id}:
+    get:
+      tags: [slack]
+      operationId: getSlackMessage
+      parameters:
+        - in: path
+          name: message_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: slack message
+        "404":
+          description: not found
+  /api/slack/messages/{message_id}/operator:
+    patch:
+      tags: [slack]
+      operationId: patchSlackOperator
+      parameters:
+        - in: path
+          name: message_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: patched
+  /api/teams/channels:
+    get:
+      tags: [teams]
+      operationId: listTeamsChannels
+      parameters:
+        - in: query
+          name: account_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: channels
+  /api/teams/messages:
+    get:
+      tags: [teams]
+      operationId: listTeamsMessages
+      parameters:
+        - in: query
+          name: account_id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: channel_id
+          schema: { type: string }
+      responses:
+        "200":
+          description: messages
+  /api/teams/messages/{message_id}:
+    get:
+      tags: [teams]
+      operationId: getTeamsMessage
+      parameters:
+        - in: path
+          name: message_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: teams message
+        "404":
+          description: not found
+  /api/teams/messages/{message_id}/operator:
+    patch:
+      tags: [teams]
+      operationId: patchTeamsOperator
+      parameters:
+        - in: path
+          name: message_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: patched
+  /api/salesforce/opportunities:
+    get:
+      tags: [salesforce]
+      operationId: listSalesforceOpportunities
+      parameters:
+        - in: query
+          name: account_id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: q
+          schema: { type: string }
+      responses:
+        "200":
+          description: opportunities
+  /api/salesforce/opportunities/{opp_id}:
+    get:
+      tags: [salesforce]
+      operationId: getSalesforceOpportunity
+      parameters:
+        - in: path
+          name: opp_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: opportunity
+        "404":
+          description: not found
+  /api/salesforce/cases:
+    get:
+      tags: [salesforce]
+      operationId: listSalesforceCases
+      parameters:
+        - in: query
+          name: account_id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: q
+          schema: { type: string }
+      responses:
+        "200":
+          description: cases
+  /api/salesforce/cases/{case_id}:
+    get:
+      tags: [salesforce]
+      operationId: getSalesforceCase
+      parameters:
+        - in: path
+          name: case_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: case
+        "404":
+          description: not found
+  /api/calendar:
+    get:
+      tags: [calendar]
+      operationId: listCalendar
+      parameters:
+        - in: query
+          name: account_id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: from
+          schema: { type: string }
+        - in: query
+          name: to
+          schema: { type: string }
+      responses:
+        "200":
+          description: events
+  /api/calendar/{event_id}:
+    get:
+      tags: [calendar]
+      operationId: getCalendarEvent
+      parameters:
+        - in: path
+          name: event_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: calendar event
+        "404":
+          description: not found
+  /api/calendar/{event_id}/operator:
+    patch:
+      tags: [calendar]
+      operationId: patchCalendarOperator
+      parameters:
+        - in: path
+          name: event_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: patched
+  /api/actions:
+    get:
+      tags: [actions]
+      operationId: listActions
+      parameters:
+        - in: query
+          name: account_id
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: due
+          schema: { type: string, enum: [overdue, today, all] }
+      responses:
+        "200":
+          description: actions
+    post:
+      tags: [actions]
+      operationId: createAction
+      responses:
+        "200":
+          description: created
+  /api/actions/{action_id}:
+    patch:
+      tags: [actions]
+      operationId: patchAction
+      parameters:
+        - in: path
+          name: action_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: patched
+  /api/drafts:
+    get:
+      tags: [drafts]
+      operationId: listDrafts
+      parameters:
+        - in: query
+          name: account_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: drafts
+    post:
+      tags: [drafts]
+      operationId: createDraft
+      responses:
+        "200":
+          description: created
+  /api/drafts/compose:
+    post:
+      tags: [drafts]
+      operationId: composeDraft
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: ../schema/compose_request.schema.json
+      responses:
+        "200":
+          description: draft
+  /api/drafts/{draft_id}:
+    get:
+      tags: [drafts]
+      operationId: getDraft
+      parameters:
+        - in: path
+          name: draft_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: draft
+    patch:
+      tags: [drafts]
+      operationId: patchDraft
+      parameters:
+        - in: path
+          name: draft_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: patched
+  /api/drafts/{draft_id}/send:
+    post:
+      tags: [drafts]
+      operationId: sendDraft
+      parameters:
+        - in: path
+          name: draft_id
+          required: true
+          schema: { type: string }
+      responses:
+        "409":
+          description: send_disabled_v0_1
+  /api/reports:
+    get:
+      tags: [reports]
+      operationId: listReports
+      parameters:
+        - in: query
+          name: account_id
+          schema: { type: string }
+      responses:
+        "200":
+          description: reports
+  /api/reports/generate:
+    post:
+      tags: [reports]
+      operationId: generateReport
+      responses:
+        "200":
+          description: report
+  /api/reports/{report_id}:
+    get:
+      tags: [reports]
+      operationId: getReport
+      parameters:
+        - in: path
+          name: report_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: report
+  /api/chat:
+    post:
+      tags: [chat]
+      operationId: postChat
+      responses:
+        "200":
+          description: SSE text/event-stream
+          content:
+            text/event-stream:
+              schema: { type: string }
+  /api/chats:
+    get:
+      tags: [chat]
+      operationId: listChats
+      parameters:
+        - in: query
+          name: account_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: chats
+  /api/chats/{chat_id}:
+    get:
+      tags: [chat]
+      operationId: getChat
+      parameters:
+        - in: path
+          name: chat_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: chat
+        "404":
+          description: not found
+    patch:
+      tags: [chat]
+      operationId: patchChat
+      parameters:
+        - in: path
+          name: chat_id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bookmarked: { type: boolean }
+                title: { type: string }
+      responses:
+        "200":
+          description: patched
+        "404":
+          description: not found
+  /api/connectors:
+    get:
+      tags: [sync]
+      operationId: listConnectors
+      responses:
+        "200":
+          description: connectors
+  /api/connectors/{name}/test:
+    post:
+      tags: [sync]
+      operationId: testConnector
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: health plus auth method
+        "404":
+          description: unknown
+  /api/connectors/{name}/health:
+    get:
+      tags: [sync]
+      operationId: connectorHealth
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: health
+  /api/connectors/{name}/sync:
+    post:
+      tags: [sync]
+      operationId: runSync
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: job
+        "404":
+          description: connector_off or unknown
+  /api/sync/jobs:
+    get:
+      tags: [sync]
+      operationId: listSyncJobs
+      responses:
+        "200":
+          description: jobs
+  /api/notes:
+    get:
+      tags: [accounts]
+      operationId: listNotes
+      parameters:
+        - in: query
+          name: account_id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: ref_id
+          schema: { type: string }
+        - in: query
+          name: q
+          schema: { type: string }
+      responses:
+        "200":
+          description: notes
+    post:
+      tags: [accounts]
+      operationId: createNote
+      responses:
+        "200":
+          description: note
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        detail: { type: string }

@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://csm-dashboard.local/schema/teams_message.schema.json",
+  "title": "Teams message",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["type", "account_id", "channel_id", "ts"]
+}

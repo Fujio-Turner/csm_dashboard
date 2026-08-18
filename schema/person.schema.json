@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://csm-dashboard.local/schema/person.schema.json",
+  "title": "Person",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "type",
+    "account_id",
+    "name"
+  ],
+  "properties": {
+    "type": {
+      "const": "person"
+    },
+    "kind": {
+      "enum": [
+        "customer",
+        "account_team",
+        "ps_team"
+      ]
+    },
+    "location": {
+      "type": "string"
+    },
+    "reports_to": {
+      "type": "string",
+      "description": "person_id of the manager on this account"
+    },
+    "project_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "owns_all_projects": {
+      "type": "boolean",
+      "description": "Director / VP owns every project on the account"
+    },
+    "functions": {
+      "type": "array",
+      "description": "Closed set: Ops, Accounting, DBA",
+      "items": {
+        "type": "string",
+        "enum": [
+          "Ops",
+          "Accounting",
+          "DBA"
+        ]
+      }
+    }
+  }
+}
