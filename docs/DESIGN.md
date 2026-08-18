@@ -7,7 +7,7 @@
 | **Date** | 2026-08-17 |
 | **Status** | Draft |
 | **Version (product)** | 0.1.0 (first ship) |
-| **License** | Business Source License 1.1 (Licensor Fujio Turner; Change Date 2030-08-17; Change License Apache 2.0; Additional Use Grant: None; contact mail@fuj.io) |
+| **License** | Apache License, Version 2.0 (Copyright 2026 Fujio Turner; contact mail@fuj.io) |
 | **Repo (locked)** | `/Users/fujioturner/Documents/git_folders/fujio-turner/csm_dashboard` |
 | **Not** | A Salesforce / Gainsight replacement. Local single-operator desk. |
 
@@ -17,7 +17,7 @@
 
 Customer Success Managers live in five tabs — Jira, Gmail / Outlook, Slack, Calendar, and a notes app — while owning **eight to twenty-five enterprise accounts at once**. They lose threads, miss renewals, write emails without ticket or Slack context, and scramble Friday afternoon to produce a weekly report. There is no local desk that joins those sources per account, colors them so the eye can switch books instantly, and lets Grok draft with the *right* context.
 
-**csm_dashboard** is a laptop product: one operator, one process, one Couchbase Lite Community 4.0.3 file. Stack: Python 3.11+, FastAPI, vanilla IIFE JS, ctypes `libcblite`, Grok at `https://api.x.ai/v1`, BUSL-1.1. Official Couchbase Lite has no Python SDK — the ctypes wrapper lives in this repo (`src/csm_dashboard/storage/cblite.py`). Do not add Enterprise vector-index binds (Community pin).
+**csm_dashboard** is a laptop product: one operator, one process, one Couchbase Lite Community 4.0.3 file. Stack: Python 3.11+, FastAPI, vanilla IIFE JS, ctypes `libcblite`, Grok at `https://api.x.ai/v1`, Apache License 2.0. Official Couchbase Lite has no Python SDK — the ctypes wrapper lives in this repo (`src/csm_dashboard/storage/cblite.py`). Do not add Enterprise vector-index binds (Community pin).
 
 v0.1 ships a working desk on **seed fixtures + connector stubs**. Live OAuth / IMAP / Jira / Slack land on the roadmap, not in PR1. Drafts are stored; send is an explicit later action.
 
@@ -74,7 +74,7 @@ Listen on **`127.0.0.1:8788`**. Database file: `data/csm_dashboard.cblite2`.
 | Auto-send email or Slack | Confirm-before-send is a hard rule. |
 | Multi-user / SSO / RBAC | v1 is this machine. No auth. |
 | Embedding this desk in another product’s admin UI | Different job, different store. Keep this repo standalone. |
-| Depending on another repo’s ctypes wrapper | BUSL isolation. The wrapper lives here. |
+| Depending on another repo’s ctypes wrapper | License isolation. The wrapper lives here. |
 | Couchbase Server, Capella replicator, React Native | Future shape; not v0.1. |
 | CBL EE vector index | Community pin. Search is SQL++ + FTS `MATCH`/`RANK` + Grok. Official C FTS uses `MATCH(indexName, query)` — **`SEARCH()` is Server SQL++** ([C FTS docs](https://docs.couchbase.com/couchbase-lite/current/c/fts.html)). |
 | React, bundler, Tailwind, DaisyUI, TypeScript | Vanilla HTML + one CSS + IIFE JS. |
@@ -168,7 +168,7 @@ Package layout:
 csm_dashboard/
   AGENTS.md
   LICENSE
-  licenses/BSL-1.1.txt
+  LICENSE
   Makefile
   Dockerfile
   docker-compose.yml
@@ -1563,7 +1563,7 @@ Correct if this becomes a team product. v1 load (one writer, hundreds of MB) doe
 | XSS via Slack/email HTML / Grok Markdown in the desk | **Med** | Store/display **plain text**. `textContent` for Slack, email, chat tokens, `reports.body_md`. Never `innerHTML` of model output. |
 | Path traversal / query injection via SQL++ | **Med** | Parameterized `$aid` etc. Only LIMIT/OFFSET interpolated, and only after `int()` clamp (sales_ops). FTS query built from `[A-Za-z0-9']+` tokens. |
 | CSRF on `localhost` | **Low** | Same-origin desk; v0.1 no cookies. Revisit if auth is added. |
-| License / supply chain | **Low** | BUSL-1.1, no production use without commercial license. libcblite from Couchbase packages URL pinned by `cblite_config.json`. |
+| License / supply chain | **Low** | Apache License 2.0. libcblite from Couchbase packages URL pinned by `cblite_config.json`. |
 
 Threat model is **one trusted operator on one machine**. The desk is not a multi-tenant SaaS.
 
@@ -1616,7 +1616,7 @@ No Prometheus series in v0.1.
 
 This is a **standalone repo**.
 
-1. Create repo, LICENSE (BUSL-1.1, Licensed Work **CSM Dashboard**), README, `make ci` skeleton.
+1. Create repo, LICENSE (Apache License 2.0), README, `make ci` skeleton.
 2. Land storage + schemas + seed + read APIs (desk usable on fixtures).
 3. Land UI (Home, Account, Compose, Actions, Settings).
 4. Land Grok compose/report/chat with key optional.
@@ -1664,7 +1664,7 @@ This is a **standalone repo**.
 | Vanilla IIFE JS; `make check-js`; no nested backticks | Nested ticks break the IIFE at parse time. |
 | stdlib logging `csm.*` with the handler change; no Prometheus | Laptop product. |
 | Single user, no auth, secrets on disk (`0600`) | v1 is this machine. Community CBL is not encrypted. |
-| BUSL-1.1, Change Date 2030-08-17, contact mail@fuj.io | Commercial license for production use. |
+| Apache License 2.0, contact mail@fuj.io | Open-source use, modification, and distribution. |
 
 ---
 
@@ -1696,8 +1696,8 @@ Each PR is independently reviewable and mergeable. Do not put live OAuth in the 
 
 ### PR 1 — Repo skeleton
 
-- **Title:** `chore: csm_dashboard repo skeleton (BUSL, Docker, make ci)`
-- **Files:** `LICENSE`, `licenses/BSL-1.1.txt`, `README.md`, `AGENTS.md`, `ROADMAP.md`, `Makefile`, `Dockerfile` (COPY `fixtures` + `prompts`), `docker-compose.yml` (`127.0.0.1:8788:8788`), `pyproject.toml`, `cblite_config.json`, `config.example.json` (`host: 127.0.0.1`), `.env.example`, `.gitignore`, `src/csm_dashboard/__init__.py` (`__version__ = "0.1.0"`), `__main__.py`, `config.py` (`fixtures_dir()`, bind, `chmod 0600` secrets), `logging_setup.py`, `web/app.py` HTTP stub (`/healthz`, `/` — **no CBL**), stub `static/app.js`, `tests/test_markup.py`
+- **Title:** `chore: csm_dashboard repo skeleton (Apache-2.0, Docker, make ci)`
+- **Files:** `LICENSE`, `README.md`, `AGENTS.md`, `ROADMAP.md`, `Makefile`, `Dockerfile` (COPY `fixtures` + `prompts`), `docker-compose.yml` (`127.0.0.1:8788:8788`), `pyproject.toml`, `cblite_config.json`, `config.example.json` (`host: 127.0.0.1`), `.env.example`, `.gitignore`, `src/csm_dashboard/__init__.py` (`__version__ = "0.1.0"`), `__main__.py`, `config.py` (`fixtures_dir()`, bind, `chmod 0600` secrets), `logging_setup.py`, `web/app.py` HTTP stub (`/healthz`, `/` — **no CBL**), stub `static/app.js`, `tests/test_markup.py`
 - **Depends on:** none
 - **Description:** Runnable `python -m csm_dashboard` on `127.0.0.1:8788`. `make ci` green. **Until PR 2, `create_app` is an HTTP stub.** After PR 2, lifespan raises `CouchbaseLiteNotAvailable` if libcblite is missing (unless `repo=` is injected). Log `csm.boot` on listen.
 

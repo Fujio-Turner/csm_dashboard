@@ -75,13 +75,9 @@ Version source of truth: `src/csm_dashboard/__init__.py` → `__version__`. The 
 
 ## License
 
-CSM Dashboard is licensed under the **Business Source License 1.1 (BUSL-1.1)**
-with `Additional Use Grant: None` — **no production use is permitted
-without a commercial license** from the copyright holder.
-The license converts to **Apache License 2.0** on the Change Date
-(2030-08-17).
+Copyright 2026 Fujio Turner.
 
-- Repo-wide default: [`LICENSE`](LICENSE)
-- Full BSL text and parameters: [`licenses/BSL-1.1.txt`](licenses/BSL-1.1.txt)
+CSM Dashboard is licensed under the **Apache License, Version 2.0**.
+See [`LICENSE`](LICENSE).
 
-**Commercial licensing or questions:** mail@fuj.io
+Questions: mail@fuj.io
