@@ -58,7 +58,7 @@ On Apple Silicon the image runs as `linux/amd64` because the Community library i
 | Doc | What it is |
 | --- | --- |
 | [docs/DESIGN.md](docs/DESIGN.md) | How the desk is built |
-| [ROADMAP.md](ROADMAP.md) | What’s next (live Jira, IMAP, Slack, OAuth, send) |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | What’s next (connectors, drafts, chat ops, transcripts, App Services, EE vectors) |
 | [guides/OPENAPI.md](guides/OPENAPI.md) | Adding HTTP APIs |
 | [guides/HTML_CSS.md](guides/HTML_CSS.md) | Desk UI rules |
 | [guides/SCHEMA.md](guides/SCHEMA.md) | JSON Schema conventions |
