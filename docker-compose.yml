@@ -1,7 +1,10 @@
 services:
   csm_dashboard:
     container_name: csm-dashboard
-    build: .
+    build:
+      context: .
+      args:
+        PIP_TRUSTED_HOST: ${PIP_TRUSTED_HOST:-}
     image: csm-dashboard:0.1.0
     platform: linux/amd64
     restart: unless-stopped

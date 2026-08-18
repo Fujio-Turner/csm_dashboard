@@ -3,8 +3,24 @@ FROM python:3.12-slim
 WORKDIR /app
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends wget tar libicu76 && \
+    apt-get install -y --no-install-recommends wget tar libicu76 ca-certificates && \
     rm -rf /var/lib/apt/lists/*
+
+# Optional extra CAs for TLS-inspecting networks (Netskope, Zscaler, …).
+# Drop PEM/CRT files in ./certs/ — see certs/README.md.
+COPY certs/ /usr/local/share/ca-certificates/
+RUN update-ca-certificates
+
+# pip/requests use certifi by default and ignore the system store unless told.
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
+    REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
+    CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
+    PIP_CERT=/etc/ssl/certs/ca-certificates.crt
+
+# Escape hatch when you cannot install the intercept CA:
+#   PIP_TRUSTED_HOST="pypi.org files.pythonhosted.org pypi.python.org" docker compose up --build
+ARG PIP_TRUSTED_HOST=
+ENV PIP_TRUSTED_HOST=${PIP_TRUSTED_HOST}
 
 COPY cblite_config.json /app/cblite_config.json
 ARG CBLITE_VERSION=

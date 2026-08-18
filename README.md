@@ -51,6 +51,15 @@ docker compose up --build
 
 On Apple Silicon the image runs as `linux/amd64` because the Community library is x86_64. Compose publishes `127.0.0.1:8788` only. Data lives in `./data/` on your disk (not in git).
 
+If the build dies on `CERTIFICATE_VERIFY_FAILED` (Netskope / Zscaler / corp TLS inspection), export the intercept CA and rebuild:
+
+```bash
+python3 scripts/export_host_cas.py
+docker compose up --build
+```
+
+See [`certs/README.md`](certs/README.md).
+
 ---
 
 ## Docs for builders

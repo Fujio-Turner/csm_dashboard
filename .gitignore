@@ -10,3 +10,5 @@ config.json
 .env
 data/secrets.json
 TOUCH_TEST
+certs/*.crt
+certs/*.pem
