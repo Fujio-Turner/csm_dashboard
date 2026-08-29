@@ -58,12 +58,17 @@
         {
           "id": "slash",
           "h": "Search and slash",
-          "p": "Type in the account search to filter the current tab. Start with / to jump types: /note, /project, /people, /email, /ticket, /slack, /teams, /calendar, /sf."
+          "p": "Type in the account search to filter the current tab. Start with / to jump types: /note, /project, /people, /email, /ticket, /chat, /slack, /teams, /calendar, /sf. Slack and Teams share one slack / teams tab; /slack and /teams still filter that list."
+        },
+        {
+          "id": "timeline",
+          "h": "Timeline layout",
+          "p": "Events run from past to future around a Now line. Horizontal: past on the left, future on the right. Vertical: newest/future at the top, oldest at the bottom. Past 7 / Past 30 and Next 7 / Next 30 bound the window so a long book cannot flood the page. Vertical | Horizontal is at the top of Timeline. Now recenters the line after you scroll."
         },
         {
           "id": "compose",
           "h": "Compose and reply",
-          "p": "Compose drafts from tickets, recent mail, Slack, Teams, and calendar. Grok writes when a key is present; otherwise a template is saved. Open a thread and click Suggest reply for a draft on that conversation. Send is off in this version."
+          "p": "Compose, thread Reply, and New task share one mail composer: Tagify To / Cc / Bcc, subject, body, Attach, AI Suggest, Save draft, Send. Grok writes when a key is present; otherwise a template. Send after confirm when SMTP is live."
         }
       ]
     },
@@ -114,6 +119,11 @@
           "p": "Name, phone, email, and timezone live under You. Mail from your domain is treated as internal. The timezone pins the You row on the world clock and drives Agenda’s idea of today."
         },
         {
+          "id": "prefs",
+          "h": "User Preferences",
+          "p": "Hide days on week and month (uncheck Saturday and Sunday for a weekday grid), pick which day the week begins, and set appearance to Day, Night, or Auto. The sun and moon at the bottom of the sidebar switches Day and Night."
+        },
+        {
           "id": "companies",
           "h": "Companies",
           "p": "Add a customer book. Quiet hides it from Home. Remove archives it. Edit to set color, crop a logo, and map domains plus Slack, Teams, Salesforce, and Jira tags so inbound mail lands on the right book."
@@ -121,7 +131,7 @@
         {
           "id": "ai-keys",
           "h": "AI and connectors",
-          "p": "Gmail and Calendar: save your profile email, then Sign in with Google. Your name/email only pick the account. Add http://localhost:8788/oauth2callback in Google Cloud if Google says redirect_uri_mismatch. Jira: site + API token. Slack: xoxp token. Teams: Connect Microsoft. Okta SSO still needs an OIDC app client ID — profile email is not enough."
+          "p": "Gmail and Calendar: save your profile email, then Sign in with Google. Jira: site + API token. Slack: xoxp token. Teams: Connect Microsoft. To send mail or a task to yourself, set SMTP (host, port, username, app password) to live — Send always asks first. Okta SSO still needs an OIDC app client ID."
         },
         {
           "id": "seed",

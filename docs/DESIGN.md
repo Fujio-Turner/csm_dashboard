@@ -6,7 +6,7 @@
 | **Author** | Fujio Turner |
 | **Date** | 2026-08-17 |
 | **Status** | Draft |
-| **Version (product)** | 0.1.0 (first ship) |
+| **Version (product)** | 0.1.0 first-ship lock · **living desk is 0.1.92** — see [`ROADMAP.md`](ROADMAP.md) |
 | **License** | Apache License, Version 2.0 (Copyright 2026 Fujio Turner; contact mail@fuj.io) |
 | **Repo (locked)** | `/Users/fujioturner/Documents/git_folders/fujio-turner/csm_dashboard` |
 | **Not** | A Salesforce / Gainsight replacement. Local single-operator desk. |
@@ -19,7 +19,25 @@ Customer Success Managers live in five tabs — Jira, Gmail / Outlook, Slack, Ca
 
 **csm_dashboard** is a laptop product: one operator, one process, one Couchbase Lite Community 4.0.3 file. Stack: Python 3.11+, FastAPI, vanilla IIFE JS, ctypes `libcblite`, Grok at `https://api.x.ai/v1`, Apache License 2.0. Official Couchbase Lite has no Python SDK — the ctypes wrapper lives in this repo (`src/csm_dashboard/storage/cblite.py`). Do not add Enterprise vector-index binds (Community pin).
 
-v0.1 ships a working desk on **seed fixtures + connector stubs**. Live OAuth / IMAP / Jira / Slack land on the roadmap, not in PR1. Drafts are stored; send is an explicit later action.
+v0.1 shipped a working desk on **seed fixtures + connector stubs**. **Living product (0.1.92):** live Jira / Slack / Teams / Gmail / Calendar, SMTP send after confirm, Agenda Day/Week/Month, timeline Now, slack / teams tab, Tagify chips on multi-value fields, inbox **Me / Us / Them / All / ?? / n/a** stamps, and store paging (`COUNT` + `LIMIT`, slim list DTOs). IMAP / Zendesk / Pydantic AI still sit on [`ROADMAP.md`](ROADMAP.md). This file remains the original v0.1 design lock — where it says send is `409 send_disabled_v0_1`, the desk now uses `send_not_configured` when SMTP is off and delivers when SMTP is live. See **Living desk overlay** below for what landed after the lock.
+
+### Living desk overlay (0.1.92)
+
+The sections below stay the v0.1 lock. These are the post-lock facts agents should follow:
+
+| Area | Now |
+| --- | --- |
+| **Send** | SMTP after confirm. `409 send_not_configured` when SMTP is off. Bcc + attachments (5 MB × 8) ride with send. |
+| **Compose** | One `.mail-composer` for Compose, thread Reply, and New task: Tagify To / Cc / Bcc, Attach, **AI Suggest**, Save draft, Send. |
+| **Multi-value fields** | Tagify chips (`mountTagifyMulti`): person Projects / Functions, project tags, compose Tickets, company domains / connector lists. Search-select is **single-value** only (timezone, Kind, Reports to, Thread, Task name). |
+| **Inbox who-stamp** | Far right of each Agenda inbox row: **Me** / **Us** / **Them** / **All** / **??** / **n/a** (`inbox_audience` in `repo.py`, `.agenda-who` in CSS). Computed at read time from To/Cc/Bcc + people/domains, or from Slack/Teams channel vs DM. Not a stored field. |
+| **Store paging** | `storage/paging.py` + `CBLStore`/`MemoryStore.page_account` / `count_account`. Lists use `WHERE` + `ORDER BY` + `LIMIT`. Do **not** `SELECT *` a whole book then slice in Python. Timeline already did this; mail, chat, tickets, calendar, and tab counts follow. |
+| **Slim lists** | `GET /api/emails` omits `body_text`. `GET /api/tickets` omits `comments`. Thread `?include=messages` and `GET` by id still return the full doc. Inbox/home agenda use snippets only. |
+| **Cached rollups** | `accounts.stats` and `accounts.input_counts` are caches (`refreshed_at`), never SoT. Seed uses `begin_bulk` / `end_bulk`. Live ingest calls `_touch_rollup` (COUNT + stats) when the account exists. |
+| **`/api/status`** | 5 s in-process memo; invalidate on settings/keys writes. |
+| **CDN** | Source Sans 3 + Tagify `@yaireo/tagify@4.32.2`. Still no Leaflet, ECharts, or a second email-composer kit. |
+
+Files: `storage/paging.py`, `tests/test_paging.py`, `tests/test_inbox_audience.py`.
 
 ---
 
@@ -62,7 +80,7 @@ Listen on **`127.0.0.1:8788`**. Database file: `data/csm_dashboard.cblite2`.
 - Connector **protocol + stub/fixture pull**. Seed 3 fake enterprise accounts with tickets, threads, Slack, calendar, a PS project, people, and actions.
 - Grok surfaces behind `prompts/*.json`. If `XAI_API_KEY` is absent, compose/report use template fallbacks; chat streams a static SSE fallback and still writes a `chats` doc (not HTTP 400).
 - First-party operator fields (`unread`, `triage`, `pin`, `prep_note`) are **writable** via `PATCH /api/.../operator` in v0.1.
-- Drafts persist; **v0.1 does not send mail**. `POST /api/drafts/{id}/send` returns `409` with `reason=send_disabled_v0_1`.
+- Drafts persist; **v0.1 lock:** send returns `409`. **Living desk:** SMTP after confirm; `409 send_not_configured` when SMTP is off.
 - Default listen **`127.0.0.1:8788`**. `make ci` = `compileall` + `node --check` + pytest.
 - Timeline for one account lists in **&lt; 300 ms** local SQL++ at the quantified load (see [Scale](#scale--performance)), using composite indexes and Slack-root-only activities.
 
@@ -199,8 +217,9 @@ csm_dashboard/
       __init__.py
       errors.py
       cblite.py               # copy/adapt sales_ops CBL class; no vector binds
-      cbl_store.py            # COLLECTIONS, INDEXES, SQL++ helpers
-      memory.py               # MemoryStore
+      cbl_store.py            # COLLECTIONS, INDEXES, SQL++ helpers, page_account / count_account
+      memory.py               # MemoryStore (same page/count surface)
+      paging.py               # shared filters for Memory + CBL
       repo.py                 # Store Protocol + CsmRepo
     connectors/
       base.py                 # Connector protocol + NormalizedEvent
@@ -372,7 +391,7 @@ Repo methods re-attach `"_id": doc_id` on the way out for the API.
 
 ### CsmRepo surface (locked)
 
-`web/app.py` **must not contain SQL++**. Handlers call `CsmRepo` only. `CBLStore` may implement `query_*` helpers; `CsmRepo` does `fn = getattr(self.store, "page_timeline", None)` then SQL++ or `query_all` + Python filter (same branch as sales_ops `SalesRepo.list_notes` / `page_businesses`).
+`web/app.py` **must not contain SQL++**. Handlers call `CsmRepo` only. `CBLStore` may implement `query_*` helpers; `CsmRepo` does `fn = getattr(self.store, "page_account", None)` / `page_timeline` then SQL++ or MemoryStore filter. Do not load a whole collection with `query_all` / `_account_rows` just to take `[:limit]` — that path is the fallback when SQL++ fails.
 
 `create_app(repo: CsmRepo | None = None)` — if `repo` is passed, lifespan skips `CBLStore` and uses it. That is the API-test seam (sales_ops never added this; CSM’s list surface is larger, so it is required). `make ci` without libcblite still exercises list/filter/operator-patch via `TestClient(create_app(repo=CsmRepo(MemoryStore())))`.
 
@@ -385,11 +404,14 @@ Locked methods (add helpers only if a new collection lands):
 | `create_account` / `get_account` / `get_account_by_abbr` / `patch_account` / `list_accounts` | abbr unique, case-fold lookup; **slug immutable** after create |
 | `create_person` / `get_person` / `patch_person` / `list_people` | filter `account_id`, `kind` |
 | `create_project` / `get_project` / `patch_project` / `list_projects` | |
-| `upsert_ticket` / `get_ticket` / `patch_ticket_operator` / `page_tickets` | merge + operator-only patch |
-| `upsert_email` / `get_email` / `patch_email_operator` / `page_emails` | id from [email identity](#email-and-thread-identity-locked) |
+| `upsert_ticket` / `get_ticket` / `patch_ticket_operator` / `page_tickets` | merge + operator-only patch; **list is slim** (no `comments`) |
+| `upsert_email` / `get_email` / `patch_email_operator` / `page_emails` | id from [email identity](#email-and-thread-identity-locked); **list `slim=True` omits `body_text`** |
 | `upsert_thread` / `get_thread` / `patch_thread_operator` / `page_threads` | attach email → existing thread |
-| `upsert_slack_channel` / `upsert_slack_message` / `patch_slack_operator` / `page_slack` | `page_slack(account_id, channel_id, limit, before_ts)` |
-| `upsert_calendar` / `patch_calendar_operator` / `page_calendar` | `from`/`to` on `start_at` |
+| `upsert_slack_channel` / `upsert_slack_message` / `patch_slack_operator` / `page_slack` | `page_slack(account_id, channel_id, limit, before_ts, unread=, slim=)` |
+| `upsert_teams_*` / `page_teams` | same paging as Slack |
+| `upsert_calendar` / `patch_calendar_operator` / `page_calendar` | `start`/`end`/`limit` on `start_at` |
+| `home_agenda` / `inbox_audience` | Agenda meetings + inbox; who-stamp Me/Us/Them/All/??/n/a |
+| `begin_bulk` / `end_bulk` / `refresh_input_counts` | seed/sync rollup; tab counts on `accounts.input_counts` |
 | `create_action` / `get_action` / `patch_action` / `page_actions` | `due=overdue\|today\|all` |
 | `touch_next_action(account_id)` | soonest open action → `accounts.next_action` |
 | `refresh_account_stats(account_id)` | cache `stats.*`; not SoT |
@@ -490,7 +512,7 @@ Connectors write `sources.<connector>` plus **identity / normalized** fields. Op
 | `calendar_events` | times, attendees, location | `operator.prep_note` |
 | `projects` | imported status if `source != operator` | name, kind, status, owner, dates when operator-created |
 
-**Do not invent fields on `accounts` that belong on tickets, emails, Slack, or calendar.** Open ticket counts are **queries**, not denormalized counters that go stale. Home board computes them in SQL++ (or a small Python pass over paged indexes). Optional *cached* rollups on `accounts.stats` may be refreshed by `CsmRepo.refresh_account_stats(account_id)` after sync — they are a cache (`stats.refreshed_at`), never source of truth.
+**Do not invent fields on `accounts` that belong on tickets, emails, Slack, or calendar.** Open ticket counts are **queries**, not a second copy of ticket rows. Living desk caches `accounts.stats` and `accounts.input_counts` (`refreshed_at`) via `COUNT` + small pages after ingest / seed `end_bulk`. Those caches are never source of truth — a miss recomputes.
 
 ### Account document
 
@@ -1324,33 +1346,28 @@ Reuse sales_ops tokens **philosophy**, own `:root` palette (do not copy ice-desk
 
 Font: Source Sans 3. No emojis. Heroicons-style 24×24 stroke SVG. Buttons on edges (`toolbar-actions { margin-left: auto }`). Lightbox actions stay in the panel.
 
-CDN allow-list v0.1: Source Sans 3 only. **No Leaflet, no ECharts, no Tagify** unless a later view needs them. Do not add a UI kit.
+CDN allow-list: Source Sans 3 + **Tagify** (`@yaireo/tagify@4.32.2`) for To/Cc/Bcc and every multi-value field. **No Leaflet, no ECharts, no second email-composer kit.** Do not add a UI kit.
 
 Version: sidebar `<small id="app-version">` filled by `refreshStatus()` from `/api/status` (index.html may stamp `{{ version }}` once at serve like sales_ops, but JS must not hard-code a second number). Cache-bust `app.css?v=` / `app.js?v=` with the same served version.
 
 ### Home
 
-- Left: identity (“CSM Desk”) + search (filter cards by name/abbr).
-- Right: `Refresh health`, `Seed demo` (Settings also has this).
-- Cards: chip, name, health bar + status word, renewal date, counts (open tickets, overdue actions, unread threads), next meeting title+time, next action title.
-- Sort: `health.score` ascending (worst first), then `renewal_on`.
-- Click card → `#account/{abbr}`.
+- **Agenda** (default) and **Companies**. Agenda: Day / Week / Month calendar (company logo left, duration minutes right) + **New mail / chat / tasks** inbox.
+- Inbox row: type icon + company logo + title/snippet/when. Far right: `.agenda-who` stamp (**Me** / **Us** / **Them** / **All** / **??** / **n/a**).
+- Company cards: chip, name, health bar + status word, renewal date, next meeting. Click → `#account/{abbr}`.
 
 ### Account workspace
 
-Header: large chip, name, health, renewal, **Account team** vs **PS team** as two labeled lists of people.
+Header: large chip, name, health, renewal. Tabs include **slack / teams** as one `chat` tab. Panes load via list endpoints (`/api/tickets?account_id=…`, etc.) — **slim pages** (default 50, no mail bodies / ticket comments). Timeline is the default. Compose far right of the header.
 
-Panes load via list endpoints (`/api/tickets?account_id=…`, etc.) slim pages (50). Timeline is the default. Compose button far right of the header opens the lightbox with `account_id` bound.
-
-Opening a thread calls `PATCH /api/threads/{id}/operator` `{ "unread": false }`. Ticket triage/ignore and Slack pin use the same operator-patch family (see API). Home “mark all read” is **not** v0.1.
+Opening a thread calls `PATCH /api/threads/{id}/operator` `{ "unread": false }`. Ticket triage/ignore and Slack pin use the same operator-patch family (see API).
 
 ### Compose lightbox
 
 1. Account locked (from hash).
-2. Pick thread (search), check tickets, check Slack snippets.
-3. `Draft with Grok` → `POST /api/drafts/compose`.
-4. Editable subject/body/to/cc.
-5. Far right of footer: `Save draft`. Send control visible but disabled with tooltip “Send ships in v0.2”.
+2. Thread is search-select (single). Tickets are Tagify chips (multi).
+3. Shared `.mail-composer`: Tagify To / Cc / Bcc, subject, body, Attach, **AI Suggest**, **Save draft**, **Send**.
+4. Send after confirm when SMTP is live; `409 send_not_configured` when it is not.
 
 ### Settings
 
@@ -1365,7 +1382,7 @@ Opening a thread calls `PATCH /api/threads/{id}/operator` `{ "unread": false }`.
 
 New product — there is no “before.” Hand-maintained [`docs/openapi.yaml`](docs/openapi.yaml) is SoT (sales_ops [`guides/OPENAPI.md`](/Users/fujioturner/Documents/git_folders/fujio-turner/sales_ops/guides/OPENAPI.md)). FastAPI `/docs` is secondary; if they disagree, **fix the handler**.
 
-Conventions: prefix `/api/…`, health `/healthz`, spec `/openapi.yaml`. `operationId` camelCase. Lists `{ "items": [...], "total"?: n }`. Errors `{ "detail": "..." }` — 400 validation, 404 missing, 409 conflict (send disabled, abbr clash), 502 upstream (xAI). Do not version URLs (`/api/v2`) until 1.0.
+Conventions: prefix `/api/…`, health `/healthz`, spec `/openapi.yaml`. `operationId` camelCase. Lists `{ "items": [...], "total"?: n }`. Errors `{ "detail": "..." }` — 400 validation, 404 missing, 409 conflict (`send_not_configured`, abbr clash), 502 upstream (xAI / SMTP). Do not version URLs (`/api/v2`) until 1.0.
 
 ### Paths (v0.1 — implement these)
 
@@ -1416,7 +1433,7 @@ Conventions: prefix `/api/…`, health `/healthz`, spec `/openapi.yaml`. `operat
 | POST | `/api/drafts/compose` | `composeDraft` | Grok or fallback |
 | GET | `/api/drafts/{draft_id}` | `getDraft` | |
 | PATCH | `/api/drafts/{draft_id}` | `patchDraft` | |
-| POST | `/api/drafts/{draft_id}/send` | `sendDraft` | **409** `send_disabled_v0_1` |
+| POST | `/api/drafts/{draft_id}/send` | `sendDraft` | Living desk: SMTP after confirm; **409** `send_not_configured` when SMTP is off (v0.1 lock was `send_disabled_v0_1`) |
 | GET | `/api/reports` | `listReports` | `account_id?` |
 | POST | `/api/reports/generate` | `generateReport` | |
 | GET | `/api/reports/{report_id}` | `getReport` | |
@@ -1556,7 +1573,7 @@ Correct if this becomes a team product. v1 load (one writer, hundreds of MB) doe
 | OAuth tokens / SMTP passwords in CBL (and later, in a replicator) | **High** | Secrets only in `.env` / `data/secrets.json`. Never on account/ticket/email docs. Never in OpenAPI examples. `PUT /api/settings/keys` writes the file, logs **field names** only (`csm.settings.keys_updated fields=xai_api_key`). |
 | Customer PII in local `.cblite2` (emails, Slack, names) | **High** | Single-operator laptop. `.gitignore` the db. **Default bind `127.0.0.1`.** LAN listen only via `CSM_DASHBOARD_BIND=0.0.0.0` + `csm.boot.bind host=0.0.0.0 auth=none`. Compose publishes `127.0.0.1:8788:8788`. `data/secrets.json` mode `0600`. Community CBL does **not** encrypt the file — FileVault is the disk story; do not imply Lite encryption. Reset endpoint. v0.1 **no auth**. |
 | Grok / xAI sees customer mail and tickets | **High** | Per-slice caps (500 / 160 chars); 200 KiB bodies never leave the store toward xAI. `redact.py` strips key-like strings. Operator accepts xAI ToS; Settings shows “prompts leave this machine.” No per-account opt-out in v0.1. Log token counts, not bodies. |
-| Accidental send (wrong account, wrong To:) | **High** | v0.1 send is **disabled** (`409`). Later: confirm modal showing chip+abbr+To; no auto-send. |
+| Accidental send (wrong account, wrong To:) | **High** | Confirm modal (chip + To). SMTP off → `409 send_not_configured`. No auto-send. |
 | Connector rate limits / token revoke | **Med** | Jobs record `error` without response bodies. Backoff in live connectors (roadmap). Stubs never hit the network. |
 | CBL single-writer corruption | **Med** | One process. Compose `platform: linux/amd64` + one volume. Document “do not run two containers on `./data`.” `RLock` inside the process. |
 | Ambiguous routing → data in the wrong book | **Med** | Disjoint seed domains. Ambiguous live events stay `account_id=""` + `csm.route.ambiguous`. Color chip on compose is bound to hash account, not inferred from the last click. |
@@ -1590,7 +1607,9 @@ Event names: `csm.<area>.<verb>`.
 | `csm.action.created` / `updated` / `done` | |
 | `csm.note.added` | `account_id` only — **not** note body |
 | `csm.draft.created` / `updated` / `compose` | `result=grok\|fallback`, `prompt_name` |
-| `csm.draft.send_blocked` | v0.1 409 |
+| `csm.draft.sent` / `csm.task.sent` / `csm.mail.sent` | SMTP after confirm; `to_count`, `attach_count`, no addresses |
+| `csm.query.count_failed` / `page_failed` | SQL++ page/count fallback to Python filter |
+| `csm.draft.send_blocked` | legacy v0.1 409 name; living desk uses `send_not_configured` |
 | `csm.report.generated` | `kind`, `account_id` |
 | `csm.ai.complete` | `account_id`, `prompt_name`, `model`, token counts, `truncated` |
 | `csm.chat.turn` | `model`, `tools=` |

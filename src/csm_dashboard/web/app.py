@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -24,6 +25,7 @@ from csm_dashboard.compose.grok import (
 )
 from csm_dashboard.config import ROOT, Settings, fixtures_dir, load_settings
 from csm_dashboard.connectors import oauth as oauth_flow
+from csm_dashboard.connectors.smtp_imap import SendFailed, SendNotConfigured, deliver_mail, parse_attachments
 from csm_dashboard.connectors.registry import PULL_CONNECTORS, connector_mode, get_connector, list_connectors
 from csm_dashboard.credentials import (
     AI_KEY_ALIASES,
@@ -35,6 +37,7 @@ from csm_dashboard.credentials import (
     connector_fields,
     normalize_ai_provider,
 )
+from csm_dashboard.ingest.activities import emit_email_activity
 from csm_dashboard.ingest.route import route_event
 from csm_dashboard.prompts import help_public, prompt_system
 from csm_dashboard.seed.load import apply_seed, apply_sync_event
@@ -46,6 +49,45 @@ log = logging.getLogger(__name__)
 
 HERE = Path(__file__).resolve().parent
 _INDEX_HTML: str | None = None
+_STATUS_TTL = 5.0
+_status_memo: dict = {"t": 0.0, "v": None}
+
+
+def _invalidate_status() -> None:
+    _status_memo["v"] = None
+    _status_memo["t"] = 0.0
+
+
+def _send_mail(
+    repo,
+    *,
+    from_addr: str,
+    to_addrs: list,
+    cc_addrs: list,
+    subject: str,
+    body: str,
+    bcc_addrs: list | None = None,
+    attachments: list | None = None,
+) -> dict:
+    try:
+        files = parse_attachments(attachments)
+        return deliver_mail(
+            repo,
+            from_addr=from_addr,
+            to_addrs=list(to_addrs or []),
+            cc_addrs=list(cc_addrs or []),
+            bcc_addrs=list(bcc_addrs or []),
+            subject=subject,
+            body=body,
+            attachments=files,
+        )
+    except SendNotConfigured as exc:
+        raise HTTPException(409, str(exc) or "send_not_configured") from exc
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except SendFailed as exc:
+        log.warning("csm.mail.send_failed err=%s", exc.message)
+        raise HTTPException(502, "send_failed") from exc
 
 
 def _settings() -> Settings:
@@ -155,6 +197,10 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
 
     @app.get("/api/status")
     def get_status():
+        now = time.monotonic()
+        cached = _status_memo.get("v")
+        if cached is not None and now - float(_status_memo.get("t") or 0) < _STATUS_TTL:
+            return cached
         from csm_dashboard.connectors.google_secrets import hydrate_google
 
         settings = _settings()
@@ -166,13 +212,14 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         spec = provider_spec(provider)
         grok_on = bool(creds["ai"]["grok"]["present"] or settings.has_xai_key)
         ai = doc.get("ai") or {}
-        return {
+        payload = {
             "version": __version__,
             "host": settings.host,
             "port": settings.port,
             "tagline": settings.tagline,
             "operator": repo.operator_profile(doc),
             "world_clock": repo.world_clock(doc),
+            "preferences": repo.preferences(doc),
             "models": spec["models"],
             "default_model": spec["default_model"],
             "ai": {
@@ -207,6 +254,9 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
                 "slack_redirect": oauth_flow.redirect_uri("slack"),
             },
         }
+        _status_memo["v"] = payload
+        _status_memo["t"] = time.monotonic()
+        return payload
 
     @app.get("/api/help")
     def get_help():
@@ -215,6 +265,7 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
     @app.put("/api/settings")
     def put_settings(body: dict):
         saved = repo_obj().save_settings(body)
+        _invalidate_status()
         log.info("csm.settings.updated changed_fields=%s", ",".join(body.keys()))
         if "world_clock" in body or (
             isinstance(body.get("operator"), dict) and "timezones" in (body.get("operator") or {})
@@ -224,6 +275,14 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
                 "csm.world_clock.updated count=%s hour24=%s",
                 len(clock.get("timezones") or []),
                 clock.get("hour24"),
+            )
+        if "preferences" in body:
+            prefs = repo_obj().preferences()
+            log.info(
+                "csm.preferences.updated week_start=%s hidden=%s theme=%s",
+                prefs.get("week_start"),
+                ",".join(str(d) for d in (prefs.get("hidden_weekdays") or [])),
+                prefs.get("theme"),
             )
         return saved
 
@@ -236,6 +295,7 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
             **doc,
             "operator": op,
             "world_clock": repo.world_clock(doc),
+            "preferences": repo.preferences(doc),
             "ai": doc.get("ai") or {"provider": "grok", "model": _settings().xai_default_model},
             "sso": public_sso(
                 doc,
@@ -249,6 +309,7 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
     def put_keys(body: dict):
         fields = apply_key_body(body or {})
         log.info("csm.settings.keys_updated fields=%s", ",".join(fields))
+        _invalidate_status()
         return {"ok": True, "fields": fields, "credentials": repo_obj().list_credentials_public()}
 
     @app.get("/api/settings/keys")
@@ -285,6 +346,9 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         items = []
         for acct in repo_obj().list_accounts():
             aid = acct.get("account_id") or acct.get("_id")
+            stats = acct.get("stats")
+            if not (isinstance(stats, dict) and stats.get("refreshed_at")):
+                stats = repo_obj().account_inbox_stats(aid)
             items.append(
                 {
                     "account_id": aid,
@@ -295,10 +359,8 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
                     "logo_updated_at": acct.get("logo_updated_at") or "",
                     "health": acct.get("health"),
                     "contract": {"renewal_on": (acct.get("contract") or {}).get("renewal_on")},
-                    "stats": acct.get("stats")
-                    if isinstance(acct.get("stats"), dict) and acct["stats"].get("refreshed_at")
-                    else repo_obj().account_inbox_stats(aid),
-                    "next_meeting": repo_obj().next_meeting(aid),
+                    "stats": stats,
+                    "next_meeting": (stats or {}).get("next_meeting") or repo_obj().next_meeting(aid),
                 }
             )
         return items
@@ -308,8 +370,8 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         return {"items": _home_items()}
 
     @app.get("/api/home/agenda")
-    def get_home_agenda(date: str | None = None):
-        return repo_obj().home_agenda(date or "")
+    def get_home_agenda(date: str | None = None, start: str | None = None, end: str | None = None):
+        return repo_obj().home_agenda(date or "", start=start, end=end)
 
     @app.get("/api/accounts")
     def list_accounts(q: str | None = None, status: str | None = None, include: str | None = None):
@@ -344,6 +406,7 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
     def list_timeline(
         account_id: str,
         since: str | None = None,
+        until: str | None = None,
         kind: str | None = None,
         project_id: str | None = None,
         q: str | None = None,
@@ -354,6 +417,7 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
             "items": repo_obj().page_timeline(
                 account_id,
                 since=since,
+                until=until,
                 kind=kind,
                 project_id=project_id,
                 q=q,
@@ -572,7 +636,9 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         if not doc:
             raise HTTPException(404, "not found")
         if include == "messages":
-            msgs, _ = repo_obj().page_emails(doc.get("account_id") or "", thread_id=thread_id, limit=50)
+            msgs, _ = repo_obj().page_emails(
+                doc.get("account_id") or "", thread_id=thread_id, limit=80, slim=False
+            )
             doc = {**doc, "messages": msgs}
         return doc
 
@@ -603,13 +669,28 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         to_addrs = draft_body.get("to") or []
         if last and last.get("from_addr") and last.get("from_addr") not in to_addrs:
             to_addrs = [last["from_addr"], *to_addrs]
-        log.info("csm.draft.suggest_reply result=%s thread_id=%s", result, thread_id)
+        saved = repo_obj().create_draft(
+            {
+                "account_id": account_id,
+                "subject": draft_body.get("subject") or "",
+                "body": draft_body.get("body") or "",
+                "to_addrs": to_addrs,
+                "prompt_name": "email_draft",
+                "model": model,
+                "created_by": "grok" if result != "fallback" else "you",
+                "context_ref": {"thread_id": thread_id},
+                "status": "ready",
+                "channel": "email",
+            }
+        )
+        log.info("csm.draft.suggest_reply result=%s thread_id=%s draft_id=%s", result, thread_id, saved.get("_id"))
         return {
             "account_id": account_id,
             "thread_id": thread_id,
-            "subject": draft_body.get("subject") or "",
-            "body": draft_body.get("body") or "",
-            "to_addrs": to_addrs,
+            "draft_id": saved.get("_id") or "",
+            "subject": saved.get("subject") or "",
+            "body": saved.get("body") or "",
+            "to_addrs": saved.get("to_addrs") or to_addrs,
             "result": result,
             "model": model,
         }
@@ -743,6 +824,31 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
             len(doc.get("cc_addrs") or []),
         )
         return doc
+
+    @app.post("/api/tasks/{email_id:path}/send")
+    def send_task(email_id: str, body: dict | None = None):
+        body = body or {}
+        repo = repo_obj()
+        doc = repo.task_public(email_id)
+        if not doc:
+            raise HTTPException(404, "not found")
+        me = str(repo.operator_profile().get("email") or "").strip()
+        to_addrs = [addr for addr in (body.get("to_addrs") or doc.get("to_addrs") or []) if addr] or ([me] if me else [])
+        cc_addrs = list(body.get("cc_addrs") if "cc_addrs" in body else (doc.get("cc_addrs") or []))
+        bcc_addrs = list(body.get("bcc_addrs") if "bcc_addrs" in body else (doc.get("bcc_addrs") or []))
+        sent = _send_mail(
+            repo,
+            from_addr=str(doc.get("from_addr") or me),
+            to_addrs=to_addrs,
+            cc_addrs=cc_addrs,
+            bcc_addrs=bcc_addrs,
+            subject=str(body.get("subject") or doc.get("subject") or ""),
+            body=str(body.get("body") or doc.get("body_text") or doc.get("content") or ""),
+            attachments=body.get("attachments") or [],
+        )
+        out = repo.mark_task_sent(email_id)
+        log.info("csm.task.sent email_id=%s via=%s", email_id, sent.get("via"))
+        return {**out, "sent": sent}
 
     @app.get("/api/tasks/{email_id:path}")
     def get_task(email_id: str):
@@ -983,11 +1089,61 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         return doc
 
     @app.post("/api/drafts/{draft_id}/send")
-    def send_draft(draft_id: str):
-        if not repo_obj().get_draft(draft_id):
+    def send_draft(draft_id: str, body: dict | None = None):
+        body = body or {}
+        repo = repo_obj()
+        doc = repo.get_draft(draft_id)
+        if not doc:
             raise HTTPException(404, "not found")
-        log.info("csm.draft.send_blocked draft_id=%s", draft_id)
-        raise HTTPException(409, "send_disabled_v0_1")
+        patch = {
+            k: body[k]
+            for k in ("to_addrs", "cc_addrs", "bcc_addrs", "subject", "body", "attachment_names")
+            if k in body
+        }
+        if patch:
+            try:
+                doc = repo.patch_draft(draft_id, patch)
+            except KeyError:
+                raise HTTPException(404, "not found") from None
+        me = str(repo.operator_profile().get("email") or "").strip()
+        to_addrs = [addr for addr in (doc.get("to_addrs") or []) if addr]
+        try:
+            sent = _send_mail(
+                repo,
+                from_addr=me,
+                to_addrs=to_addrs,
+                cc_addrs=list(doc.get("cc_addrs") or []),
+                bcc_addrs=list(doc.get("bcc_addrs") or []),
+                subject=str(doc.get("subject") or ""),
+                body=str(doc.get("body") or ""),
+                attachments=body.get("attachments") or [],
+            )
+        except HTTPException as exc:
+            if exc.status_code == 502:
+                repo.mark_draft_sent(draft_id, error="send_failed")
+            raise
+        out = repo.mark_draft_sent(draft_id)
+        outbound = repo.upsert_email(
+            {
+                "account_id": doc.get("account_id") or "",
+                "direction": "outbound",
+                "from_addr": sent.get("from_addr") or me,
+                "to_addrs": sent.get("to_addrs") or to_addrs,
+                "cc_addrs": list(doc.get("cc_addrs") or []),
+                "bcc_addrs": list(doc.get("bcc_addrs") or []),
+                "subject": doc.get("subject") or "",
+                "body_text": doc.get("body") or "",
+                "snippet": str(doc.get("body") or "")[:180],
+                "has_attachments": bool(sent.get("attach_count")),
+                "sent_at": out.get("sent_at") or utcnow(),
+                "message_id": f"<draft.{draft_id.split(':')[-1]}@csm.local>",
+                "operator": {"unread": False},
+                "sources": {"smtp": {"draft_id": draft_id}},
+            }
+        )
+        emit_email_activity(repo, outbound)
+        log.info("csm.draft.sent draft_id=%s via=%s", draft_id, sent.get("via"))
+        return {**out, "sent": sent}
 
     @app.get("/api/reports")
     def list_reports(account_id: str | None = None):

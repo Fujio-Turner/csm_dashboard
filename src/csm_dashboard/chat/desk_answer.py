@@ -40,7 +40,7 @@ def answer_desk(repo, message: str, account: dict | None) -> str:
 
 
 def _issues(repo, account: dict, aid: str, abbr: str, name: str) -> str:
-    tickets, _ = repo.page_tickets(aid, limit=200)
+    tickets, _ = repo.page_tickets(aid, limit=40)
     open_t = [t for t in tickets if t.get("status") not in {"done", "cancelled"}]
     p1 = [t for t in open_t if t.get("priority") == "p1"]
     health = account.get("health") or {}
@@ -68,7 +68,7 @@ def _email_reply(repo, aid: str, abbr: str, handle: str) -> str:
     pname = person.get("name") or handle
     if person.get("account_id") and person.get("account_id") != aid:
         return f"@{handle} ({pname}) is on {person.get('account_id')}, not #{{{abbr}}}."
-    emails, _ = repo.page_emails(aid, limit=200)
+    emails, _ = repo.page_emails(aid, limit=40, slim=True, desc=True)
     outbound = [
         e
         for e in emails
@@ -109,8 +109,8 @@ def _email_reply(repo, aid: str, abbr: str, handle: str) -> str:
 
 
 def _streams(repo, aid: str, abbr: str) -> str:
-    slack, _ = repo.page_slack(aid, limit=5)
-    teams, _ = repo.page_teams(aid, limit=5)
+    slack, _ = repo.page_slack(aid, limit=5, slim=True)
+    teams, _ = repo.page_teams(aid, limit=5, slim=True)
     bits = [f"Recent streams on #{{{abbr}}}:"]
     if slack:
         bits.append("Slack: " + "; ".join(f"{s.get('user_name')}: {(s.get('text') or '')[:80]}" for s in slack[-3:]))

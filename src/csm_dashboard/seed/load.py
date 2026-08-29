@@ -97,15 +97,18 @@ def apply_seed_today_meetings(repo: CsmRepo, seed_dir: str | Path) -> int:
 
 def apply_seed(repo: CsmRepo, seed_dir: str | Path) -> dict[str, int]:
     root = Path(seed_dir)
-    for filename, collection in COLLECTION_FILES:
-        for row in _rows(root / filename):
-            _upsert(repo, collection, row)
-    apply_seed_logos(repo, root)
-    apply_seed_today_meetings(repo, root)
+    repo.begin_bulk()
+    try:
+        for filename, collection in COLLECTION_FILES:
+            for row in _rows(root / filename):
+                _upsert(repo, collection, row)
+        apply_seed_logos(repo, root)
+        apply_seed_today_meetings(repo, root)
+    finally:
+        repo.end_bulk()
     for acct in repo.list_accounts():
         aid = acct.get("account_id") or acct.get("_id")
         if aid:
-            repo.refresh_account_stats(aid)
             repo.touch_next_action(aid)
             repo.score_account(aid)
     counts = repo.counts()

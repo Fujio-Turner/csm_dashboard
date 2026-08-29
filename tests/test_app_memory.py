@@ -32,6 +32,9 @@ def test_seed_home_compose_send(client):
     assert any("ACME" in ((m.get("account") or {}).get("abbr") or "") for m in meets)
     inbox = agenda.json()["inbox"]
     assert inbox
+    allowed_audience = {"me", "us", "them", "all", "unknown", "na"}
+    assert all(i.get("audience") in allowed_audience for i in inbox)
+    assert {i["audience"] for i in inbox} & {"me", "us", "them", "all"}
     filters = agenda.json().get("project_filters") or []
     assert filters
     assert any(":" in (p.get("label") or "") for p in filters)
@@ -93,7 +96,7 @@ def test_seed_home_compose_send(client):
     draft_id = composed.json()["_id"]
     send = client.post(f"/api/drafts/{draft_id}/send")
     assert send.status_code == 409
-    assert "send_disabled" in send.json()["detail"]
+    assert "send_not_configured" in send.json()["detail"]
 
 
 def test_project_crud_search_and_owner(client):
@@ -313,6 +316,8 @@ def test_account_input_counts_and_quiet(client):
     assert counts["tickets"] >= 5
     assert counts["email"] >= 1
     assert counts["people"] >= 1
+    assert counts["chat"] == counts["slack"] + counts["teams"]
+    assert counts["chat"] >= 1
     aid = acme["account_id"]
     quieted = client.patch("/api/accounts/" + aid, json={"quiet": True})
     assert quieted.status_code == 200
@@ -333,6 +338,9 @@ def test_suggest_reply_and_owns_all(client):
     assert sug.status_code == 200
     assert sug.json()["body"]
     assert sug.json()["subject"]
+    assert sug.json()["draft_id"]
+    drafts = client.get("/api/drafts", params={"account_id": "acct:acme"}).json()["items"]
+    assert any(d["_id"] == sug.json()["draft_id"] for d in drafts)
     directors = client.get(
         "/api/people", params={"account_id": "acct:acme", "project_id": "all"}
     ).json()["items"]
@@ -414,6 +422,73 @@ def test_operator_and_provider_test(client):
     test = client.post("/api/settings/providers/test", json={"provider": "openai"})
     assert test.status_code == 200
     assert test.json()["ok"] is False
+
+
+def test_preferences(client):
+    status = client.get("/api/status").json()
+    assert status["preferences"] == {
+        "week_start": 0,
+        "hidden_weekdays": [],
+        "theme": "auto",
+        "timeline_layout": "vertical",
+        "timeline_past_days": 7,
+        "timeline_next_days": 7,
+    }
+    saved = client.put(
+        "/api/settings",
+        json={"preferences": {"week_start": 1, "hidden_weekdays": [0, 6, 6, "x"], "theme": "dark"}},
+    )
+    assert saved.status_code == 200
+    prefs = saved.json()["preferences"]
+    assert prefs["week_start"] == 1
+    assert prefs["hidden_weekdays"] == [0, 6]
+    assert prefs["theme"] == "night"
+    merged = client.put("/api/settings", json={"preferences": {"theme": "day"}})
+    prefs = merged.json()["preferences"]
+    assert prefs["theme"] == "day"
+    assert prefs["week_start"] == 1
+    assert prefs["hidden_weekdays"] == [0, 6]
+    cleared = client.put(
+        "/api/settings",
+        json={"preferences": {"hidden_weekdays": [0, 1, 2, 3, 4, 5, 6]}},
+    )
+    assert cleared.json()["preferences"]["hidden_weekdays"] == []
+    assert cleared.json()["preferences"]["week_start"] == 1
+    bad = client.put("/api/settings", json={"preferences": {"week_start": 9, "theme": "sunset"}})
+    prefs = bad.json()["preferences"]
+    assert prefs["week_start"] == 0
+    assert prefs["theme"] == "auto"
+    raw = client.get("/api/settings").json()
+    assert raw["preferences"]["theme"] == "auto"
+    assert client.get("/api/status").json()["preferences"]["week_start"] == 0
+    laid = client.put("/api/settings", json={"preferences": {"timeline_layout": "horizontal"}})
+    prefs = laid.json()["preferences"]
+    assert prefs["timeline_layout"] == "horizontal"
+    assert prefs["theme"] == "auto"
+    bad_layout = client.put("/api/settings", json={"preferences": {"timeline_layout": "diagonal"}})
+    assert bad_layout.json()["preferences"]["timeline_layout"] == "vertical"
+    days = client.put("/api/settings", json={"preferences": {"timeline_past_days": 30, "timeline_next_days": 7}})
+    prefs = days.json()["preferences"]
+    assert prefs["timeline_past_days"] == 30
+    assert prefs["timeline_next_days"] == 7
+    bad_days = client.put("/api/settings", json={"preferences": {"timeline_past_days": 90}})
+    assert bad_days.json()["preferences"]["timeline_past_days"] == 7
+
+
+def test_timeline_until_window(client):
+    client.post("/api/settings/seed")
+    all_items = client.get("/api/accounts/acct:acme/timeline", params={"limit": 200}).json()["items"]
+    assert all_items
+    stamps = sorted(str(i.get("at") or "") for i in all_items if i.get("at"))
+    assert stamps
+    mid = stamps[len(stamps) // 2]
+    bounded = client.get(
+        "/api/accounts/acct:acme/timeline",
+        params={"since": stamps[0], "until": mid, "limit": 200},
+    ).json()["items"]
+    assert bounded
+    assert all(str(i.get("at") or "") <= mid for i in bounded)
+    assert all(str(i.get("at") or "") >= stamps[0] for i in bounded)
 
 
 def test_activity_notes(client):

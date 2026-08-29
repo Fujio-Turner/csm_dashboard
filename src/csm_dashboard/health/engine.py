@@ -45,13 +45,13 @@ def score_account(repo, account_id: str) -> dict:
     now = datetime.now(timezone.utc)
     today = utcnow()[:10]
 
-    tickets, _ = repo.page_tickets(account_id, limit=500)
+    tickets, _ = repo.page_tickets(account_id, limit=200)
     open_t = [t for t in tickets if t.get("status") in OPEN and not (t.get("operator") or {}).get("ignore")]
     p1 = sum(1 for t in open_t if t.get("priority") == "p1")
     p2 = sum(1 for t in open_t if t.get("priority") == "p2")
     ticket_pts = max(0, ticket_max - 12 * p1 - 6 * p2)
 
-    threads, _ = repo.page_threads(account_id, limit=200)
+    threads, _ = repo.page_threads(account_id, limit=80, unread=True)
     hits = 0
     for th in threads:
         if not (th.get("operator") or {}).get("unread"):
@@ -67,15 +67,16 @@ def score_account(repo, account_id: str) -> dict:
             hits += 1
     resp_pts = max(0, resp_max - 10 * hits)
 
-    events = repo.page_calendar(account_id)
+    events = repo.page_calendar(account_id, end=utcnow(), limit=80, desc=True, slim=True)
     last_meet: datetime | None = None
     for ev in events:
         start = _parse(str(ev.get("start_at") or ""))
         if not start or start > now:
             continue
         attendees = ev.get("attendees") or []
-        if attendees and (last_meet is None or start > last_meet):
+        if attendees:
             last_meet = start
+            break
     if last_meet is None:
         eng_pts = 0
     else:

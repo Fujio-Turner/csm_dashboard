@@ -41,6 +41,7 @@ REQUIRED = {
     "patchActivity",
     "deleteAccount",
     "suggestThreadReply",
+    "sendTask",
     "testProvider",
     "putKeys",
     "getKeys",

@@ -1,7 +1,7 @@
 # CSM Dashboard roadmap
 
-> Living train map · last updated **2026-08-28**  
-> **Current baseline:** `0.1.61` · Apache License 2.0
+> Living train map · last updated **2026-08-29** (0.1.92 overlay: Tagify chips, inbox who-stamps, store paging)  
+> **Current baseline:** `0.1.92` · Apache License 2.0
 
 This file answers **what ships when**. Design depth lives in [`DESIGN.md`](DESIGN.md).
 
@@ -22,24 +22,29 @@ The desk stays **one operator, one machine, Couchbase Lite JSON documents**. Big
 
 ---
 
-## 1. Shipped now (0.1.61)
+## 1. Shipped now (0.1.92)
 
 | Area | State |
 | --- | --- |
-| Repo / Docker / `make ci` | `127.0.0.1:8788`, compose loopback publish |
-| Store | Couchbase Lite **Community 4.0.3**, ctypes wrapper in this repo. No vector index |
-| Home | Agenda (meetings + mixed inbox) and Companies tiles. Mini sidebar default |
-| Inbox | Mail, Slack, Teams, **tasks** (self-emails). Filter All / Email / Slack / Tasks / Teams. `+` creates a task |
+| Repo / Docker / `make ci` | `127.0.0.1:8788`, compose loopback publish. Playwright MCP: `.grok/config.toml` |
+| Store | Couchbase Lite **Community 4.0.3**, ctypes wrapper in this repo. No vector index. Lists page with `COUNT` + `LIMIT` (`storage/paging.py`). Mail lists omit `body_text`; ticket lists omit `comments`. Tab badges cache on `accounts.input_counts`. Seed uses `begin_bulk` / `end_bulk`. |
+| Home | Agenda and Companies tiles. Mini sidebar default. Meeting cards: company logo left, duration minutes right, subject on the card. Inbox rows: type icon + company logo + **who-stamp** |
+| Agenda calendar | **Day / Week / Month**. 24-hour Day and Week, default scroll ~7 AM. Now line. Time-proportional gaps. Hide weekdays and week-begins from User Preferences |
+| Deep links | `#account/{abbr}/{tab}/id={id}` opens the matching meeting, mail, chat, or task lightbox |
+| Inbox | Mail, Slack, Teams, **tasks** (self-emails). Filter All / Email / Slack / Tasks / Teams. `+` creates a task. Far-right stamp is who it is **to**: Me / Us / Them / All / ?? / n/a. Lists page in the store (COUNT + LIMIT, no `body_text` on mail lists). |
 | World clock | Globe lightbox. Add / remove / reorder zones. Persists in CBL `settings.world_clock` |
-| Account | Timeline, tickets, mail, Slack, Teams, Salesforce, calendar, **projects CRUD**, people |
-| Projects | Search, type, status, owner from people, group email, Tagify tags, remove |
-| Compose | Context builder + Grok or template. Suggest reply exists. **Send = 409** |
+| Appearance | Settings → User Preferences: Day / Night / Auto. Sidebar sun/moon toggle. `html[data-theme]` |
+| Account | Timeline, tickets, mail, **slack / teams** (one tab), Salesforce, calendar, **projects CRUD**, people, org chart, account team |
+| Timeline | Vertical (future top, oldest bottom) or Horizontal (past left, future right). Red **Now** line + **Now** button. Past 7 / 30 and Next 7 / 30 bound the window. Horizontal range labels are spine text so the rail stays narrow |
+| People | Add / Edit person sheet (`#detail-box` `.sheet-person`). Kind / Reports to are search-select. **Projects** and **Functions** are Tagify chips. Org chart scrolls; the tree is `max-content` so the left edge is not clipped |
+| Projects | Search, type, status, owner from people, group email, Tagify tag chips, remove |
+| Compose | Shared `.mail-composer` (Compose, thread Reply, New task): Tagify To / Cc / Bcc, subject, body, Attach, **AI Suggest**, **Save draft**, **Send**. Compose **Tickets** are Tagify chips; Thread is search-select. SMTP after confirm; 409 `send_not_configured` when SMTP is off. Attachments ride with the send (not stored as blobs). |
 | Chat | Desk / account scoped. Fallback SSE without a key |
-| Settings / Help | Sectioned operator profile, companies, AI keys, connectors, lab seed |
-| Connectors | Live **Jira**, **Slack**, **Teams**, **Gmail**, **Google Calendar**. Gmail/Calendar use local `credentials.json` plus Sign in with Google. Seed is Lab; Sync no longer replays fixtures. |
-| Credentials | CBL `credentials` collection. Settings → AI keys + connector tokens. GET never returns secret values. |
+| Settings / Help | Sectioned operator profile (timezone search-select), companies, AI keys, connectors, lab seed, User Preferences. `GET /api/status` is memoized a few seconds. |
+| Connectors | Live **Jira**, **Slack**, **Teams**, **Gmail**, **Google Calendar**. **SMTP send** (drafts + task self-emails) after confirm when `smtp_imap` is live. Gmail/Calendar use local `credentials.json` plus Sign in with Google. Seed is Lab; Sync no longer replays fixtures. |
+| Credentials | CBL `credentials` collection. Settings → AI keys + connector tokens. GET never returns secret values. Secrets and OAuth client JSON live in gitignored `__local/` |
 
-**Not shipped:** IMAP/Salesforce live pull, SMTP send, Jira/Zendesk write, Pydantic AI multi-agent desk, scratch TTL collection, App Services sync, EE vectors, transcript ingest, PDF/image chat, slash-in-chat, finished QBR/monthly reports.
+**Not shipped:** IMAP / Salesforce live pull, Zendesk, Jira write, Pydantic AI multi-agent desk, scratch TTL collection, App Services sync, EE vectors, transcript ingest, PDF/image chat, slash-in-chat, finished QBR/monthly reports, shared mailbox.
 
 ---
 
@@ -91,8 +96,8 @@ Tasks are **emails back to yourself**, stored as `emails` with `operator.task=tr
 | Item | Notes |
 | --- | --- |
 | **Local create (already shipped)** | Agenda `+` / `POST /api/tasks` writes a self-email (`from=to=operator`). Inbox kind `task`. |
-| **Send to self** | After confirm, SMTP/IMAP path delivers that formatted message to the operator mailbox so it shows up in real mail *and* the desk. Still confirm-before-send. Never auto-send. |
-| **Suggested reply → Draft** | Save as a `drafts` doc (To / Subject / body), not only a toast. Operator edits, then send. |
+| **Send to self** | **Shipped 0.1.70.** After confirm, SMTP delivers the formatted task (`POST /api/tasks/{id}/send`) and drafts (`POST /api/drafts/{id}/send`). 409 `send_not_configured` when SMTP is disabled or missing. Never auto-send. |
+| **Suggested reply → Draft** | **Shipped 0.1.70.** Suggest reply writes a `drafts` doc. Operator can edit, then Send. |
 | **Shared mailbox** | Additive `emails.mailbox_id` — no schema break |
 
 ### 0.4 — chat operates the desk

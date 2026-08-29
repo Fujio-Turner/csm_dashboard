@@ -16,6 +16,8 @@
   var notesDirty = false;
   var homeTab = "agenda";
   var agendaDay = "";
+  var agendaCalView = "day";
+  var agendaMeetings = [];
   var agendaInboxFilter = "all";
   var agendaInboxItems = [];
   var agendaProjFilter = "";
@@ -26,6 +28,10 @@
   var operatorTz = "UTC";
   var deskClockTimer = 0;
   var deskClockFmts = { tz: "", hour24: null, time: null, date: null, zone: null };
+  var themeMql = null;
+  var prefSave = Promise.resolve();
+  var TL_SIDE_CAP = 40;
+  var WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   var homeItems = null;
   var helpReady = false;
   var pickedConnector = "";
@@ -83,8 +89,9 @@
     { cmd: "people", tab: "people", note: false, label: "People", example: "/people bob" },
     { cmd: "email", tab: "email", note: false, label: "Email", example: "/email outage" },
     { cmd: "ticket", tab: "tickets", note: false, label: "Tickets", example: "/ticket ACME-12" },
-    { cmd: "slack", tab: "slack", note: false, label: "Slack", example: "/slack pin" },
-    { cmd: "teams", tab: "teams", note: false, label: "Teams", example: "/teams Bob" },
+    { cmd: "chat", tab: "chat", note: false, label: "Slack / Teams", example: "/chat DC3" },
+    { cmd: "slack", tab: "chat", note: false, label: "Slack", example: "/slack pin" },
+    { cmd: "teams", tab: "chat", note: false, label: "Teams", example: "/teams Bob" },
     { cmd: "calendar", tab: "calendar", note: false, label: "Meetings", example: "/calendar QBR" },
     { cmd: "sf", tab: "salesforce", note: false, label: "Salesforce", example: "/sf renewal" },
   ];
@@ -104,6 +111,22 @@
     ["cancelled", "Cancelled"],
   ];
   var HIDDEN_TABS = { actions: true, reports: true };
+  var ACCOUNT_TABS = ["timeline", "tickets", "email", "chat", "salesforce", "calendar", "projects", "people", "orgchart", "accountteam"];
+  var TAB_ALIASES = { slack: "chat", teams: "chat" };
+
+  function tabLabel(name) {
+    if (name === "orgchart") return "org chart";
+    if (name === "accountteam") return "account team";
+    if (name === "chat") return "slack / teams";
+    return name;
+  }
+
+  function canonicalTab(tab) {
+    tab = String(tab || "timeline").toLowerCase();
+    if (TAB_ALIASES[tab]) tab = TAB_ALIASES[tab];
+    if (ACCOUNT_TABS.indexOf(tab) < 0) return "timeline";
+    return tab;
+  }
 
   function $(id) {
     return document.getElementById(id);
@@ -171,9 +194,9 @@
     return img;
   }
 
-  function kindIcon(kind) {
+  function kindIcon(kind, size) {
     var wrap = document.createElement("span");
-    wrap.className = "kind-icon is-" + (kind || "email");
+    wrap.className = "kind-icon is-" + (kind || "email") + (size === "lg" ? " is-lg" : "");
     var img = document.createElement("img");
     var src = "/static/icon-email.svg";
     var label = "Email";
@@ -208,6 +231,293 @@
     if (node) node.textContent = "";
   }
 
+  var _searchSelectOpen = null;
+  var _searchSelectBound = false;
+
+  function closeSearchSelect(inst) {
+    if (!inst) inst = _searchSelectOpen;
+    if (!inst || !inst.menu) return;
+    inst.menu.hidden = true;
+    inst.menu.classList.add("hidden");
+    if (_searchSelectOpen === inst) _searchSelectOpen = null;
+  }
+
+  function ensureSearchSelectDoc() {
+    if (_searchSelectBound) return;
+    _searchSelectBound = true;
+    document.addEventListener("click", function (ev) {
+      if (!_searchSelectOpen) return;
+      if (_searchSelectOpen.wrap && _searchSelectOpen.wrap.contains(ev.target)) return;
+      if (_searchSelectOpen.menu && _searchSelectOpen.menu.contains(ev.target)) return;
+      closeSearchSelect();
+    });
+    window.addEventListener("resize", function () {
+      if (_searchSelectOpen && _searchSelectOpen.place) _searchSelectOpen.place();
+    });
+    window.addEventListener("scroll", function () {
+      if (_searchSelectOpen && _searchSelectOpen.place) _searchSelectOpen.place();
+    }, true);
+  }
+
+  function mountSearchSelect(opts) {
+    opts = opts || {};
+    ensureSearchSelectDoc();
+    var items = (opts.items || []).slice();
+    var multiple = !!opts.multiple;
+    var allowCustom = !!opts.allowCustom;
+    var trigger = opts.trigger === "input" ? "input" : "button";
+    var selected = multiple ? (opts.value ? opts.value.slice() : []) : (opts.value || "");
+    var query = "";
+    var hi = -1;
+    var shown = [];
+    var wrap = document.createElement("div");
+    wrap.className = "search-select" + (trigger === "input" ? " is-input" : "") + (opts.wrapClass ? " " + opts.wrapClass : "");
+    var btn;
+    if (trigger === "input") {
+      btn = document.createElement("input");
+      btn.type = "search";
+      btn.className = "search search-select-input" + (opts.btnClass ? " " + opts.btnClass : "");
+      btn.placeholder = opts.placeholder || "";
+      btn.setAttribute("autocomplete", "off");
+    } else {
+      btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "toolbar-filter search-select-btn" + (opts.btnClass ? " " + opts.btnClass : "");
+    }
+    if (opts.ariaLabel) btn.setAttribute("aria-label", opts.ariaLabel);
+    btn.setAttribute("aria-haspopup", "listbox");
+    var menu = document.createElement("div");
+    menu.className = "search-select-menu hidden";
+    menu.hidden = true;
+    var search = null;
+    if (trigger !== "input") {
+      search = document.createElement("input");
+      search.type = "search";
+      search.className = "search";
+      search.placeholder = opts.searchPlaceholder || opts.placeholder || "Search";
+      search.setAttribute("aria-label", opts.searchPlaceholder || "Search");
+      search.setAttribute("autocomplete", "off");
+      menu.appendChild(search);
+    }
+    var list = document.createElement("div");
+    list.className = "search-select-list";
+    list.setAttribute("role", "listbox");
+    menu.appendChild(list);
+    wrap.appendChild(btn);
+    document.body.appendChild(menu);
+
+    function labelFor(value) {
+      if (value === "" && opts.emptyLabel) return opts.emptyLabel;
+      var hit = items.filter(function (it) { return String(it.value) === String(value); })[0];
+      return (hit && (hit.label || hit.value)) || String(value || "");
+    }
+    function hay(it) {
+      return String((it && (it.search || it.label || it.value)) || "").toLowerCase();
+    }
+    function isOn(value) {
+      if (multiple) return selected.indexOf(value) >= 0;
+      return String(selected) === String(value);
+    }
+    function buttonText() {
+      if (multiple) {
+        if (!selected.length) return opts.placeholder || opts.emptyLabel || "Select";
+        if (selected.length === 1) return labelFor(selected[0]);
+        return selected.length + " selected";
+      }
+      if (selected === "" || selected == null) return opts.placeholder || opts.emptyLabel || "Select";
+      return labelFor(selected);
+    }
+    function paintBtn() {
+      if (trigger === "input") {
+        if (document.activeElement !== btn) {
+          btn.value = multiple ? (selected.length ? buttonText() : "") : (selected ? labelFor(selected) : query);
+          if (allowCustom && !multiple && selected) btn.value = labelFor(selected);
+        }
+        return;
+      }
+      btn.textContent = buttonText();
+      btn.title = multiple ? selected.map(labelFor).join(", ") : buttonText();
+    }
+    function place() {
+      if (menu.hidden) return;
+      var cap = Math.min(window.innerWidth - 16, 42 * 16);
+      var w = Math.min(cap, Math.max(opts.minWidth || 16 * 16, wrap.getBoundingClientRect().width || 16 * 16));
+      var r = wrap.getBoundingClientRect();
+      var top = r.bottom + 4;
+      var left = r.left;
+      if (opts.align === "right") left = r.right - w;
+      if (left < 8) left = 8;
+      if (left + w > window.innerWidth - 8) left = Math.max(8, window.innerWidth - 8 - w);
+      var maxH = Math.min(18 * 16, window.innerHeight - top - 12);
+      if (maxH < 8 * 16 && r.top > window.innerHeight / 2) {
+        maxH = Math.min(18 * 16, r.top - 16);
+        top = Math.max(8, r.top - 4 - maxH);
+      }
+      menu.style.top = top + "px";
+      menu.style.left = left + "px";
+      menu.style.width = w + "px";
+      list.style.maxHeight = Math.max(6 * 16, maxH - (search ? 48 : 12)) + "px";
+    }
+    function emit() {
+      if (opts.onChange) opts.onChange(multiple ? selected.slice() : selected, query);
+    }
+    function choose(value) {
+      if (multiple) {
+        var i = selected.indexOf(value);
+        if (i >= 0) selected.splice(i, 1);
+        else selected.push(value);
+        paintBtn();
+        paintList();
+        emit();
+        return;
+      }
+      selected = value;
+      query = "";
+      if (trigger === "input") btn.value = labelFor(value);
+      paintBtn();
+      closeSearchSelect(api);
+      emit();
+    }
+    function paintList() {
+      empty(list);
+      var q = (trigger === "input" ? String(btn.value || "") : query).toLowerCase().trim();
+      shown = [];
+      if (!q && opts.emptyLabel && !multiple) {
+        shown.push({ value: "", label: opts.emptyLabel, search: opts.emptyLabel });
+      }
+      var cap = opts.maxShown || 80;
+      var pin = opts.pinValues || [];
+      items.forEach(function (it) {
+        if (q && hay(it).indexOf(q) < 0) return;
+        if (!q && it.value === "" && opts.emptyLabel) return;
+        if (!q && pin.length && it.value && pin.indexOf(it.value) < 0 && !isOn(it.value)) return;
+        shown.push(it);
+      });
+      if (shown.length > cap) shown = shown.slice(0, cap);
+      if (allowCustom && q) {
+        var exists = shown.some(function (it) {
+          return String(it.label || it.value).toLowerCase() === q;
+        });
+        if (!exists) shown.unshift({ value: trigger === "input" ? btn.value.trim() : q, label: "Use “" + (trigger === "input" ? btn.value.trim() : q) + "”", search: q, custom: true });
+      }
+      if (hi >= shown.length) hi = shown.length - 1;
+      shown.forEach(function (it, idx) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "search-select-opt" + (isOn(it.value) ? " is-on" : "") + (idx === hi ? " is-hi" : "");
+        b.textContent = it.label || it.value;
+        b.title = it.label || it.value;
+        b.addEventListener("mousedown", function (ev) { ev.preventDefault(); });
+        b.addEventListener("click", function () { choose(it.custom ? it.value : it.value); });
+        list.appendChild(b);
+      });
+      if (!list.firstChild) {
+        var p = document.createElement("p");
+        p.className = "muted";
+        p.textContent = allowCustom ? "Type to add, or pick a match." : "No match.";
+        list.appendChild(p);
+      }
+      place();
+    }
+    function open() {
+      if (_searchSelectOpen && _searchSelectOpen !== api) closeSearchSelect(_searchSelectOpen);
+      if (search) search.value = "";
+      query = "";
+      hi = -1;
+      menu.hidden = false;
+      menu.classList.remove("hidden");
+      _searchSelectOpen = api;
+      paintList();
+      place();
+      var focusEl = search || (trigger === "input" ? btn : search);
+      if (focusEl) focusEl.focus();
+    }
+    function onQuery(ev) {
+      query = (search && search.value) || (trigger === "input" ? btn.value : "") || "";
+      hi = 0;
+      paintList();
+      if (opts.onQuery) opts.onQuery(query);
+      if (ev && ev.type === "input" && trigger === "input" && allowCustom && !multiple) {
+        selected = btn.value;
+      }
+    }
+    function onKey(ev) {
+      if (ev.key === "Escape") {
+        ev.preventDefault();
+        closeSearchSelect(api);
+        btn.focus();
+        return;
+      }
+      if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+        ev.preventDefault();
+        if (menu.hidden) {
+          open();
+          return;
+        }
+        if (!shown.length) return;
+        if (ev.key === "ArrowDown") hi = hi < 0 ? 0 : (hi + 1) % shown.length;
+        else hi = hi <= 0 ? shown.length - 1 : hi - 1;
+        paintList();
+        var hit = list.querySelector(".is-hi");
+        if (hit && hit.scrollIntoView) hit.scrollIntoView({ block: "nearest" });
+        return;
+      }
+      if (ev.key === "Enter") {
+        if (menu.hidden) return;
+        ev.preventDefault();
+        if (hi >= 0 && shown[hi]) choose(shown[hi].value);
+        else if (allowCustom && (trigger === "input" ? btn.value.trim() : query)) {
+          choose(trigger === "input" ? btn.value.trim() : query);
+        }
+      }
+    }
+    btn.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      if (trigger === "button") {
+        if (!menu.hidden && _searchSelectOpen === api) {
+          closeSearchSelect(api);
+          return;
+        }
+        open();
+      }
+    });
+    btn.addEventListener("focus", function () {
+      if (trigger === "input") open();
+    });
+    btn.addEventListener("input", onQuery);
+    btn.addEventListener("keydown", onKey);
+    if (search) {
+      search.addEventListener("input", onQuery);
+      search.addEventListener("keydown", onKey);
+    }
+    paintBtn();
+    var api = {
+      wrap: wrap,
+      menu: menu,
+      el: wrap,
+      place: place,
+      get: function () {
+        return multiple ? selected.slice() : selected;
+      },
+      set: function (value) {
+        selected = multiple ? (value ? value.slice() : []) : (value || "");
+        query = "";
+        paintBtn();
+        if (!menu.hidden) paintList();
+      },
+      setItems: function (next) {
+        items = (next || []).slice();
+        if (!menu.hidden) paintList();
+        paintBtn();
+      },
+      destroy: function () {
+        closeSearchSelect(api);
+        if (menu.parentNode) menu.parentNode.removeChild(menu);
+      },
+    };
+    return api;
+  }
+
   function showView(name) {
     document.querySelectorAll(".view").forEach(function (v) {
       v.classList.toggle("is-on", v.getAttribute("data-view") === name);
@@ -222,17 +532,59 @@
     return raw.split("/").filter(Boolean);
   }
 
+  function hashItemId(parts) {
+    parts = parts || hashParts();
+    for (var i = 0; i < parts.length; i++) {
+      if (parts[i].slice(0, 3) === "id=") {
+        try {
+          return decodeURIComponent(parts[i].slice(3));
+        } catch (err) {
+          return parts[i].slice(3);
+        }
+      }
+    }
+    return "";
+  }
+
+  function accountItemHash(abbr, tab, id) {
+    var base = "#account/" + (abbr || "") + "/" + (tab || "timeline");
+    if (!id) return base;
+    return base + "/id=" + String(id).replace(/\//g, "%2F");
+  }
+
+  function goAccountItem(abbr, tab, id) {
+    var next = accountItemHash(abbr, tab, id);
+    var sameBook = currentAccount && (currentAccount.abbr || "").toLowerCase() === String(abbr || "").toLowerCase();
+    if (sameBook && currentTab === tab && location.hash === next) {
+      openRoutedItem(tab, id);
+      return;
+    }
+    if (sameBook && currentTab === tab) {
+      if (history.replaceState) history.replaceState(null, "", next);
+      else location.hash = next;
+      openRoutedItem(tab, id);
+      return;
+    }
+    location.hash = next;
+  }
+
   function route() {
     closeDetail();
+    closeTaskForm();
     var parts = hashParts();
     var head = (parts[0] || "home").toLowerCase();
     if (head === "account" && parts[1]) {
       showView("home");
-      currentTab = (parts[2] || "timeline").toLowerCase();
-      if (HIDDEN_TABS[currentTab]) currentTab = "timeline";
+      var tab = (parts[2] || "timeline").toLowerCase();
+      var itemId = hashItemId(parts);
+      var openHint = tab;
+      if (tab.slice(0, 3) === "id=") tab = "timeline";
+      if (HIDDEN_TABS[tab]) tab = "timeline";
+      currentTab = canonicalTab(tab);
       setHomeMode(true);
       loadAccount(parts[1], currentTab).then(function () {
         syncChatScope(currentAccount && currentAccount.account_id);
+        if (itemId) openRoutedItem(openHint === "slack" || openHint === "teams" ? openHint : currentTab, itemId);
       });
       return;
     }
@@ -313,6 +665,8 @@
       if (tag) tag.textContent = s.tagline || "";
       operatorTz = (s.operator && s.operator.timezone) || "UTC";
       tickDeskClock();
+      applyTheme();
+      fillPreferencesForm();
       return s;
     });
   }
@@ -342,31 +696,41 @@
   }
 
   function fillTimezoneSelect(selected) {
-    var sel = $("op-timezone");
-    if (!sel) return;
+    var hidden = $("op-timezone");
+    var host = $("op-timezone-picker");
     var wanted = (selected || "").trim() || "UTC";
-    if (sel.options.length > 20) {
-      sel.value = wanted;
-      if (sel.value !== wanted) {
-        var extra = document.createElement("option");
-        extra.value = wanted;
-        extra.textContent = String(wanted).replace(/_/g, " ");
-        sel.insertBefore(extra, sel.firstChild);
-        sel.value = wanted;
-      }
-      return;
-    }
+    if (hidden) hidden.value = wanted;
+    if (!host) return;
     var zones = timezoneOptions();
     if (zones.indexOf("UTC") < 0) zones = ["UTC"].concat(zones);
     if (wanted && zones.indexOf(wanted) < 0) zones = [wanted].concat(zones);
-    empty(sel);
-    zones.forEach(function (z) {
-      var opt = document.createElement("option");
-      opt.value = z;
-      opt.textContent = String(z).replace(/_/g, " ");
-      sel.appendChild(opt);
+    var items = zones.map(function (z) {
+      var parts = String(z).split("/");
+      var city = (parts[parts.length - 1] || z).replace(/_/g, " ");
+      var region = parts.length > 1 ? parts.slice(0, -1).join(" / ").replace(/_/g, " ") : "";
+      var label = region ? city + " · " + region : city;
+      return { value: z, label: label, search: (label + " " + z + " " + city).toLowerCase() };
     });
-    sel.value = wanted;
+    if (host._picker) {
+      host._picker.setItems(items);
+      host._picker.set(wanted);
+      return;
+    }
+    host._picker = mountSearchSelect({
+      placeholder: "Timezone",
+      searchPlaceholder: "Search city or timezone",
+      ariaLabel: "Timezone",
+      items: items,
+      value: wanted,
+      pinValues: TZ_FALLBACK.concat([wanted]),
+      maxShown: 60,
+      minWidth: 22 * 16,
+      btnClass: "search-select-btn-block",
+      onChange: function (v) {
+        if (hidden) hidden.value = v;
+      },
+    });
+    host.appendChild(host._picker.el);
   }
 
   function ymdInZone(d, tz) {
@@ -410,6 +774,270 @@
       year: "numeric",
       timeZone: "UTC",
     });
+  }
+
+  function userPrefs() {
+    var p = (status && status.preferences) || {};
+    var start = +p.week_start;
+    if (!(start >= 0 && start <= 6)) start = 0;
+    var hidden = [];
+    if (Array.isArray(p.hidden_weekdays)) {
+      p.hidden_weekdays.forEach(function (d) {
+        var n = +d;
+        if (n >= 0 && n <= 6 && hidden.indexOf(n) < 0) hidden.push(n);
+      });
+    }
+    var theme = p.theme === "day" || p.theme === "night" || p.theme === "auto" ? p.theme : "auto";
+    var layout = p.timeline_layout === "horizontal" ? "horizontal" : "vertical";
+    var pastDays = +p.timeline_past_days === 30 ? 30 : 7;
+    var nextDays = +p.timeline_next_days === 30 ? 30 : 7;
+    return {
+      week_start: start,
+      hidden_weekdays: hidden,
+      theme: theme,
+      timeline_layout: layout,
+      timeline_past_days: pastDays,
+      timeline_next_days: nextDays,
+    };
+  }
+
+  function timelineLayout() {
+    return userPrefs().timeline_layout === "horizontal" ? "horizontal" : "vertical";
+  }
+
+  function ymdWeekday(ymd) {
+    var parts = String(ymd || "").split("-");
+    return new Date(Date.UTC(+parts[0], +parts[1] - 1, +parts[2])).getUTCDay();
+  }
+
+  function visibleWeekdays() {
+    var hidden = {};
+    userPrefs().hidden_weekdays.forEach(function (d) {
+      hidden[d] = true;
+    });
+    var start = userPrefs().week_start;
+    var out = [];
+    var i;
+    for (i = 0; i < 7; i++) {
+      var d = (start + i) % 7;
+      if (!hidden[d]) out.push(d);
+    }
+    if (!out.length) {
+      for (i = 0; i < 7; i++) out.push((start + i) % 7);
+    }
+    return out;
+  }
+
+  function weekDaysFrom(ymd) {
+    var start = weekStartYmd(ymd);
+    var vis = visibleWeekdays();
+    var days = [];
+    var i;
+    for (i = 0; i < 7; i++) {
+      var d = shiftYmd(start, i);
+      if (vis.indexOf(ymdWeekday(d)) >= 0) days.push(d);
+    }
+    return days.length ? days : [start];
+  }
+
+  function weekStartYmd(ymd) {
+    var p = String(ymd || "").split("-");
+    var dt = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2]));
+    var dow = dt.getUTCDay();
+    var start = userPrefs().week_start;
+    var delta = (dow - start + 7) % 7;
+    return shiftYmd(ymd, -delta);
+  }
+
+  function resolvedTheme(pref) {
+    var t = pref || userPrefs().theme;
+    if (t === "night" || t === "day") return t;
+    try {
+      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "night" : "day";
+    } catch (e) {
+      return "day";
+    }
+  }
+
+  function onSystemTheme() {
+    if (userPrefs().theme === "auto") applyTheme("auto");
+  }
+
+  function bindThemeMql(on) {
+    if (themeMql) {
+      try { themeMql.removeEventListener("change", onSystemTheme); } catch (e) {}
+      themeMql = null;
+    }
+    if (!on) return;
+    try {
+      themeMql = window.matchMedia("(prefers-color-scheme: dark)");
+      themeMql.addEventListener("change", onSystemTheme);
+    } catch (e) {}
+  }
+
+  function applyTheme(prefTheme) {
+    var t = prefTheme || userPrefs().theme;
+    var resolved = resolvedTheme(t);
+    document.documentElement.setAttribute("data-theme", resolved);
+    try { localStorage.setItem("csm.theme", t); } catch (e) {}
+    var btn = $("btn-theme");
+    if (btn) {
+      btn.setAttribute("data-theme", resolved);
+      btn.setAttribute("aria-label", resolved === "night" ? "Switch to day" : "Switch to night");
+      btn.title = resolved === "night" ? "Night — click for Day" : "Day — click for Night";
+    }
+    bindThemeMql(t === "auto");
+  }
+
+  function fillPreferencesForm() {
+    var p = userPrefs();
+    if ($("pref-week-start")) $("pref-week-start").value = String(p.week_start);
+    document.querySelectorAll("#pref-days input[type=checkbox]").forEach(function (cb) {
+      cb.checked = p.hidden_weekdays.indexOf(+cb.value) < 0;
+    });
+    document.querySelectorAll("#pref-theme input[type=radio]").forEach(function (r) {
+      r.checked = r.value === p.theme;
+    });
+  }
+
+  function readHiddenDays() {
+    var shown = [];
+    document.querySelectorAll("#pref-days input[type=checkbox]").forEach(function (cb) {
+      if (cb.checked) shown.push(+cb.value);
+    });
+    if (!shown.length) return null;
+    var hidden = [];
+    var i;
+    for (i = 0; i < 7; i++) if (shown.indexOf(i) < 0) hidden.push(i);
+    return hidden;
+  }
+
+  function savePreferences(partial, opts) {
+    opts = opts || {};
+    var cur = userPrefs();
+    var next = {
+      week_start: cur.week_start,
+      hidden_weekdays: cur.hidden_weekdays.slice(),
+      theme: cur.theme,
+      timeline_layout: cur.timeline_layout,
+      timeline_past_days: cur.timeline_past_days,
+      timeline_next_days: cur.timeline_next_days,
+    };
+    if (partial.week_start != null) next.week_start = +partial.week_start;
+    if (Object.prototype.hasOwnProperty.call(partial, "hidden_weekdays")) {
+      next.hidden_weekdays = partial.hidden_weekdays || [];
+    }
+    if (partial.theme) next.theme = partial.theme;
+    if (partial.timeline_layout) {
+      next.timeline_layout = partial.timeline_layout === "horizontal" ? "horizontal" : "vertical";
+    }
+    if (partial.timeline_past_days) next.timeline_past_days = +partial.timeline_past_days === 30 ? 30 : 7;
+    if (partial.timeline_next_days) next.timeline_next_days = +partial.timeline_next_days === 30 ? 30 : 7;
+    if (!status) status = {};
+    status.preferences = next;
+    applyTheme(next.theme);
+    fillPreferencesForm();
+    var reloadCal = opts.calendar;
+    if (reloadCal == null) {
+      reloadCal = partial.week_start != null || Object.prototype.hasOwnProperty.call(partial, "hidden_weekdays");
+    }
+    if (reloadCal && homeTab === "agenda") loadAgenda();
+    prefSave = prefSave.catch(function () {}).then(function () {
+      return api("/api/settings", {
+        method: "PUT",
+        body: JSON.stringify({ preferences: next }),
+      });
+    }).catch(function (err) {
+      toast(String(err.message || err));
+    });
+    return prefSave;
+  }
+
+  function monthStartYmd(ymd) {
+    var p = String(ymd || "2000-01-01").split("-");
+    return p[0] + "-" + p[1] + "-01";
+  }
+
+  function lastOfMonthYmd(ymd) {
+    var p = String(ymd || "2000-01-01").split("-");
+    var dim = new Date(Date.UTC(+p[0], +p[1], 0)).getUTCDate();
+    return p[0] + "-" + p[1] + "-" + (dim < 10 ? "0" : "") + dim;
+  }
+
+  function shiftMonth(ymd, delta) {
+    var p = String(ymd || "").split("-");
+    var dt = new Date(Date.UTC(+p[0], +p[1] - 1 + delta, 1));
+    var dim = new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth() + 1, 0)).getUTCDate();
+    var day = Math.min(+p[2] || 1, dim);
+    return utcYmd(new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), day)));
+  }
+
+  function agendaMeetRange() {
+    if (agendaCalView === "week") {
+      var start = weekStartYmd(agendaDay);
+      return { start: start, end: shiftYmd(start, 6) };
+    }
+    if (agendaCalView === "month") {
+      var first = monthStartYmd(agendaDay);
+      return { start: weekStartYmd(first), end: shiftYmd(weekStartYmd(lastOfMonthYmd(first)), 6) };
+    }
+    return { start: agendaDay, end: agendaDay };
+  }
+
+  function formatRangeLabel(ymd) {
+    if (agendaCalView === "week") {
+      var days = weekDaysFrom(ymd);
+      var first = days[0];
+      var last = days[days.length - 1];
+      if (first === last) return formatDayLabel(first);
+      return formatDayLabel(first).replace(/,.*/, "") + " – " + formatDayLabel(last);
+    }
+    if (agendaCalView === "month") {
+      var p = String(ymd || "").split("-");
+      var dt = new Date(Date.UTC(+p[0], +p[1] - 1, 1));
+      return dt.toLocaleDateString(undefined, { month: "long", year: "numeric", timeZone: "UTC" });
+    }
+    return formatDayLabel(ymd);
+  }
+
+  function formatTimeTz(date) {
+    try {
+      return new Intl.DateTimeFormat("en-US", {
+        timeZone: operatorTz || "UTC",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: !deskClockHour24(),
+      }).format(date);
+    } catch (e) {
+      return formatClock(date);
+    }
+  }
+
+  function tzClock(date) {
+    var out = { hour: 0, minute: 0 };
+    try {
+      var parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: operatorTz || "UTC",
+        hour: "numeric",
+        minute: "2-digit",
+        hourCycle: "h23",
+      }).formatToParts(date);
+      var i;
+      for (i = 0; i < parts.length; i++) {
+        if (parts[i].type === "hour") out.hour = +parts[i].value;
+        if (parts[i].type === "minute") out.minute = +parts[i].value;
+      }
+      if (out.hour === 24) out.hour = 0;
+    } catch (e) {
+      out.hour = date.getHours();
+      out.minute = date.getMinutes();
+    }
+    return out;
+  }
+
+  function minutesOfDay(date) {
+    var c = tzClock(date);
+    return c.hour * 60 + c.minute;
   }
 
   function deskClockHour24() {
@@ -468,6 +1096,7 @@
       if (root) {
         root.setAttribute("aria-label", timeStr + ". " + tip + ". Click for World Clock");
       }
+      paintAgendaNowLine();
     } catch (e) {
       timeEl.textContent = now.toLocaleTimeString();
       var whenFail = $("desk-clock-when");
@@ -573,6 +1202,14 @@
     else loadAgenda();
   }
 
+  function syncAgendaViewChrome(pane) {
+    var split = pane.querySelector(".agenda-split");
+    if (split) split.classList.toggle("is-wide", agendaCalView !== "day");
+    pane.querySelectorAll("[data-cal-view]").forEach(function (b) {
+      b.classList.toggle("is-on", b.getAttribute("data-cal-view") === agendaCalView);
+    });
+  }
+
   function fetchAgendaLists(calList, inList) {
     empty(calList);
     empty(inList);
@@ -581,8 +1218,11 @@
     loading.textContent = "Loading…";
     calList.appendChild(loading.cloneNode(true));
     inList.appendChild(loading);
-    return api("/api/home/agenda?date=" + encodeURIComponent(agendaDay)).then(function (data) {
-      renderAgendaMeetings(calList, data.meetings || []);
+    var range = agendaMeetRange();
+    var qs = "date=" + encodeURIComponent(agendaDay) + "&start=" + encodeURIComponent(range.start) + "&end=" + encodeURIComponent(range.end);
+    return api("/api/home/agenda?" + qs).then(function (data) {
+      agendaMeetings = data.meetings || [];
+      renderAgendaMeetings(calList, agendaMeetings);
       agendaInboxItems = data.inbox || [];
       agendaProjOptions = data.project_filters || [];
       fillAgendaProjFilter();
@@ -599,53 +1239,75 @@
     if (!agendaDay) agendaDay = todayYmd();
     var pane = $("agenda-panel");
     if (!pane) return Promise.resolve();
-    var lists = pane.querySelectorAll(".agenda-list");
+    var calBoard = pane.querySelector(".agenda-cal");
+    var inList = $("agenda-inbox-list");
     var label = pane.querySelector(".agenda-day-label");
-    if (lists.length >= 2) {
-      if (label) label.textContent = formatDayLabel(agendaDay);
+    if (calBoard && inList) {
+      if (label) label.textContent = formatRangeLabel(agendaDay);
+      syncAgendaViewChrome(pane);
       var inHead = pane.querySelectorAll(".agenda-col-head")[1];
-      if (inHead) ensureAgendaProjFilter(inHead, lists[1]);
-      return fetchAgendaLists(lists[0], lists[1]);
+      if (inHead) ensureAgendaProjFilter(inHead, inList);
+      return fetchAgendaLists(calBoard, inList);
     }
     empty(pane);
     var split = document.createElement("div");
-    split.className = "agenda-split";
+    split.className = "agenda-split" + (agendaCalView === "day" ? "" : " is-wide");
     var cal = document.createElement("section");
     cal.className = "agenda-col";
     var calHead = document.createElement("div");
-    calHead.className = "agenda-col-head";
+    calHead.className = "agenda-col-head agenda-cal-head";
     var calTitle = document.createElement("h2");
     calTitle.textContent = "Meetings";
+    var views = document.createElement("div");
+    views.className = "agenda-views";
+    views.setAttribute("role", "tablist");
+    [["day", "Day"], ["week", "Week"], ["month", "Month"]].forEach(function (pair) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "tab" + (agendaCalView === pair[0] ? " is-on" : "");
+      b.textContent = pair[1];
+      b.setAttribute("data-cal-view", pair[0]);
+      b.addEventListener("click", function () {
+        agendaCalView = pair[0];
+        loadAgenda();
+      });
+      views.appendChild(b);
+    });
     var dayNav = document.createElement("div");
     dayNav.className = "agenda-day";
     var prev = document.createElement("button");
     prev.type = "button";
     prev.className = "btn";
     prev.textContent = "←";
-    prev.setAttribute("aria-label", "Previous day");
+    prev.setAttribute("aria-label", "Previous");
     prev.addEventListener("click", function () {
-      agendaDay = shiftYmd(agendaDay, -1);
+      if (agendaCalView === "week") agendaDay = shiftYmd(agendaDay, -7);
+      else if (agendaCalView === "month") agendaDay = shiftMonth(agendaDay, -1);
+      else agendaDay = shiftYmd(agendaDay, -1);
       loadAgenda();
     });
     var label = document.createElement("span");
     label.className = "agenda-day-label";
-    label.textContent = formatDayLabel(agendaDay);
+    label.textContent = formatRangeLabel(agendaDay);
     var next = document.createElement("button");
     next.type = "button";
     next.className = "btn";
     next.textContent = "→";
-    next.setAttribute("aria-label", "Next day");
+    next.setAttribute("aria-label", "Next");
     next.addEventListener("click", function () {
-      agendaDay = shiftYmd(agendaDay, 1);
+      if (agendaCalView === "week") agendaDay = shiftYmd(agendaDay, 7);
+      else if (agendaCalView === "month") agendaDay = shiftMonth(agendaDay, 1);
+      else agendaDay = shiftYmd(agendaDay, 1);
       loadAgenda();
     });
     dayNav.appendChild(prev);
     dayNav.appendChild(label);
     dayNav.appendChild(next);
     calHead.appendChild(calTitle);
+    calHead.appendChild(views);
     calHead.appendChild(dayNav);
     var calList = document.createElement("div");
-    calList.className = "agenda-list";
+    calList.className = "agenda-cal";
     cal.appendChild(calHead);
     cal.appendChild(calList);
     var inbox = document.createElement("section");
@@ -871,40 +1533,346 @@
     }
   }
 
+  function meetingLengthMins(start, end) {
+    var s = new Date(start);
+    var e = new Date(end);
+    if (isNaN(s.getTime()) || isNaN(e.getTime()) || e <= s) return 0;
+    return Math.max(1, Math.round((e.getTime() - s.getTime()) / 60000));
+  }
+
+  var CAL_PX = 56;
+  var CAL_DAY_SPAN = { startH: 0, endH: 24 };
+  var CAL_SCROLL_HOUR = 7;
+
+  function eventsOnDay(items, ymd) {
+    return (items || []).filter(function (ev) {
+      var s = new Date(ev.start_at);
+      if (isNaN(s.getTime())) return false;
+      return ymdInZone(s, operatorTz) === ymd;
+    });
+  }
+
+  function placedEvent(ev) {
+    var start = new Date(ev.start_at);
+    var end = new Date(ev.end_at || ev.start_at);
+    if (isNaN(end.getTime()) || end <= start) end = new Date(start.getTime() + 30 * 60000);
+    return {
+      raw: ev,
+      start: start,
+      end: end,
+      startMin: minutesOfDay(start),
+      endMin: minutesOfDay(end),
+      col: 0,
+      cols: 1,
+    };
+  }
+
+  function packDayEvents(items) {
+    var evs = items.map(placedEvent).sort(function (a, b) {
+      return a.start - b.start || a.end - b.end;
+    });
+    evs.forEach(function (ev) {
+      if (ev.endMin <= ev.startMin) ev.endMin = ev.startMin + 30;
+    });
+    var active = [];
+    evs.forEach(function (ev) {
+      active = active.filter(function (a) { return a.endMin > ev.startMin; });
+      var used = {};
+      active.forEach(function (a) { used[a.col] = true; });
+      var col = 0;
+      while (used[col]) col += 1;
+      ev.col = col;
+      active.push(ev);
+    });
+    evs.forEach(function (ev) {
+      var max = ev.col;
+      evs.forEach(function (o) {
+        if (o.startMin < ev.endMin && o.endMin > ev.startMin) max = Math.max(max, o.col);
+      });
+      ev.cols = max + 1;
+    });
+    return evs;
+  }
+
+  function hourSpan(evs) {
+    var startH = 7;
+    var endH = 19;
+    evs.forEach(function (ev) {
+      startH = Math.min(startH, Math.floor(ev.startMin / 60));
+      endH = Math.max(endH, Math.ceil(ev.endMin / 60));
+    });
+    startH = Math.max(0, startH);
+    endH = Math.min(24, Math.max(endH, startH + 1));
+    return { startH: startH, endH: endH };
+  }
+
+  function hourLabel(h) {
+    var d = new Date(Date.UTC(2026, 0, 1, h, 0, 0));
+    try {
+      return new Intl.DateTimeFormat("en-US", {
+        timeZone: "UTC",
+        hour: "numeric",
+        hour12: !deskClockHour24(),
+      }).format(d);
+    } catch (e) {
+      return h + ":00";
+    }
+  }
+
+  function calEventCard(placed, compact) {
+    var ev = placed.raw;
+    var mins = meetingLengthMins(placed.start, placed.end) || Math.max(1, placed.endMin - placed.startMin);
+    var card = document.createElement("article");
+    card.className = "cal-event" + (compact ? " is-compact" : "") + (placed.end.getTime() < Date.now() ? " is-past" : "");
+    if (ev._id) card.setAttribute("data-doc-id", ev._id);
+    if (ev.account && ev.account.color) card.style.borderLeftColor = ev.account.color;
+    var top = document.createElement("div");
+    top.className = "cal-event-top";
+    if (ev.account) top.appendChild(accountMark(ev.account, "inbox"));
+    var when = document.createElement("time");
+    when.className = "cal-event-time";
+    when.dateTime = ev.start_at || "";
+    when.textContent = formatTimeTz(placed.start) + "–" + formatTimeTz(placed.end);
+    top.appendChild(when);
+    var title = document.createElement("div");
+    title.className = "cal-event-title";
+    title.textContent = ev.title || "Meeting";
+    var meta = document.createElement("div");
+    meta.className = "cal-event-meta";
+    var bits = [];
+    if (ev.account && ev.account.abbr) bits.push(ev.account.abbr);
+    if (ev.location) bits.push(ev.location);
+    bits.push(mins + " min");
+    if (ev.status === "proposed") bits.push("proposed");
+    var who = (ev.attendees || []).map(function (a) { return (a && (a.name || a.email)) || ""; }).filter(Boolean);
+    if (who.length && !compact) bits.push(who.slice(0, 3).join(", "));
+    meta.textContent = bits.join(" · ");
+    card.appendChild(top);
+    card.appendChild(title);
+    if (!compact || mins >= 25) card.appendChild(meta);
+    if (ev.account && ev.account.abbr && ev._id) {
+      card.addEventListener("click", function () {
+        goAccountItem(ev.account.abbr, "calendar", ev._id);
+      });
+    }
+    return card;
+  }
+
+  function paintAgendaNowLine() {
+    var now = new Date();
+    var today = ymdInZone(now, operatorTz);
+    var nowMin = minutesOfDay(now);
+    document.querySelectorAll(".cal-now").forEach(function (line) {
+      var day = line.getAttribute("data-day") || "";
+      var startH = +line.getAttribute("data-hour-start") || 0;
+      var endH = +line.getAttribute("data-hour-end") || 24;
+      var px = +line.getAttribute("data-px") || CAL_PX;
+      if (day !== today) {
+        line.hidden = true;
+        return;
+      }
+      if (nowMin < startH * 60 || nowMin > endH * 60) {
+        line.hidden = true;
+        return;
+      }
+      line.hidden = false;
+      line.style.top = ((nowMin - startH * 60) / 60) * px + "px";
+    });
+  }
+
+  function renderDayColumn(ymd, items, span) {
+    var placed = packDayEvents(eventsOnDay(items, ymd));
+    var hours = span || hourSpan(placed);
+    var height = (hours.endH - hours.startH) * CAL_PX;
+    var col = document.createElement("div");
+    col.className = "cal-day";
+    var gutter = document.createElement("div");
+    gutter.className = "cal-gutter";
+    var h;
+    for (h = hours.startH; h < hours.endH; h++) {
+      var slot = document.createElement("div");
+      slot.className = "cal-hour";
+      slot.style.height = CAL_PX + "px";
+      var lab = document.createElement("span");
+      lab.textContent = hourLabel(h);
+      slot.appendChild(lab);
+      gutter.appendChild(slot);
+    }
+    var track = document.createElement("div");
+    track.className = "cal-track";
+    track.style.height = height + "px";
+    for (h = hours.startH; h < hours.endH; h++) {
+      var grid = document.createElement("div");
+      grid.className = "cal-grid-line";
+      grid.style.top = (h - hours.startH) * CAL_PX + "px";
+      track.appendChild(grid);
+    }
+    placed.forEach(function (ev) {
+      var top = ((ev.startMin - hours.startH * 60) / 60) * CAL_PX;
+      var ht = Math.max(18, ((ev.endMin - ev.startMin) / 60) * CAL_PX - 2);
+      var width = 100 / ev.cols;
+      var card = calEventCard(ev, ht < 40);
+      card.style.top = Math.max(0, top) + "px";
+      card.style.height = ht + "px";
+      card.style.left = "calc(" + (width * ev.col) + "% + 2px)";
+      card.style.width = "calc(" + width + "% - 4px)";
+      track.appendChild(card);
+    });
+    var nowLine = document.createElement("div");
+    nowLine.className = "cal-now";
+    nowLine.setAttribute("data-day", ymd);
+    nowLine.setAttribute("data-hour-start", String(hours.startH));
+    nowLine.setAttribute("data-hour-end", String(hours.endH));
+    nowLine.setAttribute("data-px", String(CAL_PX));
+    track.appendChild(nowLine);
+    col.appendChild(gutter);
+    col.appendChild(track);
+    return col;
+  }
+
   function renderAgendaMeetings(root, items) {
     empty(root);
-    if (!items.length) {
-      var p = document.createElement("p");
-      p.className = "muted";
-      p.textContent = "No meetings this day.";
-      root.appendChild(p);
+    if (agendaCalView === "month") {
+      renderMonthGrid(root, items || []);
       return;
     }
-    items.forEach(function (ev) {
-      var card = document.createElement("article");
-      card.className = "agenda-meet";
-      var when = document.createElement("div");
-      when.className = "agenda-meet-time";
-      when.textContent = formatWhen(ev.start_at) + (ev.status === "proposed" ? " · proposed" : "");
-      var title = document.createElement("div");
-      title.className = "acct-meeting-title";
-      title.textContent = ev.title || "Meeting";
-      var meta = document.createElement("div");
-      meta.className = "row-meta";
-      var bits = [];
-      if (ev.account && ev.account.abbr) bits.push(ev.account.abbr);
-      if (ev.location) bits.push(ev.location);
-      meta.textContent = bits.join(" · ");
-      card.appendChild(when);
-      card.appendChild(title);
-      card.appendChild(meta);
-      if (ev.account && ev.account.abbr) {
-        card.addEventListener("click", function () {
-          location.hash = "#account/" + ev.account.abbr + "/calendar";
-        });
-      }
-      root.appendChild(card);
+    if (agendaCalView === "week") {
+      renderWeekGrid(root, items || []);
+      return;
+    }
+    var wrap = document.createElement("div");
+    wrap.className = "cal-board is-day";
+    wrap.appendChild(renderDayColumn(agendaDay, items, CAL_DAY_SPAN));
+    root.appendChild(wrap);
+    paintAgendaNowLine();
+    root.scrollTop = CAL_SCROLL_HOUR * CAL_PX;
+  }
+
+  function renderWeekGrid(root, items) {
+    var days = weekDaysFrom(agendaDay);
+    var span = CAL_DAY_SPAN;
+    var board = document.createElement("div");
+    board.className = "cal-board is-week";
+    board.style.setProperty("--cal-days", String(days.length));
+    var head = document.createElement("div");
+    head.className = "cal-week-head";
+    head.appendChild(document.createElement("span"));
+    days.forEach(function (d) {
+      var cell = document.createElement("button");
+      cell.type = "button";
+      cell.className = "cal-week-day" + (d === agendaDay ? " is-on" : "") + (d === todayYmd() ? " is-today" : "");
+      cell.textContent = formatDayLabel(d).replace(/,.*/, "");
+      cell.addEventListener("click", function () {
+        agendaDay = d;
+        agendaCalView = "day";
+        loadAgenda();
+      });
+      head.appendChild(cell);
     });
+    board.appendChild(head);
+    var body = document.createElement("div");
+    body.className = "cal-week-body";
+    var gutter = document.createElement("div");
+    gutter.className = "cal-gutter";
+    var h;
+    for (h = span.startH; h < span.endH; h++) {
+      var slot = document.createElement("div");
+      slot.className = "cal-hour";
+      slot.style.height = CAL_PX + "px";
+      var lab = document.createElement("span");
+      lab.textContent = hourLabel(h);
+      slot.appendChild(lab);
+      gutter.appendChild(slot);
+    }
+    body.appendChild(gutter);
+    days.forEach(function (d) {
+      var col = renderDayColumn(d, items, span);
+      var track = col.querySelector(".cal-track");
+      col.querySelector(".cal-gutter").remove();
+      col.className = "cal-week-col";
+      body.appendChild(col);
+      if (track) track.style.minHeight = (span.endH - span.startH) * CAL_PX + "px";
+    });
+    board.appendChild(body);
+    root.appendChild(board);
+    paintAgendaNowLine();
+    body.scrollTop = CAL_SCROLL_HOUR * CAL_PX;
+  }
+
+  function renderMonthGrid(root, items) {
+    var first = monthStartYmd(agendaDay);
+    var gridStart = weekStartYmd(first);
+    var vis = visibleWeekdays();
+    var board = document.createElement("div");
+    board.className = "cal-board is-month";
+    board.style.setProperty("--cal-days", String(vis.length));
+    var head = document.createElement("div");
+    head.className = "cal-month-head";
+    vis.forEach(function (dow) {
+      var el = document.createElement("div");
+      el.textContent = WEEKDAY_SHORT[dow];
+      head.appendChild(el);
+    });
+    board.appendChild(head);
+    var body = document.createElement("div");
+    body.className = "cal-month-body";
+    var i;
+    for (i = 0; i < 42; i++) {
+      var ymd = shiftYmd(gridStart, i);
+      if (vis.indexOf(ymdWeekday(ymd)) < 0) continue;
+      var inMonth = ymd.slice(0, 7) === first.slice(0, 7);
+      var cell = document.createElement("button");
+      cell.type = "button";
+      cell.className = "cal-month-cell" + (inMonth ? "" : " is-out") + (ymd === agendaDay ? " is-on" : "") + (ymd === todayYmd() ? " is-today" : "");
+      var num = document.createElement("span");
+      num.className = "cal-month-num";
+      num.textContent = String(+ymd.slice(8));
+      cell.appendChild(num);
+      eventsOnDay(items, ymd).slice(0, 4).forEach(function (ev) {
+        var chip = document.createElement("span");
+        chip.className = "cal-month-chip";
+        if (ev.account && ev.account.color) chip.style.borderLeftColor = ev.account.color;
+        chip.textContent = ev.title || "Meeting";
+        cell.appendChild(chip);
+      });
+      var extra = eventsOnDay(items, ymd).length - 4;
+      if (extra > 0) {
+        var more = document.createElement("span");
+        more.className = "cal-month-more";
+        more.textContent = "+" + extra + " more";
+        cell.appendChild(more);
+      }
+      cell.addEventListener("click", function (picked) {
+        return function () {
+          agendaDay = picked;
+          agendaCalView = "day";
+          loadAgenda();
+        };
+      }(ymd));
+      body.appendChild(cell);
+    }
+    board.appendChild(body);
+    root.appendChild(board);
+  }
+
+  var AUDIENCE_STAMP = {
+    me: { label: "Me", title: "To Me" },
+    us: { label: "Us", title: "To Us" },
+    them: { label: "Them", title: "To Them" },
+    all: { label: "All", title: "To All" },
+    unknown: { label: "??", title: "Don't know" },
+    na: { label: "n/a", title: "n/a" },
+  };
+
+  function audienceStamp(value) {
+    var key = AUDIENCE_STAMP[value] ? value : "unknown";
+    var spec = AUDIENCE_STAMP[key];
+    var el = document.createElement("span");
+    el.className = "agenda-who is-" + key;
+    el.textContent = spec.label;
+    el.title = spec.title;
+    el.setAttribute("aria-label", spec.title);
+    return el;
   }
 
   function renderAgendaInbox(root, items) {
@@ -935,37 +1903,43 @@
     shown.forEach(function (item) {
       var card = document.createElement("article");
       card.className = "agenda-item";
-      var top = document.createElement("div");
-      top.className = "agenda-item-top";
-      top.appendChild(kindIcon(item.kind));
-      if (item.account) top.appendChild(accountMark(item.account, "inbox"));
+      var ref = item.ref || {};
+      var itemId = item.kind === "email" ? (ref.thread_id || ref.id || "") : (ref.id || "");
+      if (itemId) card.setAttribute("data-doc-id", itemId);
+      var lead = document.createElement("div");
+      lead.className = "agenda-item-lead";
+      lead.appendChild(kindIcon(item.kind, "lg"));
+      if (item.account) lead.appendChild(accountMark(item.account, "inbox"));
+      var bodyWrap = document.createElement("div");
+      bodyWrap.className = "agenda-item-body";
       var title = document.createElement("strong");
       title.textContent = item.title || "";
-      top.appendChild(title);
       var body = document.createElement("div");
       body.className = "row-meta";
       body.textContent = item.body || "";
       var when = document.createElement("div");
       when.className = "row-meta";
       when.textContent = formatWhen(item.at);
-      card.appendChild(top);
-      card.appendChild(body);
-      card.appendChild(when);
+      bodyWrap.appendChild(title);
+      bodyWrap.appendChild(body);
+      bodyWrap.appendChild(when);
       if (item.kind === "task" && item.due_at) {
         var due = document.createElement("div");
         due.className = "row-meta agenda-task-due";
         due.textContent = "Due " + formatWhen(item.due_at);
-        card.appendChild(due);
+        bodyWrap.appendChild(due);
       }
+      card.appendChild(lead);
+      card.appendChild(bodyWrap);
+      card.appendChild(audienceStamp(item.audience));
       card.addEventListener("click", function () {
-        if (item.kind === "task") {
-          openTaskForm(item);
+        var abbr = item.account && item.account.abbr;
+        if (!abbr || !itemId) {
+          if (item.kind === "task") openTaskForm(item);
           return;
         }
-        var abbr = item.account && item.account.abbr;
-        if (!abbr) return;
-        var tab = item.kind === "email" ? "email" : item.kind === "teams" ? "teams" : "slack";
-        location.hash = "#account/" + abbr + "/" + tab;
+        var tab = (item.kind === "teams" || item.kind === "slack") ? "chat" : "email";
+        goAccountItem(abbr, tab, itemId);
       });
       root.appendChild(card);
     });
@@ -976,6 +1950,10 @@
   function closeTaskForm() {
     var box = $("task-box");
     if (!box) return;
+    if (box._mail && box._mail.destroy) box._mail.destroy();
+    box._mail = null;
+    if (box._namePick && box._namePick.destroy) box._namePick.destroy();
+    box._namePick = null;
     box.hidden = true;
     box.classList.add("hidden");
     empty(box);
@@ -998,7 +1976,12 @@
     box.hidden = false;
     box.classList.remove("hidden");
     empty(box);
-    var emailId = item && item.ref && item.ref.id ? item.ref.id : "";
+    var emailId = "";
+    if (item) {
+      if (item.ref && item.ref.id) emailId = item.ref.id;
+      else if (item.operator && item.operator.task && item._id) emailId = item._id;
+      else if (item._id && (item.kind === "task" || item.task_name)) emailId = item._id;
+    }
     var sheet = document.createElement("article");
     sheet.className = "sheet sheet-task";
     var head = document.createElement("header");
@@ -1016,9 +1999,16 @@
     preview.className = "muted task-subject-preview";
     var company = document.createElement("select");
     company.id = "task-account";
-    var name = document.createElement("input");
-    name.id = "task-name";
-    name.placeholder = "Task name";
+    var namePick = mountSearchSelect({
+      trigger: "input",
+      placeholder: "Task name",
+      ariaLabel: "Task name",
+      allowCustom: true,
+      items: [],
+      onChange: function () { refreshPreview(); },
+      onQuery: function () { refreshPreview(); },
+    });
+    namePick.el.id = "task-name";
     var kind = document.createElement("select");
     kind.id = "task-kind";
     TASK_KINDS.forEach(function (k) {
@@ -1030,86 +2020,18 @@
     var due = document.createElement("input");
     due.id = "task-due";
     due.type = "datetime-local";
-    var cc = document.createElement("input");
-    cc.id = "task-cc";
-    cc.className = "tag-input";
-    cc.placeholder = "Name or email";
-    var body = document.createElement("textarea");
-    body.id = "task-body";
-    body.rows = 7;
-    body.placeholder = "What needs to happen";
-    var peopleTagify = null;
-    var companyPeople = [];
     function companyLabel() {
       var opt = company.options[company.selectedIndex];
       return opt ? opt.getAttribute("data-name") || opt.textContent : "";
     }
+    function taskNameValue() {
+      return String(namePick.get() || "").trim();
+    }
     function refreshPreview() {
-      preview.textContent = taskSubjectPreview(companyLabel(), name.value, kind.value);
+      var line = taskSubjectPreview(companyLabel(), taskNameValue(), kind.value);
+      preview.textContent = line;
+      if (mail) mail.setSubject(line);
     }
-    function peopleWhitelist(items) {
-      return (items || []).filter(function (p) { return p.email; }).map(function (p) {
-        return { value: p.email, name: p.name || p.email, email: p.email };
-      });
-    }
-    function ccEmails() {
-      if (peopleTagify) {
-        return peopleTagify.value.map(function (t) { return t.value || t.email; }).filter(Boolean);
-      }
-      return csvList(cc.value);
-    }
-    function setCcEmails(addrs) {
-      if (peopleTagify) {
-        peopleTagify.removeAllTags();
-        var tags = (addrs || []).map(function (addr) {
-          var want = String(addr || "").toLowerCase();
-          var hit = companyPeople.filter(function (p) {
-            return String(p.email || "").toLowerCase() === want;
-          })[0];
-          return hit
-            ? { value: hit.email, name: hit.name || hit.email, email: hit.email }
-            : { value: addr, name: addr };
-        });
-        if (tags.length) peopleTagify.addTags(tags);
-        return;
-      }
-      cc.value = (addrs || []).join(", ");
-    }
-    function bindPeopleTagify(selected) {
-      if (peopleTagify) {
-        try { peopleTagify.destroy(); } catch (e) {}
-        peopleTagify = null;
-      }
-      if (!window.Tagify) {
-        cc.value = (selected || []).join(", ");
-        return;
-      }
-      peopleTagify = new window.Tagify(cc, {
-        whitelist: peopleWhitelist(companyPeople),
-        tagTextProp: "name",
-        enforceWhitelist: false,
-        dropdown: { enabled: 0, maxItems: 20, searchKeys: ["value", "name", "email"], closeOnSelect: false },
-        delimiters: ",|\n",
-      });
-      setCcEmails(selected || []);
-    }
-    function loadCompanyPeople(aid, selected) {
-      if (!aid) {
-        companyPeople = [];
-        bindPeopleTagify(selected || []);
-        return Promise.resolve();
-      }
-      return api("/api/people?account_id=" + encodeURIComponent(aid)).then(function (data) {
-        companyPeople = data.items || [];
-        bindPeopleTagify(selected || []);
-      });
-    }
-    company.addEventListener("change", function () {
-      refreshPreview();
-      loadCompanyPeople(company.value, ccEmails());
-      assist.disabled = !company.value;
-    });
-    name.addEventListener("input", refreshPreview);
     kind.addEventListener("change", refreshPreview);
     var form = document.createElement("div");
     form.className = "settings-form";
@@ -1118,7 +2040,7 @@
     labCo.appendChild(company);
     var labName = document.createElement("label");
     labName.appendChild(document.createTextNode("Task name"));
-    labName.appendChild(name);
+    labName.appendChild(namePick.el);
     var labKind = document.createElement("label");
     labKind.appendChild(document.createTextNode("Type"));
     labKind.appendChild(kind);
@@ -1129,91 +2051,113 @@
     form.appendChild(labName);
     form.appendChild(labKind);
     form.appendChild(labDue);
-    var assist = document.createElement("button");
-    assist.type = "button";
-    assist.className = "btn";
-    assist.id = "btn-task-assist";
-    assist.textContent = "AI Assist";
-    assist.disabled = true;
-    assist.title = "Draft this task from the company, type, and desk context";
-    var labCc = document.createElement("label");
-    labCc.className = "task-cc-field";
-    labCc.appendChild(document.createTextNode("CC"));
-    labCc.appendChild(cc);
-    var ccRow = document.createElement("div");
-    ccRow.className = "task-cc-row settings-span";
-    ccRow.appendChild(assist);
-    ccRow.appendChild(labCc);
-    var labBody = document.createElement("label");
-    labBody.className = "settings-span";
-    labBody.appendChild(document.createTextNode("Body"));
-    labBody.appendChild(body);
-    var actions = document.createElement("div");
-    actions.className = "settings-actions";
-    var save = document.createElement("button");
-    save.type = "button";
-    save.className = "btn btn-primary";
-    save.textContent = emailId ? "Save task" : "Create task";
-    assist.addEventListener("click", function () {
-      if (!company.value) {
-        toast("Pick a company first");
-        return;
-      }
-      assist.disabled = true;
-      assist.textContent = "Working…";
-      api("/api/tasks/assist", {
-        method: "POST",
-        body: JSON.stringify({
-          account_id: company.value,
-          task_kind: kind.value,
-          task_name: name.value,
-          due_at: due.value,
-          body: body.value,
-          cc_addrs: ccEmails(),
-        }),
-      }).then(function (doc) {
-        if (doc.task_name) name.value = doc.task_name;
-        if (doc.task_kind) kind.value = doc.task_kind;
-        if (doc.due_at) due.value = dueInputValue(doc.due_at);
-        if (doc.body) body.value = doc.body;
-        if (doc.cc_addrs) setCcEmails(doc.cc_addrs);
-        refreshPreview();
-        toast(doc.result === "grok" ? "Task drafted with Grok" : "Task draft filled");
-      }).catch(function (err) {
-        toast(String(err.message || err));
-      }).then(function () {
-        assist.disabled = !company.value;
-        assist.textContent = "AI Assist";
-      });
-    });
-    save.addEventListener("click", function () {
-      var ccs = ccEmails();
-      var payload = {
+    var me = ((status && status.operator) || {}).email || "";
+    var mail = null;
+    function taskPayload(snap) {
+      snap = snap || (mail && mail.snapshot()) || {};
+      return {
         account_id: company.value,
-        task_name: name.value,
+        task_name: taskNameValue(),
         task_kind: kind.value,
         due_at: due.value,
-        cc_addrs: ccs,
-        body: body.value,
+        cc_addrs: snap.cc_addrs || [],
+        bcc_addrs: snap.bcc_addrs || [],
+        body: snap.body || "",
       };
+    }
+    function saveTask(snap) {
+      if (!company.value) return Promise.reject(new Error("Pick a company first"));
+      if (!taskNameValue()) return Promise.reject(new Error("Task name required"));
       var req = emailId
-        ? api("/api/tasks/" + encodeURIComponent(emailId), { method: "PUT", body: JSON.stringify(payload) })
-        : api("/api/tasks", { method: "POST", body: JSON.stringify(payload) });
-      req.then(function () {
-        toast(emailId ? "Task saved" : "Task created");
-        closeTaskForm();
-        loadAgenda();
-      }).catch(function (err) {
-        toast(String(err.message || err));
+        ? api("/api/tasks/" + encodeURIComponent(emailId), { method: "PUT", body: JSON.stringify(taskPayload(snap)) })
+        : api("/api/tasks", { method: "POST", body: JSON.stringify(taskPayload(snap)) });
+      return req.then(function (doc) {
+        if (doc && doc._id) emailId = doc._id;
+        return doc;
       });
-    });
-    actions.appendChild(save);
+    }
     sheet.appendChild(preview);
     sheet.appendChild(form);
-    sheet.appendChild(ccRow);
-    sheet.appendChild(labBody);
-    sheet.appendChild(actions);
-    save.disabled = true;
+    mail = mountMailComposer(sheet, {
+      accountId: "",
+      to: me ? [me] : [],
+      lockTo: !!me,
+      bodyPlaceholder: "What needs to happen",
+      sendConfirm: "Send this task to your mailbox?",
+      onSuggest: function (snap) {
+        if (!company.value) return Promise.reject(new Error("Pick a company first"));
+        return api("/api/tasks/assist", {
+          method: "POST",
+          body: JSON.stringify({
+            account_id: company.value,
+            task_kind: kind.value,
+            task_name: taskNameValue(),
+            due_at: due.value,
+            body: snap.body,
+            cc_addrs: snap.cc_addrs,
+          }),
+        }).then(function (doc) {
+          if (doc.task_name) namePick.set(doc.task_name);
+          if (doc.task_kind) kind.value = doc.task_kind;
+          if (doc.due_at) due.value = dueInputValue(doc.due_at);
+          mail.set({
+            cc_addrs: doc.cc_addrs || snap.cc_addrs,
+            body: doc.body || snap.body,
+            subject: taskSubjectPreview(companyLabel(), taskNameValue(), kind.value),
+          });
+          refreshPreview();
+          toast(doc.result === "grok" ? "Drafted with Grok" : "Template draft");
+        });
+      },
+      onSave: function (snap) {
+        return saveTask(snap).then(function () {
+          toast("Draft saved");
+          closeTaskForm();
+          loadAgenda();
+        });
+      },
+      onSend: function (snap, attachments) {
+        return saveTask(snap).then(function (doc) {
+          var id = (doc && doc._id) || emailId;
+          return api("/api/tasks/" + encodeURIComponent(id) + "/send", {
+            method: "POST",
+            body: JSON.stringify({
+              to_addrs: snap.to_addrs,
+              cc_addrs: snap.cc_addrs,
+              bcc_addrs: snap.bcc_addrs,
+              subject: snap.subject,
+              body: snap.body,
+              attachments: attachments || [],
+            }),
+          });
+        }).then(function () {
+          toast("Sent");
+          closeTaskForm();
+          loadAgenda();
+        });
+      },
+    });
+    function refreshTaskNames() {
+      var aid = company.value;
+      var seen = {};
+      var items = [];
+      (agendaInboxItems || []).forEach(function (it) {
+        if (it.kind !== "task") return;
+        if (aid && it.account && it.account.account_id !== aid) return;
+        var n = String(it.task_name || it.title || "").replace(/^Tasks:\s*[^:]+:\s*/i, "").replace(/\s*\{[^}]+\}\s*$/, "").trim();
+        if (!n || seen[n.toLowerCase()]) return;
+        seen[n.toLowerCase()] = true;
+        items.push({ value: n, label: n });
+      });
+      namePick.setItems(items);
+    }
+    company.addEventListener("change", function () {
+      refreshPreview();
+      refreshTaskNames();
+      mail.setAccount(company.value);
+    });
+    box._mail = mail;
+    box._namePick = namePick;
     box.appendChild(sheet);
     api("/api/accounts").then(function (data) {
       empty(company);
@@ -1233,21 +2177,23 @@
     }).then(function (doc) {
       if (doc) {
         company.value = doc.account_id || "";
-        name.value = doc.task_name || "";
+        namePick.set(doc.task_name || "");
         kind.value = doc.task_kind || TASK_KINDS[0];
         due.value = dueInputValue(doc.due_at);
-        body.value = doc.content || "";
+        mail.set({
+          to_addrs: doc.to_addrs && doc.to_addrs.length ? doc.to_addrs : (me ? [me] : []),
+          cc_addrs: doc.cc_addrs || [],
+          bcc_addrs: doc.bcc_addrs || [],
+          body: doc.content || "",
+          subject: doc.subject || taskSubjectPreview(companyLabel(), taskNameValue(), kind.value),
+        });
       } else if (item && item.account && item.account.account_id) {
         company.value = item.account.account_id;
       }
       refreshPreview();
-      assist.disabled = !company.value;
-      var selectedCc = doc ? (doc.cc_addrs || []) : csvList(cc.value);
-      return loadCompanyPeople(company.value, selectedCc).then(function () {
-        save.disabled = false;
-      });
+      refreshTaskNames();
+      return mail.setAccount(company.value);
     }).catch(function (err) {
-      save.disabled = false;
       toast(String(err.message || err));
     });
   }
@@ -1613,17 +2559,17 @@
   function markAccountTab(tab) {
     var tabs = $("account-tabs");
     if (!tabs) return;
-    var want = tab || "timeline";
-    tabs.querySelectorAll(".tab").forEach(function (b, i) {
-      var names = ["timeline", "tickets", "email", "slack", "teams", "salesforce", "calendar", "projects", "people", "orgchart", "accountteam"];
-      b.classList.toggle("is-on", names[i] === want);
+    var want = canonicalTab(tab);
+    tabs.querySelectorAll(".tab").forEach(function (b) {
+      b.classList.toggle("is-on", b.getAttribute("data-tab") === want);
     });
   }
 
   function loadAccount(abbr, tab) {
+    tab = canonicalTab(tab || "timeline");
     var want = (abbr || "").toLowerCase();
     if (currentAccount && lastAccountAbbr === want && $("account-tabs") && $("account-tabs").firstChild) {
-      currentTab = tab || "timeline";
+      currentTab = canonicalTab(tab || "timeline");
       markAccountTab(currentTab);
       syncAccountTools(currentTab);
       return Promise.resolve(renderPane(currentAccount, currentTab));
@@ -1738,16 +2684,17 @@
   }
 
   function renderTabs(acct, tab) {
-    var names = ["timeline", "tickets", "email", "slack", "teams", "salesforce", "calendar", "projects", "people", "orgchart", "accountteam"];
+    tab = canonicalTab(tab);
     var counts = acct.input_counts || {};
     var tabs = $("account-tabs");
     empty(tabs);
-    names.forEach(function (name) {
+    ACCOUNT_TABS.forEach(function (name) {
       var b = document.createElement("button");
       b.type = "button";
       b.className = "tab" + (name === tab ? " is-on" : "");
+      b.setAttribute("data-tab", name);
       var label = document.createElement("span");
-      label.textContent = name === "orgchart" ? "org chart" : name === "accountteam" ? "account team" : name;
+      label.textContent = tabLabel(name);
       b.appendChild(label);
       var n = counts[name];
       if (n != null) {
@@ -1769,15 +2716,14 @@
     var aid = acct.account_id;
     if (tab === "tickets") return fillList(pane, "/api/tickets" + accountQs(aid, true), ticketRow);
     if (tab === "email") return fillList(pane, "/api/threads?account_id=" + encodeURIComponent(aid), threadRow);
-    if (tab === "slack") return fillList(pane, "/api/slack/messages?account_id=" + encodeURIComponent(aid), slackRow);
-    if (tab === "teams") return fillList(pane, "/api/teams/messages?account_id=" + encodeURIComponent(aid), teamsRow);
+    if (tab === "chat") return fillChat(pane, aid);
     if (tab === "salesforce") return fillSalesforce(pane, aid);
     if (tab === "calendar") return fillList(pane, "/api/calendar?account_id=" + encodeURIComponent(aid), calRow);
     if (tab === "projects") return fillProjects(pane, acct);
     if (tab === "people") return fillPeople(pane, acct);
     if (tab === "orgchart") return fillOrgChart(pane, acct);
     if (tab === "accountteam") return fillAccountTeam(pane, acct);
-    return fillTimeline(pane, "/api/accounts/" + encodeURIComponent(aid) + "/timeline" + accountQs("", false));
+    return fillTimeline(pane, timelineFetchUrl(aid));
   }
 
   function slashState(raw) {
@@ -2036,6 +2982,176 @@
     return item || {};
   }
 
+  function itemTime(item) {
+    var raw = (item && (item.at || item.start_at)) || "";
+    var t = new Date(raw).getTime();
+    return isNaN(t) ? 0 : t;
+  }
+
+  function sortTimelineItems(items) {
+    return (items || []).slice().sort(function (a, b) {
+      return itemTime(a) - itemTime(b);
+    });
+  }
+
+  function timelineNowItem() {
+    var li = document.createElement("li");
+    li.className = "timeline-now-item";
+    li.setAttribute("data-now", "1");
+    var line = document.createElement("div");
+    line.className = "tl-now";
+    line.setAttribute("aria-hidden", "true");
+    var label = document.createElement("span");
+    label.className = "tl-now-label";
+    label.textContent = "Now";
+    li.appendChild(line);
+    li.appendChild(label);
+    return li;
+  }
+
+  function padTimelineAxis(root, layout) {
+    var ul = root.querySelector(".timeline");
+    if (!ul) return;
+    var want = layout === "horizontal" ? "horizontal" : "vertical";
+    var sc = want === "horizontal"
+      ? (root.querySelector(".timeline-scroll") || root)
+      : (root.closest ? (root.closest(".pane") || root) : root);
+    var size = want === "horizontal" ? sc.clientWidth : sc.clientHeight;
+    var pad = Math.max(32, Math.floor((size || 0) / 2));
+    if (want === "horizontal") {
+      ul.style.paddingLeft = pad + "px";
+      ul.style.paddingRight = pad + "px";
+      ul.style.paddingTop = "";
+      ul.style.paddingBottom = "";
+    } else {
+      ul.style.paddingTop = pad + "px";
+      ul.style.paddingBottom = pad + "px";
+      ul.style.paddingLeft = "";
+      ul.style.paddingRight = "";
+    }
+  }
+
+  function scrollTimelineToNow(root, layout, opts) {
+    var nowEl = root.querySelector("[data-now]");
+    if (!nowEl) return;
+    var behavior = (opts && opts.behavior) || "auto";
+    requestAnimationFrame(function () {
+      padTimelineAxis(root, layout || timelineLayout());
+      requestAnimationFrame(function () {
+        nowEl.scrollIntoView({ block: "center", inline: "center", behavior: behavior });
+      });
+    });
+  }
+
+  function applyTimelineLayout(root, layout) {
+    var want = layout === "horizontal" ? "horizontal" : "vertical";
+    var ul = root.querySelector(".timeline");
+    if (ul) {
+      ul.classList.toggle("timeline-vertical", want === "vertical");
+      ul.classList.toggle("timeline-horizontal", want === "horizontal");
+    }
+    var scroll = root.querySelector(".timeline-scroll");
+    if (scroll) scroll.classList.toggle("is-horizontal", want === "horizontal");
+    var shell = root.querySelector(".timeline-shell");
+    if (shell) {
+      shell.classList.toggle("is-horizontal", want === "horizontal");
+      shell.classList.toggle("is-vertical", want === "vertical");
+    }
+    root.querySelectorAll("[data-tl-layout]").forEach(function (b) {
+      b.classList.toggle("is-on", b.getAttribute("data-tl-layout") === want);
+    });
+    scrollTimelineToNow(root, want);
+  }
+
+  function timelineWindow() {
+    var p = userPrefs();
+    var now = Date.now();
+    return {
+      now: now,
+      pastDays: p.timeline_past_days,
+      nextDays: p.timeline_next_days,
+      since: now - p.timeline_past_days * 86400000,
+      until: now + p.timeline_next_days * 86400000,
+    };
+  }
+
+  function timelineFetchUrl(aid) {
+    var w = timelineWindow();
+    var parts = [];
+    var extra = accountQs("", false);
+    if (extra.charAt(0) === "?") extra = extra.slice(1);
+    if (extra) parts.push(extra);
+    parts.push("since=" + encodeURIComponent(new Date(w.since).toISOString()));
+    parts.push("until=" + encodeURIComponent(new Date(w.until).toISOString()));
+    parts.push("limit=200");
+    return "/api/accounts/" + encodeURIComponent(aid) + "/timeline?" + parts.join("&");
+  }
+
+  function reloadTimeline() {
+    if (!currentAccount || currentTab !== "timeline") return;
+    var pane = $("account-pane");
+    if (!pane) return;
+    empty(pane);
+    fillTimeline(pane, timelineFetchUrl(currentAccount.account_id));
+  }
+
+  function timelineRangeButtons(side) {
+    var box = document.createElement("div");
+    box.className = "timeline-range is-" + side;
+    var current = side === "past" ? userPrefs().timeline_past_days : userPrefs().timeline_next_days;
+    var pairs = side === "past"
+      ? [[7, "Past 7 days"], [30, "Past 30 days"]]
+      : [[7, "Next 7 days"], [30, "Next 30 days"]];
+    pairs.forEach(function (pair) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "btn" + (current === pair[0] ? " is-on" : "");
+      b.textContent = pair[1];
+      b.setAttribute("data-tl-range", side + "-" + pair[0]);
+      b.addEventListener("click", function () {
+        var patch = side === "past"
+          ? { timeline_past_days: pair[0] }
+          : { timeline_next_days: pair[0] };
+        savePreferences(patch, { calendar: false });
+        reloadTimeline();
+      });
+      box.appendChild(b);
+    });
+    return box;
+  }
+
+  function timelineOrientBar(pane, layout) {
+    var bar = document.createElement("div");
+    bar.className = "pane-toolbar pane-toolbar-spread";
+    var nowBtn = document.createElement("button");
+    nowBtn.type = "button";
+    nowBtn.className = "btn timeline-now-btn";
+    nowBtn.textContent = "Now";
+    nowBtn.title = "Scroll to now";
+    nowBtn.addEventListener("click", function () {
+      scrollTimelineToNow(pane, layout, { behavior: "smooth" });
+    });
+    bar.appendChild(nowBtn);
+    var views = document.createElement("div");
+    views.className = "timeline-orient";
+    views.setAttribute("role", "tablist");
+    views.setAttribute("aria-label", "Timeline layout");
+    [["vertical", "Vertical"], ["horizontal", "Horizontal"]].forEach(function (pair) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "tab" + (layout === pair[0] ? " is-on" : "");
+      b.textContent = pair[1];
+      b.setAttribute("data-tl-layout", pair[0]);
+      b.addEventListener("click", function () {
+        savePreferences({ timeline_layout: pair[0] }, { calendar: false });
+        reloadTimeline();
+      });
+      views.appendChild(b);
+    });
+    bar.appendChild(views);
+    return bar;
+  }
+
   function fillTimeline(pane, url) {
     var aid = currentAccount && currentAccount.account_id;
     var notesP = aid ? api("/api/notes?account_id=" + encodeURIComponent(aid)) : Promise.resolve({ items: [] });
@@ -2062,29 +3178,74 @@
           });
         });
       }
-      if (!items.length) {
+      var layout = timelineLayout();
+      pane.appendChild(timelineOrientBar(pane, layout));
+      var w = timelineWindow();
+      items = sortTimelineItems(items).filter(function (it) {
+        var t = itemTime(it);
+        return t >= w.since && t <= w.until;
+      });
+      var past = [];
+      var future = [];
+      items.forEach(function (it) {
+        if (itemTime(it) > w.now) future.push(it);
+        else past.push(it);
+      });
+      if (past.length > TL_SIDE_CAP) past = past.slice(-TL_SIDE_CAP);
+      if (future.length > TL_SIDE_CAP) future = future.slice(0, TL_SIDE_CAP);
+      var shell = document.createElement("div");
+      shell.className = "timeline-shell " + (layout === "horizontal" ? "is-horizontal" : "is-vertical");
+      var scroll = document.createElement("div");
+      scroll.className = "timeline-scroll" + (layout === "horizontal" ? " is-horizontal" : "");
+      if (!past.length && !future.length) {
         var p = document.createElement("p");
         p.className = "muted";
-        p.textContent = "Nothing here yet.";
-        pane.appendChild(p);
-        return;
+        p.textContent = "No events in this window.";
+        scroll.appendChild(p);
+      } else {
+        var ul = document.createElement("ul");
+        ul.className = "timeline timeline-snap-icon " + (layout === "horizontal" ? "timeline-horizontal" : "timeline-vertical");
+        var visual = layout === "vertical"
+          ? future.slice().reverse().concat([null]).concat(past.slice().reverse())
+          : past.concat([null]).concat(future);
+        function addCard(item, visIndex) {
+          var count = (byAct[item._id] || []).length || item.note_count || 0;
+          item.note_count = count;
+          ul.appendChild(timelineItem(item, visIndex, {
+            lead: visIndex > 0,
+            trail: visIndex < visual.length - 1,
+          }));
+        }
+        visual.forEach(function (item, visIndex) {
+          if (!item) {
+            ul.appendChild(timelineNowItem());
+            return;
+          }
+          addCard(item, visIndex);
+        });
+        scroll.appendChild(ul);
       }
-      var ul = document.createElement("ul");
-      ul.className = "timeline timeline-vertical timeline-snap-icon";
-      items.forEach(function (item, i) {
-        var count = (byAct[item._id] || []).length || item.note_count || 0;
-        item.note_count = count;
-        ul.appendChild(timelineItem(item, i, items.length));
-      });
-      pane.appendChild(ul);
+      if (layout === "vertical") {
+        shell.appendChild(timelineRangeButtons("next"));
+        shell.appendChild(scroll);
+        shell.appendChild(timelineRangeButtons("past"));
+      } else {
+        shell.appendChild(timelineRangeButtons("past"));
+        shell.appendChild(scroll);
+        shell.appendChild(timelineRangeButtons("next"));
+      }
+      pane.appendChild(shell);
+      scrollTimelineToNow(pane, layout);
     });
   }
 
-  function timelineItem(item, index, total) {
+  function timelineItem(item, index, opts) {
+    opts = opts || {};
     var group = kindGroup(item.kind);
     var li = document.createElement("li");
     li.className = "is-" + group;
-    if (index > 0) li.appendChild(document.createElement("hr"));
+    if (itemTime(item) < Date.now()) li.classList.add("is-past");
+    if (opts.lead) li.appendChild(document.createElement("hr"));
     var mid = document.createElement("div");
     mid.className = "timeline-middle is-" + group;
     var emoji = document.createElement("span");
@@ -2143,7 +3304,7 @@
       }
     });
     li.appendChild(side);
-    if (index < total - 1) li.appendChild(document.createElement("hr"));
+    if (opts.trail) li.appendChild(document.createElement("hr"));
     return li;
   }
 
@@ -2165,6 +3326,12 @@
   function closeDetail() {
     var box = $("detail-box");
     if (!box || box.hidden) return;
+    if (box._mail && box._mail.destroy) box._mail.destroy();
+    box._mail = null;
+    (box._picks || []).forEach(function (p) {
+      if (p && p.destroy) p.destroy();
+    });
+    box._picks = null;
     box.hidden = true;
     box.classList.add("hidden");
     empty(box);
@@ -2172,6 +3339,88 @@
       notesDirty = false;
       renderPane(currentAccount, "timeline");
     }
+  }
+
+  function openRoutedItem(tab, itemId) {
+    if (!itemId) return Promise.resolve();
+    if (tab === "calendar") {
+      return api("/api/calendar/" + encodeURIComponent(itemId)).then(openCalendarLightbox).catch(function (err) {
+        toast(String(err.message || err));
+      });
+    }
+    if (tab === "chat" || tab === "slack" || tab === "teams") {
+      return openChatMessage(itemId, tab);
+    }
+    return api("/api/tasks/" + encodeURIComponent(itemId)).then(function (doc) {
+      openTaskForm(doc);
+    }).catch(function () {
+      return api("/api/threads/" + encodeURIComponent(itemId)).then(openThreadLightbox);
+    }).catch(function (err) {
+      toast(String(err.message || err));
+    });
+  }
+
+  function openSheet(titleText) {
+    var box = $("detail-box");
+    if (!box) return null;
+    box.hidden = false;
+    box.classList.remove("hidden");
+    empty(box);
+    var sheet = document.createElement("article");
+    sheet.className = "sheet";
+    var head = document.createElement("header");
+    var h = document.createElement("h2");
+    h.textContent = titleText || "";
+    var close = document.createElement("button");
+    close.type = "button";
+    close.className = "btn btn-ghost sheet-close";
+    close.setAttribute("aria-label", "Close");
+    close.textContent = "×";
+    close.addEventListener("click", closeDetail);
+    head.appendChild(h);
+    head.appendChild(close);
+    sheet.appendChild(head);
+    box.appendChild(sheet);
+    return sheet;
+  }
+
+  function openCalendarLightbox(ev) {
+    if (!ev) return;
+    var sheet = openSheet(ev.title || "Meeting");
+    if (!sheet) return;
+    var when = document.createElement("p");
+    when.className = "muted";
+    var bits = [formatWhen(ev.start_at)];
+    if (ev.end_at) bits.push("– " + formatWhen(ev.end_at).replace(/^Today @ /, ""));
+    var mins = meetingLengthMins(ev.start_at, ev.end_at);
+    if (mins) bits.push(mins + " min");
+    if (ev.location) bits.push(ev.location);
+    if (ev.status === "proposed") bits.push("proposed");
+    when.textContent = bits.join(" · ");
+    sheet.appendChild(when);
+    var dl = document.createElement("dl");
+    dl.className = "sheet-kv";
+    kvRow(dl, "Account", (ev.account && (ev.account.name || ev.account.abbr)) || (currentAccount && currentAccount.name) || "");
+    kvRow(dl, "Location", ev.location || "");
+    var names = (ev.attendees || []).map(function (a) {
+      return (a && (a.name || a.email)) || "";
+    }).filter(Boolean);
+    kvRow(dl, "Attendees", names.join(", "));
+    if (dl.firstChild) sheet.appendChild(dl);
+  }
+
+  function openChatLightbox(doc, kind) {
+    if (!doc) return;
+    var sheet = openSheet(doc.user_name || doc.user || (kind === "teams" ? "Teams" : "Slack"));
+    if (!sheet) return;
+    var when = document.createElement("p");
+    when.className = "muted";
+    when.textContent = formatWhen(doc.ts || doc.at) + " · " + (kind === "teams" ? "Teams" : "Slack");
+    sheet.appendChild(when);
+    var body = document.createElement("div");
+    body.className = "sheet-body";
+    body.textContent = doc.text || doc.body || "";
+    sheet.appendChild(body);
   }
 
   function kvRow(dl, key, value) {
@@ -2517,13 +3766,15 @@
   function threadRow(item) {
     var row = rowEl((item.message_count || 0) + " msgs", item.subject || "", (item.last_at || "").replace("T", " ").slice(0, 16));
     row.classList.add("is-click");
+    if (item._id) row.setAttribute("data-doc-id", item._id);
     row.addEventListener("click", function () {
       if (!item._id) return;
       api("/api/threads/" + encodeURIComponent(item._id) + "/operator", {
         method: "PATCH",
         body: JSON.stringify({ unread: false }),
       }).catch(function () {});
-      openThreadLightbox(item);
+      if (currentAccount && currentAccount.abbr) goAccountItem(currentAccount.abbr, "email", item._id);
+      else openThreadLightbox(item);
     });
     return row;
   }
@@ -2558,33 +3809,109 @@
     var suggest = document.createElement("section");
     suggest.className = "suggest-box";
     var sh = document.createElement("h3");
-    sh.textContent = "Reply suggestion";
+    sh.textContent = "Reply";
     var hint = document.createElement("p");
     hint.className = "muted";
     hint.textContent = "Uses this thread plus the account (tickets, people, projects).";
-    var go = document.createElement("button");
-    go.type = "button";
-    go.className = "btn btn-primary";
-    go.textContent = "Suggest reply";
-    var draftTo = document.createElement("input");
-    draftTo.placeholder = "To";
-    var draftSub = document.createElement("input");
-    draftSub.placeholder = "Subject";
-    var draftBody = document.createElement("textarea");
-    draftBody.placeholder = "Suggested reply appears here";
-    var use = document.createElement("button");
-    use.type = "button";
-    use.className = "btn";
-    use.textContent = "Open in Compose";
     suggest.appendChild(sh);
     suggest.appendChild(hint);
-    suggest.appendChild(go);
-    suggest.appendChild(draftTo);
-    suggest.appendChild(draftSub);
-    suggest.appendChild(draftBody);
-    suggest.appendChild(use);
+    var savedDraftId = "";
+    var openFull = document.createElement("button");
+    openFull.type = "button";
+    openFull.className = "btn btn-ghost";
+    openFull.textContent = "Open full Compose";
+    var mail = mountMailComposer(suggest, {
+      accountId: currentAccount && currentAccount.account_id,
+      to: [],
+      subject: item.subject ? "Re: " + String(item.subject).replace(/^Re:\s*/i, "") : "",
+      bodyPlaceholder: "Write the reply",
+      extraActions: [openFull],
+      onSuggest: function (snap) {
+        return api("/api/threads/" + encodeURIComponent(item._id) + "/suggest-reply", {
+          method: "POST",
+          body: "{}",
+        }).then(function (doc) {
+          savedDraftId = doc.draft_id || "";
+          mail.set({
+            to_addrs: doc.to_addrs || [],
+            cc_addrs: doc.cc_addrs || [],
+            subject: doc.subject || snap.subject,
+            body: doc.body || "",
+          });
+          toast(doc.result === "grok" ? "Drafted with Grok" : "Template draft");
+        });
+      },
+      onSave: function (snap) {
+        var payload = {
+          account_id: (currentAccount && currentAccount.account_id) || "",
+          subject: snap.subject,
+          body: snap.body,
+          to_addrs: snap.to_addrs,
+          cc_addrs: snap.cc_addrs,
+          bcc_addrs: snap.bcc_addrs,
+          attachment_names: snap.attachment_names,
+          created_by: "you",
+          context_ref: { thread_id: item._id },
+        };
+        var req = savedDraftId
+          ? api("/api/drafts/" + encodeURIComponent(savedDraftId), { method: "PATCH", body: JSON.stringify(payload) })
+          : api("/api/drafts", { method: "POST", body: JSON.stringify(payload) });
+        return req.then(function (doc) {
+          if (doc && doc._id) savedDraftId = doc._id;
+          toast("Draft saved");
+        });
+      },
+      onSend: function (snap, attachments) {
+        var payload = {
+          account_id: (currentAccount && currentAccount.account_id) || "",
+          subject: snap.subject,
+          body: snap.body,
+          to_addrs: snap.to_addrs,
+          cc_addrs: snap.cc_addrs,
+          bcc_addrs: snap.bcc_addrs,
+          attachment_names: snap.attachment_names,
+          created_by: "you",
+          context_ref: { thread_id: item._id },
+        };
+        var req = savedDraftId
+          ? api("/api/drafts/" + encodeURIComponent(savedDraftId), { method: "PATCH", body: JSON.stringify(payload) })
+          : api("/api/drafts", { method: "POST", body: JSON.stringify(payload) });
+        return req.then(function (doc) {
+          savedDraftId = (doc && doc._id) || savedDraftId;
+          return api("/api/drafts/" + encodeURIComponent(savedDraftId) + "/send", {
+            method: "POST",
+            body: JSON.stringify({
+              to_addrs: snap.to_addrs,
+              cc_addrs: snap.cc_addrs,
+              bcc_addrs: snap.bcc_addrs,
+              subject: snap.subject,
+              body: snap.body,
+              attachment_names: snap.attachment_names,
+              attachments: attachments || [],
+            }),
+          });
+        }).then(function () {
+          toast("Sent");
+          closeDetail();
+        });
+      },
+    });
+    openFull.addEventListener("click", function () {
+      if (!currentAccount || !window.CSMCompose) return;
+      var snap = mail.snapshot();
+      closeDetail();
+      window.CSMCompose.open(currentAccount, {
+        thread_id: item._id,
+        to: (snap.to_addrs || []).join(", "),
+        cc: snap.cc_addrs,
+        bcc: snap.bcc_addrs,
+        subject: snap.subject,
+        body: snap.body,
+      });
+    });
     sheet.appendChild(suggest);
     box.appendChild(sheet);
+    box._mail = mail;
     api("/api/threads/" + encodeURIComponent(item._id) + "?include=messages").then(function (doc) {
       status.textContent = (doc.message_count || (doc.messages || []).length || 0) + " messages";
       empty(stack);
@@ -2609,40 +3936,90 @@
     }).catch(function (err) {
       status.textContent = String(err.message || err);
     });
-    go.addEventListener("click", function () {
-      go.disabled = true;
-      api("/api/threads/" + encodeURIComponent(item._id) + "/suggest-reply", {
-        method: "POST",
-        body: "{}",
-      }).then(function (doc) {
-        draftTo.value = (doc.to_addrs || []).join(", ");
-        draftSub.value = doc.subject || "";
-        draftBody.value = doc.body || "";
-        toast(doc.result === "grok" ? "Suggested with Grok" : "Template suggestion");
-      }).catch(function (err) {
-        toast(String(err.message || err));
-      }).then(function () {
-        go.disabled = false;
-      });
-    });
-    use.addEventListener("click", function () {
-      if (!currentAccount || !window.CSMCompose) return;
-      closeDetail();
-      window.CSMCompose.open(currentAccount, {
-        thread_id: item._id,
-        to: draftTo.value,
-        subject: draftSub.value,
-        body: draftBody.value,
-      });
-    });
   }
 
-  function slackRow(item) {
-    return rowEl(item.user_name || "", item.text || "", item.ts || "");
+  function chatKindOf(item, hint) {
+    var id = String((item && item._id) || "");
+    var type = String((item && item.type) || "");
+    if (id.indexOf("tmm:") === 0 || type.indexOf("teams") === 0) return "teams";
+    if (id.indexOf("slm:") === 0 || type.indexOf("slack") === 0) return "slack";
+    if (hint === "teams" || hint === "slack") return hint;
+    return "";
   }
 
-  function teamsRow(item) {
-    return rowEl(item.user_name || "", item.text || "", "Teams · " + (item.ts || ""));
+  function chatWhen(item) {
+    var raw = (item && (item.ts || item.at)) || "";
+    var n = Number(raw);
+    if (!isNaN(n) && n > 1e9) return formatWhen(new Date(n < 1e12 ? n * 1000 : n).toISOString());
+    return formatWhen(raw) || String(raw || "");
+  }
+
+  function openChatMessage(itemId, hint) {
+    var kind = chatKindOf({ _id: itemId }, hint);
+    var slackPath = "/api/slack/messages/" + encodeURIComponent(itemId);
+    var teamsPath = "/api/teams/messages/" + encodeURIComponent(itemId);
+    function show(doc, source) {
+      openChatLightbox(doc, source);
+    }
+    function fail(err) {
+      toast(String(err.message || err));
+    }
+    if (kind === "teams") {
+      return api(teamsPath).then(function (doc) { show(doc, "teams"); }).catch(function () {
+        return api(slackPath).then(function (doc) { show(doc, "slack"); });
+      }).catch(fail);
+    }
+    return api(slackPath).then(function (doc) { show(doc, "slack"); }).catch(function () {
+      return api(teamsPath).then(function (doc) { show(doc, "teams"); });
+    }).catch(fail);
+  }
+
+  function chatRow(item) {
+    var kind = chatKindOf(item);
+    var row = rowEl(item.user_name || "", item.text || "", chatWhen(item));
+    row.classList.add("is-click", "is-chat");
+    row.setAttribute("data-chat-kind", kind);
+    row.insertBefore(kindIcon(kind), row.firstChild);
+    if (item._id) row.setAttribute("data-doc-id", item._id);
+    row.addEventListener("click", function () {
+      if (currentAccount && currentAccount.abbr && item._id) goAccountItem(currentAccount.abbr, "chat", item._id);
+    });
+    return row;
+  }
+
+  function fillChat(pane, aid) {
+    var s = slashState(accountQ);
+    var want = s.exact && (s.cmd === "slack" || s.cmd === "teams") ? s.cmd : "";
+    var qs = "?account_id=" + encodeURIComponent(aid) + "&limit=100";
+    var needle = (searchNeedle() || "").toLowerCase();
+    var slackReq = want === "teams" ? Promise.resolve({ items: [] }) : api("/api/slack/messages" + qs);
+    var teamsReq = want === "slack" ? Promise.resolve({ items: [] }) : api("/api/teams/messages" + qs);
+    return Promise.all([slackReq, teamsReq]).then(function (pair) {
+      var slack = (pair[0].items || []).map(function (item) {
+        return Object.assign({}, item, { type: item.type || "slack_message" });
+      });
+      var teams = (pair[1].items || []).map(function (item) {
+        return Object.assign({}, item, { type: item.type || "teams_message" });
+      });
+      var items = slack.concat(teams).sort(function (a, b) {
+        return String(b.ts || "").localeCompare(String(a.ts || ""));
+      });
+      if (needle) {
+        items = items.filter(function (item) {
+          return JSON.stringify(item).toLowerCase().indexOf(needle) >= 0;
+        });
+      }
+      if (!items.length) {
+        var p = document.createElement("p");
+        p.className = "muted";
+        p.textContent = want === "slack" ? "No Slack." : want === "teams" ? "No Teams." : "No Slack or Teams yet.";
+        pane.appendChild(p);
+        return;
+      }
+      items.forEach(function (item) {
+        pane.appendChild(chatRow(item));
+      });
+    });
   }
 
   function fillSalesforce(pane, aid) {
@@ -2693,7 +4070,13 @@
   }
 
   function calRow(item) {
-    return rowEl((item.start_at || "").slice(0, 16), item.title || "", item.location || "");
+    var row = rowEl((item.start_at || "").slice(0, 16), item.title || "", item.location || "");
+    row.classList.add("is-click");
+    if (item._id) row.setAttribute("data-doc-id", item._id);
+    row.addEventListener("click", function () {
+      if (currentAccount && currentAccount.abbr && item._id) goAccountItem(currentAccount.abbr, "calendar", item._id);
+    });
+    return row;
   }
 
   function projectKindLabel(kind) {
@@ -2722,12 +4105,19 @@
     bar.className = "pane-toolbar pane-toolbar-spread";
     var left = document.createElement("div");
     left.className = "pane-toolbar-left";
-    var search = document.createElement("input");
-    search.className = "search";
-    search.type = "search";
-    search.id = "project-q";
-    search.placeholder = "Search projects";
-    search.setAttribute("aria-label", "Search projects");
+    var projPick = mountSearchSelect({
+      trigger: "input",
+      placeholder: "Search projects",
+      searchPlaceholder: "Search projects",
+      ariaLabel: "Search projects",
+      allowCustom: true,
+      emptyLabel: "All projects",
+      items: [],
+      wrapClass: "project-q-wrap",
+      onChange: function () { paint(accountProjects); },
+      onQuery: function () { paint(accountProjects); },
+    });
+    projPick.el.id = "project-q";
     var kind = document.createElement("select");
     kind.className = "toolbar-filter";
     kind.setAttribute("aria-label", "Type");
@@ -2754,7 +4144,7 @@
       opt.textContent = pair[1];
       status.appendChild(opt);
     });
-    left.appendChild(search);
+    left.appendChild(projPick.el);
     left.appendChild(kind);
     left.appendChild(status);
     var add = document.createElement("button");
@@ -2777,7 +4167,8 @@
     }
     function paint(items) {
       empty(list);
-      var q = (search.value || "").trim().toLowerCase();
+      var picked = projPick.get();
+      var q = String(picked || "").trim().toLowerCase();
       var wantKind = kind.value;
       var wantStatus = status.value;
       var shown = (items || []).filter(function (item) {
@@ -2819,12 +4210,12 @@
         (pair[1].items || []).forEach(function (p) {
           if (p._id) peopleById[p._id] = p;
         });
+        projPick.setItems((accountProjects || []).map(function (p) {
+          return { value: p.name || p._id, label: p.name || p._id, search: (p.name || "") + " " + (p.summary || "") + " " + ((p.tags || []).join(" ")) };
+        }));
         paint(accountProjects);
       });
     }
-    search.addEventListener("input", function () {
-      paint(accountProjects);
-    });
     kind.addEventListener("change", function () {
       paint(accountProjects);
     });
@@ -2907,9 +4298,20 @@
     group.type = "email";
     group.placeholder = "team@company.com";
     group.value = (proj && proj.group_email) || "";
-    var tags = document.createElement("input");
-    tags.id = "project-tags";
-    tags.placeholder = "Add tags";
+    var tagWhitelist = [];
+    accountProjects.forEach(function (p) {
+      (p.tags || []).forEach(function (t) {
+        if (tagWhitelist.indexOf(t) < 0) tagWhitelist.push(t);
+      });
+    });
+    var tagsPick = mountTagifyMulti({
+      placeholder: "Add tags",
+      ariaLabel: "Tags",
+      allowCustom: true,
+      items: tagWhitelist.map(function (t) { return { value: t, label: t }; }),
+      value: (proj && proj.tags) || [],
+    });
+    tagsPick.el.id = "project-tags";
     var summary = document.createElement("textarea");
     summary.rows = 4;
     summary.value = (proj && proj.summary) || "";
@@ -2931,7 +4333,7 @@
     var labTags = document.createElement("label");
     labTags.className = "settings-span";
     labTags.appendChild(document.createTextNode("Tags"));
-    labTags.appendChild(tags);
+    labTags.appendChild(tagsPick.el);
     var labSum = document.createElement("label");
     labSum.className = "settings-span";
     labSum.appendChild(document.createTextNode("Summary"));
@@ -2970,16 +4372,8 @@
     save.type = "button";
     save.className = "btn btn-primary";
     save.textContent = proj ? "Save project" : "Add project";
-    var tagify = null;
     save.addEventListener("click", function () {
-      var tagVals = [];
-      if (tagify) {
-        tagify.value.forEach(function (t) {
-          if (t && t.value) tagVals.push(t.value);
-        });
-      } else {
-        tagVals = csvList(tags.value);
-      }
+      var tagVals = tagsPick.get() || [];
       var payload = {
         account_id: acct.account_id,
         name: name.value,
@@ -3009,6 +4403,8 @@
     sheet.appendChild(form);
     sheet.appendChild(actions);
     box.appendChild(sheet);
+    tagsPick.bind();
+    box._picks = [tagsPick];
     api("/api/people?account_id=" + encodeURIComponent(acct.account_id)).then(function (data) {
       (data.items || []).forEach(function (p) {
         if (!p._id) return;
@@ -3019,21 +4415,6 @@
         owner.appendChild(opt);
       });
     });
-    var whitelist = [];
-    accountProjects.forEach(function (p) {
-      (p.tags || []).forEach(function (t) {
-        if (whitelist.indexOf(t) < 0) whitelist.push(t);
-      });
-    });
-    if (window.Tagify) {
-      tagify = new window.Tagify(tags, {
-        whitelist: whitelist,
-        dropdown: { enabled: 0, maxItems: 20 },
-      });
-      if (proj && proj.tags && proj.tags.length) tagify.addTags(proj.tags);
-    } else if (proj && proj.tags) {
-      tags.value = proj.tags.join(", ");
-    }
   }
 
   function personRow(item, acct) {
@@ -3065,7 +4446,9 @@
     });
     if (extra.firstChild && row.children[1]) row.children[1].appendChild(extra);
     if (acct) {
-      row.addEventListener("click", function () {
+      row.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
         openPersonForm(acct, item);
       });
     }
@@ -3081,14 +4464,26 @@
 
   function fillPeople(pane, acct) {
     var bar = document.createElement("div");
-    bar.className = "pane-toolbar";
+    bar.className = "pane-toolbar pane-toolbar-spread";
+    var left = document.createElement("div");
+    left.className = "pane-toolbar-left";
+    var search = document.createElement("input");
+    search.type = "search";
+    search.className = "search";
+    search.id = "people-q";
+    search.placeholder = "Search people";
+    search.setAttribute("aria-label", "Search people");
+    left.appendChild(search);
     var add = document.createElement("button");
     add.type = "button";
     add.className = "btn btn-primary";
     add.textContent = "Add person";
-    add.addEventListener("click", function () {
+    add.addEventListener("click", function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
       openPersonForm(acct);
     });
+    bar.appendChild(left);
     bar.appendChild(add);
     pane.appendChild(bar);
     if (peopleAllProjects) {
@@ -3097,8 +4492,40 @@
       note.textContent = "Directors / VPs who own all projects.";
       pane.appendChild(note);
     }
-    return fillList(pane, peopleUrl(acct), function (item) {
-      return personRow(item, acct);
+    var list = document.createElement("div");
+    list.id = "people-list";
+    pane.appendChild(list);
+    return api(peopleUrl(acct)).then(function (data) {
+      var items = data.items || [];
+      function paint() {
+        empty(list);
+        var q = (search.value || "").toLowerCase().trim();
+        var shown = items.filter(function (item) {
+          if (!q) return true;
+          var blob = [
+            item.name,
+            item.email,
+            item.title,
+            item.role,
+            item.kind,
+            item.location,
+            (item.functions || []).join(" "),
+          ].join(" ").toLowerCase();
+          return blob.indexOf(q) >= 0;
+        });
+        if (!shown.length) {
+          var p = document.createElement("p");
+          p.className = "muted";
+          p.textContent = items.length ? "No people match." : "No people yet.";
+          list.appendChild(p);
+          return;
+        }
+        shown.forEach(function (item) {
+          list.appendChild(personRow(item, acct));
+        });
+      }
+      search.addEventListener("input", paint);
+      paint();
     });
   }
 
@@ -3162,6 +4589,10 @@
       });
       scroll.appendChild(ul);
       pane.appendChild(scroll);
+      requestAnimationFrame(function () {
+        var extra = scroll.scrollWidth - scroll.clientWidth;
+        if (extra > 0) scroll.scrollLeft = extra / 2;
+      });
     });
   }
 
@@ -3212,7 +4643,9 @@
     card.appendChild(text);
     if (acct) {
       card.classList.add("is-click");
-      card.addEventListener("click", function () {
+      card.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
         openPersonForm(acct, person);
       });
     }
@@ -3264,7 +4697,9 @@
           td.textContent = val;
           tr.appendChild(td);
         });
-        tr.addEventListener("click", function () {
+        tr.addEventListener("click", function (ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
           openPersonForm(acct, person);
         });
         tbody.appendChild(tr);
@@ -3294,7 +4729,7 @@
     box.className = "check-row";
     var have = {};
     (values || []).forEach(function (v) { have[v] = true; });
-    items.forEach(function (item) {
+    (items || []).forEach(function (item) {
       var id = typeof item === "string" ? item : (item._id || "");
       var label = typeof item === "string" ? item : (labelFn ? labelFn(item) : (item.name || id));
       var lab = document.createElement("label");
@@ -3311,27 +4746,18 @@
 
   function openPersonForm(acct, person) {
     person = person || null;
-    var box = $("detail-box");
-    if (!box) return;
-    box.hidden = false;
-    box.classList.remove("hidden");
-    empty(box);
-    var sheet = document.createElement("article");
-    sheet.className = "sheet";
-    var head = document.createElement("header");
-    var h = document.createElement("h2");
-    h.textContent = person ? "Edit person" : "Add person";
-    var close = document.createElement("button");
-    close.type = "button";
-    close.className = "btn btn-ghost sheet-close";
-    close.setAttribute("aria-label", "Close");
-    close.textContent = "×";
-    close.addEventListener("click", closeDetail);
-    head.appendChild(h);
-    head.appendChild(close);
-    sheet.appendChild(head);
+    var sheet = openSheet(person ? "Edit person" : "Add person");
+    if (!sheet) return;
+    sheet.classList.add("sheet-person");
     var form = document.createElement("form");
-    form.className = "form-grid";
+    form.className = "settings-form";
+    function lab(text, node, span) {
+      var el = document.createElement("label");
+      if (span) el.className = "settings-span";
+      el.appendChild(document.createTextNode(text));
+      el.appendChild(node);
+      return el;
+    }
     var name = document.createElement("input");
     name.required = true;
     name.value = (person && person.name) || "";
@@ -3342,38 +4768,66 @@
     location.value = (person && person.location) || "";
     var title = document.createElement("input");
     title.value = (person && person.title) || "";
-    var kind = document.createElement("select");
-    [["customer", "Customer"], ["account_team", "Account team"], ["ps_team", "PS team"]].forEach(function (pair) {
-      var opt = document.createElement("option");
-      opt.value = pair[0];
-      opt.textContent = pair[1];
-      if (person && person.kind === pair[0]) opt.selected = true;
-      kind.appendChild(opt);
+    var kindPick = mountSearchSelect({
+      items: [
+        { value: "customer", label: "Customer" },
+        { value: "account_team", label: "Account team" },
+        { value: "ps_team", label: "PS team" },
+      ],
+      value: (person && person.kind) || "customer",
+      btnClass: "search-select-btn-block",
     });
-    var reports = document.createElement("select");
-    var none = document.createElement("option");
-    none.value = "";
-    none.textContent = "No manager";
-    reports.appendChild(none);
-    form.appendChild(fieldLabel("Name", name));
-    form.appendChild(fieldLabel("Email", email));
-    form.appendChild(fieldLabel("Location", location));
-    form.appendChild(fieldLabel("Title", title));
-    form.appendChild(fieldLabel("Kind", kind));
-    form.appendChild(fieldLabel("Reports to", reports));
-    var projChecks = checkGroup(person && person.project_ids, accountProjects, function (p) {
-      return p.name || p._id;
+    var reportsPick = mountSearchSelect({
+      placeholder: "No manager",
+      emptyLabel: "No manager",
+      searchPlaceholder: "Search people",
+      items: [{ value: "", label: "No manager" }],
+      value: (person && person.reports_to) || "",
+      btnClass: "search-select-btn-block",
     });
-    form.appendChild(fieldLabel("Projects", projChecks));
+    var projPick = mountTagifyMulti({
+      placeholder: "Search projects",
+      ariaLabel: "Projects",
+      enforceWhitelist: true,
+      items: (accountProjects || []).map(function (p) {
+        return { value: p._id || "", label: p.name || p._id };
+      }),
+      value: (person && person.project_ids) || [],
+    });
+    projPick.el.id = "person-projects";
+    var fnPick = mountTagifyMulti({
+      placeholder: "Search functions",
+      ariaLabel: "Functions",
+      allowCustom: true,
+      items: PERSON_FUNCS.map(function (fn) { return { value: fn, label: fn }; }),
+      value: (person && person.functions) || [],
+    });
+    fnPick.el.id = "person-functions";
     var allProj = document.createElement("input");
     allProj.type = "checkbox";
     allProj.checked = !!(person && person.owns_all_projects);
     var allLab = document.createElement("label");
+    allLab.className = "settings-span check-inline";
     allLab.appendChild(allProj);
-    allLab.appendChild(document.createTextNode(" All projects (director / VP)"));
+    allLab.appendChild(document.createTextNode("All projects (director / VP)"));
+    function syncAllProj() {
+      if (allProj.checked) {
+        projPick.set([]);
+        projPick.setReadonly(true);
+      } else {
+        projPick.setReadonly(false);
+      }
+    }
+    allProj.addEventListener("change", syncAllProj);
+    form.appendChild(lab("Name", name));
+    form.appendChild(lab("Email", email));
+    form.appendChild(lab("Title", title));
+    form.appendChild(lab("Location", location));
+    form.appendChild(lab("Kind", kindPick.el));
+    form.appendChild(lab("Reports to", reportsPick.el));
+    form.appendChild(lab("Projects", projPick.el, true));
     form.appendChild(allLab);
-    var fnChecks = checkGroup(person && person.functions, PERSON_FUNCS);
-    form.appendChild(fieldLabel("Functions", fnChecks));
+    form.appendChild(lab("Functions", fnPick.el, true));
     var foot = document.createElement("div");
     foot.className = "sheet-foot";
     var save = document.createElement("button");
@@ -3383,17 +4837,24 @@
     foot.appendChild(save);
     form.appendChild(foot);
     sheet.appendChild(form);
-    box.appendChild(sheet);
+    projPick.bind();
+    fnPick.bind();
+    if (allProj.checked) projPick.setReadonly(true);
+    var box = $("detail-box");
+    if (box) box._picks = [kindPick, reportsPick, projPick, fnPick];
     api("/api/people?account_id=" + encodeURIComponent(acct.account_id)).then(function (data) {
       var selfId = (person && person._id) || "";
+      var items = [{ value: "", label: "No manager" }];
       (data.items || []).forEach(function (row) {
         if (!row._id || row._id === selfId) return;
-        var opt = document.createElement("option");
-        opt.value = row._id;
-        opt.textContent = row.name || row._id;
-        if (person && person.reports_to === row._id) opt.selected = true;
-        reports.appendChild(opt);
+        items.push({
+          value: row._id,
+          label: row.name || row._id,
+          search: [row.name, row.email, row.title].join(" "),
+        });
       });
+      reportsPick.setItems(items);
+      if (person && person.reports_to) reportsPick.set(person.reports_to);
     });
     form.addEventListener("submit", function (ev) {
       ev.preventDefault();
@@ -3403,10 +4864,10 @@
         email: email.value,
         location: location.value,
         title: title.value,
-        kind: kind.value,
-        reports_to: reports.value,
-        project_ids: checkedValues(projChecks),
-        functions: checkedValues(fnChecks),
+        kind: kindPick.get() || "customer",
+        reports_to: reportsPick.get() || "",
+        project_ids: allProj.checked ? [] : (projPick.get() || []),
+        functions: fnPick.get() || [],
         owns_all_projects: !!allProj.checked,
       };
       var req = person && person._id
@@ -3581,7 +5042,7 @@
     });
   }
 
-  function fieldLabel(name) {
+  function humanizeField(name) {
     return String(name || "").replace(/_/g, " ");
   }
 
@@ -3754,7 +5215,7 @@
     form.appendChild(modeLabel);
     (c.fields || []).forEach(function (f) {
       var label = document.createElement("label");
-      label.textContent = fieldLabel(f.name) + (f.present ? " (saved)" : "");
+      label.textContent = humanizeField(f.name) + (f.present ? " (saved)" : "");
       var input = document.createElement("input");
       input.setAttribute("data-field", f.name);
       input.type = f.secret ? "password" : "text";
@@ -4004,6 +5465,341 @@
     return String(text || "").split(/[\n,]/).map(function (s) { return s.trim(); }).filter(Boolean);
   }
 
+  function peopleAsTags(items) {
+    return (items || []).filter(function (p) { return p && p.email; }).map(function (p) {
+      return { value: p.email, name: p.name || p.email, email: p.email };
+    });
+  }
+
+  function filesToPayload(files) {
+    return Promise.all((files || []).map(function (f) {
+      return new Promise(function (resolve, reject) {
+        if (f.size > 5 * 1024 * 1024) {
+          reject(new Error("Attachment too large: " + f.name));
+          return;
+        }
+        var reader = new FileReader();
+        reader.onload = function () {
+          var raw = String(reader.result || "");
+          var b64 = raw.indexOf(",") >= 0 ? raw.split(",")[1] : raw;
+          resolve({
+            filename: f.name,
+            content_type: f.type || "application/octet-stream",
+            content_b64: b64,
+          });
+        };
+        reader.onerror = function () {
+          reject(new Error("Could not read " + f.name));
+        };
+        reader.readAsDataURL(f);
+      });
+    }));
+  }
+
+  function bindAddrTagify(input, whitelist, selected) {
+    var inst = null;
+    function destroy() {
+      if (!inst) return;
+      try { inst.destroy(); } catch (e) {}
+      inst = null;
+    }
+    function set(addrs) {
+      var tags = (addrs || []).map(function (addr) {
+        var want = String(addr || "").toLowerCase();
+        var hit = (whitelist || []).filter(function (p) {
+          return String(p.email || p.value || "").toLowerCase() === want;
+        })[0];
+        return hit
+          ? { value: hit.email || hit.value, name: hit.name || hit.email || hit.value, email: hit.email || hit.value }
+          : { value: addr, name: addr, email: addr };
+      });
+      if (inst) {
+        inst.removeAllTags();
+        if (tags.length) inst.addTags(tags);
+        return;
+      }
+      input.value = (addrs || []).join(", ");
+    }
+    function values() {
+      if (inst) {
+        return inst.value.map(function (t) { return t.value || t.email; }).filter(Boolean);
+      }
+      return csvList(input.value);
+    }
+    function bind(list, addrs) {
+      whitelist = list || [];
+      destroy();
+      if (!window.Tagify) {
+        set(addrs || []);
+        return;
+      }
+      inst = new window.Tagify(input, {
+        whitelist: whitelist,
+        tagTextProp: "name",
+        enforceWhitelist: false,
+        delimiters: ",|\n",
+        dropdown: { enabled: 0, maxItems: 20, searchKeys: ["value", "name", "email"], closeOnSelect: false },
+      });
+      set(addrs || []);
+    }
+    function setReadonly(on) {
+      if (inst && inst.setReadonly) inst.setReadonly(!!on);
+      input.readOnly = !!on;
+    }
+    bind(whitelist || [], selected || []);
+    return { values: values, set: set, bind: bind, destroy: destroy, setReadonly: setReadonly };
+  }
+
+  function mountMailComposer(parent, opts) {
+    opts = opts || {};
+    var wrap = document.createElement("div");
+    wrap.className = "mail-composer";
+    var toInput = document.createElement("input");
+    toInput.className = "tag-input";
+    toInput.placeholder = "Name or email";
+    var ccInput = document.createElement("input");
+    ccInput.className = "tag-input";
+    ccInput.placeholder = "Name or email";
+    var bccInput = document.createElement("input");
+    bccInput.className = "tag-input";
+    bccInput.placeholder = "Name or email";
+    var subject = document.createElement("input");
+    subject.className = "mail-subject";
+    subject.placeholder = "Subject";
+    subject.value = opts.subject || "";
+    var body = document.createElement("textarea");
+    body.className = "mail-body";
+    body.rows = 8;
+    body.placeholder = opts.bodyPlaceholder || "Write the message";
+    body.value = opts.body || "";
+    var whitelist = [];
+    var toTags = null;
+    var ccTags = null;
+    var bccTags = null;
+    var files = [];
+    var bccOn = !!(opts.bcc && opts.bcc.length);
+    function mailRow(key, node, extra) {
+      var row = document.createElement("div");
+      row.className = "mail-row";
+      var lab = document.createElement("span");
+      lab.className = "mail-key";
+      lab.textContent = key;
+      var hold = document.createElement("div");
+      hold.className = "mail-val";
+      hold.appendChild(node);
+      if (extra) hold.appendChild(extra);
+      row.appendChild(lab);
+      row.appendChild(hold);
+      return row;
+    }
+    var bccBtn = document.createElement("button");
+    bccBtn.type = "button";
+    bccBtn.className = "btn btn-ghost mail-bcc-toggle";
+    bccBtn.textContent = "Bcc";
+    var bccRow = mailRow("Bcc", bccInput);
+    bccRow.hidden = !bccOn;
+    bccBtn.addEventListener("click", function () {
+      bccOn = !bccOn;
+      bccRow.hidden = !bccOn;
+      bccBtn.classList.toggle("is-on", bccOn);
+    });
+    wrap.appendChild(mailRow("To", toInput));
+    wrap.appendChild(mailRow("Cc", ccInput, bccBtn));
+    wrap.appendChild(bccRow);
+    wrap.appendChild(mailRow("Subject", subject));
+    wrap.appendChild(mailRow("Body", body));
+    var attachRow = document.createElement("div");
+    attachRow.className = "mail-attach";
+    var attachBtn = document.createElement("button");
+    attachBtn.type = "button";
+    attachBtn.className = "btn";
+    attachBtn.textContent = "Attach";
+    var fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.multiple = true;
+    fileInput.hidden = true;
+    var chipBox = document.createElement("div");
+    chipBox.className = "mail-attach-list";
+    function paintFiles() {
+      empty(chipBox);
+      files.forEach(function (f, i) {
+        var chip = document.createElement("span");
+        chip.className = "mail-chip";
+        chip.textContent = f.name;
+        var rm = document.createElement("button");
+        rm.type = "button";
+        rm.className = "mail-chip-x";
+        rm.setAttribute("aria-label", "Remove " + f.name);
+        rm.textContent = "×";
+        rm.addEventListener("click", function () {
+          files.splice(i, 1);
+          paintFiles();
+        });
+        chip.appendChild(rm);
+        chipBox.appendChild(chip);
+      });
+    }
+    attachBtn.addEventListener("click", function () { fileInput.click(); });
+    fileInput.addEventListener("change", function () {
+      Array.prototype.forEach.call(fileInput.files || [], function (f) {
+        files.push(f);
+      });
+      fileInput.value = "";
+      paintFiles();
+    });
+    attachRow.appendChild(attachBtn);
+    attachRow.appendChild(fileInput);
+    attachRow.appendChild(chipBox);
+    wrap.appendChild(attachRow);
+    var foot = document.createElement("div");
+    foot.className = "sheet-foot mail-foot";
+    var suggest = document.createElement("button");
+    suggest.type = "button";
+    suggest.className = "btn btn-primary";
+    suggest.textContent = "AI Suggest";
+    suggest.title = "Draft with Grok from this book, or a template if no key";
+    var save = document.createElement("button");
+    save.type = "button";
+    save.className = "btn";
+    save.textContent = "Save draft";
+    var send = document.createElement("button");
+    send.type = "button";
+    send.className = "btn";
+    send.textContent = "Send";
+    send.title = "Saves, then sends after you confirm";
+    if (opts.lockTo) {
+      toInput.readOnly = true;
+      toInput.title = "Sends to you";
+    }
+    function snapshot() {
+      return {
+        to_addrs: toTags ? toTags.values() : csvList(toInput.value),
+        cc_addrs: ccTags ? ccTags.values() : csvList(ccInput.value),
+        bcc_addrs: bccTags ? bccTags.values() : csvList(bccInput.value),
+        subject: subject.value,
+        body: body.value,
+        attachment_names: files.map(function (f) { return f.name; }),
+      };
+    }
+    function busy(on) {
+      suggest.disabled = !!on;
+      save.disabled = !!on;
+      send.disabled = !!on;
+    }
+    suggest.addEventListener("click", function () {
+      if (!opts.onSuggest) return;
+      busy(true);
+      Promise.resolve(opts.onSuggest(snapshot())).then(function () {
+        busy(false);
+      }).catch(function (err) {
+        busy(false);
+        toast(String(err.message || err));
+      });
+    });
+    save.addEventListener("click", function () {
+      if (!opts.onSave) return;
+      busy(true);
+      Promise.resolve(opts.onSave(snapshot())).then(function () {
+        busy(false);
+      }).catch(function (err) {
+        busy(false);
+        toast(String(err.message || err));
+      });
+    });
+    send.addEventListener("click", function () {
+      if (!opts.onSend) return;
+      if (!window.confirm(opts.sendConfirm || "Send this email now?")) return;
+      busy(true);
+      filesToPayload(files).then(function (attachments) {
+        return opts.onSend(snapshot(), attachments);
+      }).then(function () {
+        busy(false);
+      }).catch(function (err) {
+        busy(false);
+        toast(String(err.message || err));
+      });
+    });
+    foot.appendChild(suggest);
+    (opts.extraActions || []).forEach(function (el) { foot.appendChild(el); });
+    var spacer = document.createElement("span");
+    spacer.className = "mail-foot-spacer";
+    foot.appendChild(spacer);
+    foot.appendChild(save);
+    foot.appendChild(send);
+    wrap.appendChild(foot);
+    parent.appendChild(wrap);
+    function applyPeople(list, keep) {
+      whitelist = list || [];
+      var cur = keep || snapshot();
+      if (!toTags) {
+        toTags = bindAddrTagify(toInput, whitelist, cur.to_addrs);
+        ccTags = bindAddrTagify(ccInput, whitelist, cur.cc_addrs);
+        bccTags = bindAddrTagify(bccInput, whitelist, cur.bcc_addrs);
+      } else {
+        toTags.bind(whitelist, cur.to_addrs);
+        ccTags.bind(whitelist, cur.cc_addrs);
+        bccTags.bind(whitelist, cur.bcc_addrs);
+      }
+      if (opts.lockTo) toTags.setReadonly(true);
+    }
+    function loadPeople(accountId, keep) {
+      if (!accountId) {
+        applyPeople([], keep);
+        return Promise.resolve();
+      }
+      return api("/api/people?account_id=" + encodeURIComponent(accountId)).then(function (data) {
+        applyPeople(peopleAsTags(data.items || []), keep);
+      });
+    }
+    function bootTagify() {
+      applyPeople(whitelist, {
+        to_addrs: opts.to || [],
+        cc_addrs: opts.cc || [],
+        bcc_addrs: opts.bcc || [],
+      });
+      if (opts.accountId) loadPeople(opts.accountId);
+    }
+    requestAnimationFrame(function () {
+      requestAnimationFrame(bootTagify);
+    });
+    return {
+      el: wrap,
+      snapshot: snapshot,
+      set: function (doc) {
+        doc = doc || {};
+        if (!toTags) {
+          opts.to = doc.to_addrs || opts.to;
+          opts.cc = doc.cc_addrs || opts.cc;
+          opts.bcc = doc.bcc_addrs || opts.bcc;
+        }
+        if (doc.to_addrs && toTags) toTags.set(doc.to_addrs);
+        if (doc.cc_addrs && ccTags) ccTags.set(doc.cc_addrs);
+        if (doc.bcc_addrs && bccTags) {
+          bccTags.set(doc.bcc_addrs);
+          if (doc.bcc_addrs.length) {
+            bccOn = true;
+            bccRow.hidden = false;
+            bccBtn.classList.add("is-on");
+          }
+        }
+        if (doc.subject != null) subject.value = doc.subject;
+        if (doc.body != null) body.value = doc.body;
+      },
+      setAccount: function (accountId) {
+        return loadPeople(accountId, snapshot());
+      },
+      setSubject: function (text) {
+        subject.value = text || "";
+      },
+      subjectEl: subject,
+      destroy: function () {
+        if (toTags) toTags.destroy();
+        if (ccTags) ccTags.destroy();
+        if (bccTags) bccTags.destroy();
+      },
+    };
+  }
+
   function connectorList(conn, name, key) {
     var rows = ((conn || {})[name] || {})[key];
     return rows && rows.length ? rows.slice() : [];
@@ -4013,31 +5809,137 @@
     return connectorList(conn, name, key).join("\n");
   }
 
-  function makeTagInput(placeholder, values) {
+  function mountTagifyMulti(opts) {
+    opts = opts || {};
+    var items = (opts.items || []).slice();
+    var selected = (opts.value || []).slice();
+    var readonly = false;
+    var inst = null;
+    var allowCustom = !!opts.allowCustom;
     var input = document.createElement("input");
     input.className = "tag-input";
-    input.placeholder = placeholder || "";
-    var inst = null;
+    input.placeholder = opts.placeholder || "";
+    if (opts.ariaLabel) input.setAttribute("aria-label", opts.ariaLabel);
+    var wrap = document.createElement("div");
+    wrap.className = "tag-multi" + (opts.wrapClass ? " " + opts.wrapClass : "");
+    wrap.appendChild(input);
+
+    function asItem(it) {
+      if (it == null) return null;
+      if (typeof it === "string") return { value: it, name: it };
+      var value = String(it.value == null ? "" : it.value);
+      if (!value) return null;
+      return { value: value, name: String(it.label || it.name || value) };
+    }
+    function whitelistFrom(list) {
+      return (list || []).map(asItem).filter(Boolean);
+    }
+    function whitelistForBind() {
+      var wl = whitelistFrom(items);
+      var seen = {};
+      wl.forEach(function (it) { seen[String(it.value)] = true; });
+      (selected || []).forEach(function (v) {
+        var want = String(v || "");
+        if (!want || seen[want]) return;
+        wl.push({ value: want, name: want });
+        seen[want] = true;
+      });
+      return wl;
+    }
+    function tagsFromValues(vals) {
+      var byVal = {};
+      whitelistForBind().forEach(function (it) { byVal[String(it.value)] = it; });
+      return (vals || []).map(function (v) {
+        var want = String(v || "");
+        return byVal[want] || { value: want, name: want };
+      }).filter(function (it) { return it.value; });
+    }
+    function values() {
+      if (inst) {
+        return inst.value.map(function (t) { return t && t.value; }).filter(Boolean);
+      }
+      return csvList(input.value);
+    }
+    function destroy() {
+      if (!inst) return;
+      try { inst.destroy(); } catch (e) {}
+      inst = null;
+    }
+    function bind() {
+      selected = values().length ? values() : selected;
+      destroy();
+      if (!window.Tagify) {
+        input.value = (selected || []).join(", ");
+        input.readOnly = readonly;
+        return;
+      }
+      inst = new window.Tagify(input, {
+        whitelist: whitelistForBind(),
+        tagTextProp: "name",
+        enforceWhitelist: allowCustom ? false : opts.enforceWhitelist !== false,
+        skipInvalid: !allowCustom,
+        duplicates: false,
+        editTags: allowCustom ? 1 : false,
+        delimiters: allowCustom ? ",|\n" : ",",
+        dropdown: {
+          enabled: 0,
+          maxItems: opts.maxItems || 20,
+          searchKeys: ["value", "name"],
+          mapValueTo: "name",
+          closeOnSelect: false,
+          highlightFirst: true,
+          appendTarget: document.body,
+        },
+      });
+      if (selected && selected.length) inst.addTags(tagsFromValues(selected));
+      if (inst.setReadonly) inst.setReadonly(readonly);
+      input.readOnly = readonly;
+    }
+    function set(vals) {
+      selected = (vals || []).slice();
+      if (inst) {
+        inst.removeAllTags();
+        if (selected.length) inst.addTags(tagsFromValues(selected));
+        return;
+      }
+      input.value = selected.join(", ");
+    }
+    function setItems(list) {
+      items = (list || []).slice();
+      selected = inst ? values() : selected;
+      if (!inst) return;
+      var next = whitelistForBind();
+      inst.settings.whitelist.length = 0;
+      next.forEach(function (it) { inst.settings.whitelist.push(it); });
+    }
+    function setReadonly(on) {
+      readonly = !!on;
+      wrap.classList.toggle("is-readonly", readonly);
+      if (inst && inst.setReadonly) inst.setReadonly(readonly);
+      input.readOnly = readonly;
+    }
     return {
-      el: input,
-      bind: function () {
-        if (inst) return;
-        if (window.Tagify) {
-          inst = new window.Tagify(input, {
-            delimiters: ",|\n",
-            dropdown: { enabled: 0, maxItems: 20 },
-          });
-          if (values && values.length) inst.addTags(values);
-        } else if (values && values.length) {
-          input.value = values.join(", ");
-        }
-      },
-      values: function () {
-        if (inst) {
-          return inst.value.map(function (t) { return t && t.value; }).filter(Boolean);
-        }
-        return csvList(input.value);
-      },
+      el: wrap,
+      bind: bind,
+      get: values,
+      set: set,
+      setItems: setItems,
+      setReadonly: setReadonly,
+      destroy: destroy,
+    };
+  }
+
+  function makeTagInput(placeholder, values) {
+    var pick = mountTagifyMulti({
+      placeholder: placeholder,
+      allowCustom: true,
+      items: values || [],
+      value: values || [],
+    });
+    return {
+      el: pick.el,
+      bind: pick.bind,
+      values: pick.get,
     };
   }
 
@@ -4582,6 +6484,34 @@
         });
       });
     }
+    if ($("pref-week-start")) {
+      $("pref-week-start").addEventListener("change", function () {
+        savePreferences({ week_start: +$("pref-week-start").value });
+      });
+    }
+    if ($("pref-days")) {
+      $("pref-days").addEventListener("change", function (ev) {
+        var hidden = readHiddenDays();
+        if (hidden === null) {
+          var cb = ev.target;
+          if (cb && cb.type === "checkbox") cb.checked = true;
+          toast("Keep at least one day visible");
+          return;
+        }
+        savePreferences({ hidden_weekdays: hidden });
+      });
+    }
+    if ($("pref-theme")) {
+      $("pref-theme").addEventListener("change", function (ev) {
+        var v = ev.target && ev.target.value;
+        if (v) savePreferences({ theme: v }, { calendar: false });
+      });
+    }
+    if ($("btn-theme")) {
+      $("btn-theme").addEventListener("click", function () {
+        savePreferences({ theme: resolvedTheme() === "night" ? "day" : "night" }, { calendar: false });
+      });
+    }
     if ($("btn-add-company")) {
       $("btn-add-company").addEventListener("click", function () {
         openCompanyForm(null);
@@ -4709,6 +6639,9 @@
     api: api,
     toast: toast,
     accountChip: accountChip,
+    mountMailComposer: mountMailComposer,
+    mountSearchSelect: mountSearchSelect,
+    mountTagifyMulti: mountTagifyMulti,
     refreshStatus: refreshStatus,
     formatWhen: formatWhen,
     kindEmoji: kindEmoji,
@@ -4724,6 +6657,9 @@
     },
     getWorldClock: function () {
       return (status && status.world_clock) || {};
+    },
+    getPreferences: function () {
+      return userPrefs();
     },
     setWorldClock: function (clock) {
       if (!status) status = {};

@@ -6,5 +6,23 @@
   "additionalProperties": true,
   "required": [
     "type"
-  ]
+  ],
+  "properties": {
+    "type": { "const": "settings" },
+    "preferences": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "week_start": { "type": "integer", "minimum": 0, "maximum": 6 },
+        "hidden_weekdays": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0, "maximum": 6 }
+        },
+        "theme": { "type": "string", "enum": ["auto", "day", "night"] },
+        "timeline_layout": { "type": "string", "enum": ["vertical", "horizontal"] },
+        "timeline_past_days": { "type": "integer", "enum": [7, 30] },
+        "timeline_next_days": { "type": "integer", "enum": [7, 30] }
+      }
+    }
+  }
 }

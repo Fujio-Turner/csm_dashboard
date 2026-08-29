@@ -77,7 +77,7 @@ def build_compose_context(
             }
         )
 
-    emails, _ = repo.page_emails(account_id, thread_id=thread_id, limit=200)
+    emails, _ = repo.page_emails(account_id, thread_id=thread_id, limit=40, slim=True)
     emails.sort(key=lambda r: str(r.get("sent_at") or ""))
     tail_n = settings.thread_tail
     older = emails[:-tail_n] if len(emails) > tail_n else []
@@ -99,19 +99,19 @@ def build_compose_context(
             if row:
                 slack_rows.append(row)
     else:
-        slack_rows, _ = repo.page_slack(account_id, limit=settings.slack_tail)
+        slack_rows, _ = repo.page_slack(account_id, limit=settings.slack_tail, slim=True)
     slack_slice = [
         {"ts": r.get("ts"), "user_name": r.get("user_name"), "text": str(r.get("text") or "")[:500]}
         for r in slack_rows[-settings.slack_tail :]
     ]
     teams_tail = int(getattr(settings, "teams_tail", None) or settings.slack_tail)
-    teams_rows, _ = repo.page_teams(account_id, limit=teams_tail)
+    teams_rows, _ = repo.page_teams(account_id, limit=teams_tail, slim=True)
     teams_slice = [
         {"ts": r.get("ts"), "user_name": r.get("user_name"), "text": str(r.get("text") or "")[:500]}
         for r in teams_rows[-teams_tail :]
     ]
 
-    cal = repo.page_calendar(account_id)
+    cal = repo.page_calendar(account_id, limit=20, slim=True)
     cal_slice = [
         {
             "title": e.get("title"),
