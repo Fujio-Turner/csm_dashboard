@@ -41,6 +41,11 @@ def test_seed_twice_same_counts(repo):
     assert any("standup" in t.lower() or "QBR" in t or "renewal" in t.lower() for t in titles)
     today = repo.home_agenda("")
     assert len(today["meetings"]) >= 18
+    week = repo.home_agenda("2026-08-28", start="2026-08-24", end="2026-08-30")
+    assert week["start"] == "2026-08-24"
+    assert week["end"] == "2026-08-30"
+    assert len(week["meetings"]) >= len(day["meetings"])
+    assert (week["meetings"][0].get("title") or "").strip()
     assert repo.account_has_logo("acct:acme", acme)
     assert repo.account_has_logo("acct:northwind", nwin)
     assert repo.account_has_logo("acct:globex", glx)

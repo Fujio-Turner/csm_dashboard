@@ -227,6 +227,7 @@ class CBLStore:
         account_id: str,
         *,
         since: str | None = None,
+        until: str | None = None,
         kind: str | None = None,
         limit: int = 50,
         offset: int = 0,
@@ -238,6 +239,9 @@ class CBLStore:
         if since:
             where.append("a.at >= $since")
             params["since"] = since
+        if until:
+            where.append("a.at <= $until")
+            params["until"] = until
         if kind:
             where.append("a.kind = $kind")
             params["kind"] = kind

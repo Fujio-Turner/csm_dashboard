@@ -17,13 +17,17 @@ Every durable document and `config.json` has a file under [`schema/`](../schema/
 | [`thread.schema.json`](../schema/thread.schema.json) | `threads` |
 | [`slack_channel.schema.json`](../schema/slack_channel.schema.json) | `slack_channels` |
 | [`slack_message.schema.json`](../schema/slack_message.schema.json) | `slack_messages` |
+| [`teams_channel.schema.json`](../schema/teams_channel.schema.json) | `teams_channels` |
+| [`teams_message.schema.json`](../schema/teams_message.schema.json) | `teams_messages` |
+| [`salesforce_case.schema.json`](../schema/salesforce_case.schema.json) | `salesforce_cases` |
+| [`salesforce_opportunity.schema.json`](../schema/salesforce_opportunity.schema.json) | `salesforce_opportunities` |
 | [`calendar_event.schema.json`](../schema/calendar_event.schema.json) | `calendar_events` |
 | [`action_item.schema.json`](../schema/action_item.schema.json) | `action_items` |
 | [`draft.schema.json`](../schema/draft.schema.json) | `drafts` |
 | [`report.schema.json`](../schema/report.schema.json) | `reports` |
 | [`chat_thread.schema.json`](../schema/chat_thread.schema.json) | `chats` |
 | [`sync_job.schema.json`](../schema/sync_job.schema.json) | `sync_jobs` |
-| [`settings.schema.json`](../schema/settings.schema.json) | CBL settings (no secrets) |
+| [`settings.schema.json`](../schema/settings.schema.json) | CBL settings (no secrets). `preferences`: `week_start`, `hidden_weekdays`, `theme`, `timeline_layout`, `timeline_past_days` / `timeline_next_days` (7 or 30) |
 | [`credential.schema.json`](../schema/credential.schema.json) | CBL `credentials` (AI keys + connector tokens) |
 | [`activity.schema.json`](../schema/activity.schema.json) | `activities` |
 | [`note.schema.json`](../schema/note.schema.json) | `notes` |

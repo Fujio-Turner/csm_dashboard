@@ -98,9 +98,31 @@
     var send = document.createElement("button");
     send.className = "btn";
     send.type = "button";
-    send.disabled = true;
-    send.title = "Send ships in v0.2";
+    send.title = "Saves this draft, then sends after you confirm";
     send.textContent = "Send";
+    send.addEventListener("click", function () {
+      if (!window.confirm("Send this email now?")) return;
+      send.disabled = true;
+      window.CSM.api("/api/drafts", {
+        method: "POST",
+        body: JSON.stringify({
+          account_id: acct.account_id,
+          subject: subject.value,
+          body: body.value,
+          to_addrs: to.value.split(",").map(function (s) { return s.trim(); }).filter(Boolean),
+          created_by: "you",
+        }),
+      }).then(function (doc) {
+        return window.CSM.api("/api/drafts/" + encodeURIComponent(doc._id) + "/send", { method: "POST", body: "{}" });
+      }).then(function () {
+        window.CSM.toast("Sent");
+        closeCompose();
+      }).catch(function (err) {
+        window.CSM.toast(String(err.message || err));
+      }).then(function () {
+        send.disabled = false;
+      });
+    });
     foot.appendChild(draftBtn);
     foot.appendChild(saveBtn);
     foot.appendChild(send);

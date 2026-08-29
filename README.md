@@ -14,8 +14,8 @@ CSMs live in five tabs. They lose threads, miss renewals, write emails without t
 | --- | --- |
 | Which book is this? | Color chip + 2–6 char abbreviation on every row |
 | What is on fire? | Home board: health, open P1s, overdue actions, unread threads, meetings today |
-| What is the story? | Account workspace: timeline, tickets, mail, Slack, calendar, projects, people |
-| How do I reply? | Compose builds a draft from tickets + thread tail + Slack + calendar. Grok if you have a key; a template if you do not. **Send is off in v0.1.** |
+| What is the story? | Account workspace: timeline, tickets, mail, slack / teams, calendar, projects, people |
+| How do I reply? | Compose builds a draft from tickets + thread tail + Slack + calendar. Grok if you have a key; a template if you do not. **Send after confirm** when SMTP is live. |
 | What is next? | First-class action items (many per account) |
 | Friday report | Generate a weekly from the same context |
 
@@ -39,7 +39,9 @@ make venv
 make run
 ```
 
-Then open [http://127.0.0.1:8788](http://127.0.0.1:8788). **Settings → Load seed data** loads three demo books (ACME navy, NWIN forest, GLX burgundy).
+Then open [http://127.0.0.1:8788](http://127.0.0.1:8788). **Settings → Load seed data** loads three demo books (ACME navy, NWIN forest, GLX burgundy) with org charts, logos, and a packed meeting day.
+
+Home is **Agenda** (Day / Week / Month calendar + mail / chat / tasks) or **Companies**. Open a book for timeline (Vertical / Horizontal around **Now**), tickets, mail, slack / teams, Salesforce, calendar, projects, and people. Settings → User Preferences hides weekdays, sets when the week begins, and picks Day / Night / Auto.
 
 The desk binds **127.0.0.1** by default (customer mail and Slack live in the local file). To listen on the LAN: `CSM_DASHBOARD_BIND=0.0.0.0` — there is **no auth**. Community Couchbase Lite does **not** encrypt the `.cblite2` file; FileVault (or equivalent) is the disk story.
 
@@ -67,7 +69,7 @@ See [`certs/README.md`](certs/README.md).
 | Doc | What it is |
 | --- | --- |
 | [docs/DESIGN.md](docs/DESIGN.md) | How the desk is built |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | What’s next (connectors, drafts, chat ops, transcripts, App Services, EE vectors) |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | Living train map (shipped 0.1.85, then 0.2–0.8) |
 | [guides/OPENAPI.md](guides/OPENAPI.md) | Adding HTTP APIs |
 | [guides/HTML_CSS.md](guides/HTML_CSS.md) | Desk UI rules |
 | [guides/SCHEMA.md](guides/SCHEMA.md) | JSON Schema conventions |

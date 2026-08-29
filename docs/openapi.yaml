@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: CSM Dashboard API
-  version: 0.1.0
+  version: 0.1.85
   description: Local Customer Success Manager desk. Hand-maintained source of truth.
 servers:
   - url: http://127.0.0.1:8788
@@ -115,9 +115,15 @@ paths:
         - in: query
           name: date
           schema: { type: string }
+        - in: query
+          name: start
+          schema: { type: string }
+        - in: query
+          name: end
+          schema: { type: string }
       responses:
         "200":
-          description: meetings for the day plus new mail, chat, and tasks
+          description: meetings for the day or range plus new mail, chat, and tasks
   /api/accounts:
     get:
       tags: [accounts]
@@ -257,6 +263,9 @@ paths:
           schema: { type: string }
         - in: query
           name: since
+          schema: { type: string }
+        - in: query
+          name: until
           schema: { type: string }
         - in: query
           name: kind
@@ -590,6 +599,20 @@ paths:
       responses:
         "200":
           description: updated task
+  /api/tasks/{email_id}/send:
+    post:
+      tags: [mail]
+      operationId: sendTask
+      parameters:
+        - in: path
+          name: email_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: delivered the self-email task via SMTP
+        "409":
+          description: send_not_configured
   /api/emails/{email_id}/operator:
     patch:
       tags: [mail]
@@ -911,8 +934,10 @@ paths:
           required: true
           schema: { type: string }
       responses:
+        "200":
+          description: sent via SMTP after operator confirm
         "409":
-          description: send_disabled_v0_1
+          description: send_not_configured
   /api/reports:
     get:
       tags: [reports]

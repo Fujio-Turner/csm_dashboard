@@ -41,6 +41,10 @@ def get_connector(name: str, repo=None) -> Connector:
         from csm_dashboard.connectors.google_cal import connector as factory
 
         return factory(repo)
+    if name == "smtp_imap":
+        from csm_dashboard.connectors.smtp_imap import connector as factory
+
+        return factory(repo)
     return StubConnector(name)
 
 

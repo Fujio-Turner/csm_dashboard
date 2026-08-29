@@ -17,6 +17,10 @@ The sidebar badge comes from `/api/status`. **Never** hard-code the semver in JS
 
 Vanilla IIFE. **Never nest raw backticks** inside template literals. Prefer `createElement` + `textContent`.
 
+Function declarations in that IIFE share one scope. **Never declare two `function foo`.** The later wins; earlier call sites throw. The empty Edit person sheet was `fieldLabel` colliding with a settings formatter (now `humanizeField`).
+
+Account tabs live in `ACCOUNT_TABS`. Slack and Teams are one `chat` tab labeled **slack / teams**. `#account/{abbr}/slack` and `/teams` alias to it. Deep links: `#account/{abbr}/{tab}/id={id}`.
+
 ```bash
 make check-js
 # node --check src/csm_dashboard/web/static/app.js

@@ -35,7 +35,7 @@ Do this in order. A handler without a spec update is not done.
 | Prefix | JSON API is `/api/...`. Health is `/healthz`. Spec is `/openapi.yaml`. |
 | `operationId` | camelCase, unique (`listAccounts`, `composeDraft`). |
 | Path params | Account ids look like `acct:acme`. Ticket ids look like `tkt:jira:ACME-12`. Encode in the client. |
-| Errors | FastAPI `HTTPException` → `{ "detail": "..." }`. Use 400 validation, 404 missing, 409 conflict (`send_disabled_v0_1`, `slug_immutable`, abbr clash), 502 upstream (xAI). |
+| Errors | FastAPI `HTTPException` → `{ "detail": "..." }`. Use 400 validation, 404 missing, 409 conflict (`send_not_configured`, `slug_immutable`, abbr clash), 502 upstream (xAI / SMTP). |
 | Lists | `{ "items": [...], "total"?: n }` unless the resource already has another shape. |
 | Streaming | Chat is `text/event-stream`. |
 | Secrets | Never in spec examples. Keys are `PUT /api/settings/keys` only. |

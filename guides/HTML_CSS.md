@@ -42,7 +42,11 @@ Use the `:root` variables in `app.css`. Do not introduce a second palette.
 | `--line` | Borders |
 | `--accent` / `--navy` | Primary actions / headings |
 | `--good` / `--mid` / `--low` | Health colors |
+| `--now` | Agenda / timeline Now line and Now button |
+| `--cal-bg` / `--cal-line` | Agenda calendar track |
 | `--sidebar` / `--sidebar-mini` | Nav width |
+
+Appearance: `html[data-theme="day"|"night"]` from User Preferences (`auto` follows `prefers-color-scheme`). Sidebar sun/moon is `#btn-theme`.
 
 Font: **Source Sans 3** (Google Fonts). CDN allow-list: that font, plus **Tagify** for project tags only. No Leaflet or ECharts.
 
@@ -57,8 +61,14 @@ Font: **Source Sans 3** (Google Fonts). CDN allow-list: that font, plus **Tagify
 | Account chip | `.acct-chip` + `.acct-swatch` + `.acct-abbr` |
 | Health word | `.health-pill.healthy\|watch\|at_risk\|critical` |
 | Card | `.card` |
-| Account timeline | `ul.timeline.timeline-vertical.timeline-snap-icon` + `timeline-start` / `timeline-middle` / `timeline-end` |
+| Agenda calendar | `.agenda-cal` Day / Week / Month. `.cal-now` now-line. 24h track, default scroll ~7 AM |
+| Meeting card | company logo left (`.acct-logo`), duration minutes right, subject on the card |
+| Inbox row | `.agenda-item-lead` type icon (`.kind-icon.is-lg`) + company logo |
+| Account timeline | `.timeline-shell` with `.timeline-range` (Past 7/30 · Next 7/30). Horizontal range labels: `writing-mode: vertical-rl`. Vertical: oldest at the bottom. `ul.timeline` cards. Now line `.tl-now`. **Now** button `.timeline-now-btn`. Layout: `.timeline-orient` |
 | Timeline thumb | `span.tl-emoji` (Unicode emoji, operator-requested) |
+| slack / teams tab | `data-tab="chat"`. Rows `.row.is-chat` with `.kind-icon.is-slack` / `.is-teams`. Hash aliases: `slack`, `teams` |
+| People sheet | `#detail-box` `.sheet-person` + `form.form-grid`. Helper is `fieldLabel(text, node)` — do not reuse that name |
+| Org chart | `.org-chart` `width: max-content`; pane `overflow-x: auto`. Center with `scrollLeft` |
 | Activity lightbox | `#detail-box` + `.sheet` — close `×` top-right. Notes live at the bottom. |
 | Timeline note badge | `img.tl-sticky` → `/static/sticky-note.png` |
 
@@ -71,8 +81,9 @@ Never `innerHTML` Grok, report Markdown, Slack, or email HTML. Use `textContent`
 | View | Hash |
 | --- | --- |
 | Home | `#home` — board in the 70% pane, chat 30% |
-| Account | `#account/{abbr}` or `#account/{abbr}/{tab}` stays on Home. The left pane swaps to the account desk (`#view-account.account-desk`). Chat stays visible and is scoped to that book. |
-| Account search | `#account-q` in `.account-tools` (far left). Type `/` for slash types (`/note`, `/project`, `/people`, `/email`, `/ticket`, …) in `#account-suggest`. Project filter `#account-project`. Compose stays far right in the header. |
+| Account | `#account/{abbr}` or `#account/{abbr}/{tab}` stays on Home. Tabs: `timeline`, `tickets`, `email`, `chat` (slack / teams), `salesforce`, `calendar`, `projects`, `people`, `orgchart`, `accountteam`. The left pane swaps to the account desk (`#view-account.account-desk`). Chat stays visible and is scoped to that book. |
+| Account item | `#account/{abbr}/{tab}/id={id}` opens the lightbox for that meeting, mail, Slack/Teams message, or task. `slack` and `teams` in the path alias to `chat`. |
+| Account search | `#account-q` in `.account-tools` (far left). Type `/` for slash types (`/note`, `/project`, `/people`, `/email`, `/ticket`, `/chat`, `/slack`, `/teams`, …) in `#account-suggest`. Project filter `#account-project`. Compose stays far right in the header. |
 | Actions | hidden in v0.1.9 — `#actions` redirects to Home; APIs stay |
 | Reports | hidden in v0.1.9 — `#reports` and the account Reports tab redirect; APIs stay |
 | Help | `#help` / `#help/{id}` |

@@ -300,6 +300,7 @@ def test_slack_probe_and_skip_join(client, monkeypatch):
 
 def test_get_connector_unknown():
     from csm_dashboard.connectors.registry import get_connector
+    from csm_dashboard.connectors.smtp_imap import SmtpImapConnector
     from csm_dashboard.connectors.stub import StubConnector
 
     try:
@@ -307,7 +308,10 @@ def test_get_connector_unknown():
         assert False, "expected KeyError"
     except KeyError:
         pass
-    stub = get_connector("smtp_imap")
+    smtp = get_connector("smtp_imap")
+    assert isinstance(smtp, SmtpImapConnector)
+    assert smtp.pull(None, None) == []
+    stub = get_connector("microsoft365")
     assert isinstance(stub, StubConnector)
     assert stub.pull(None, None) == []
 

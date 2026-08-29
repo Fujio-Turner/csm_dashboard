@@ -67,6 +67,78 @@ def _norm_timezone_list(values: Any) -> list[str]:
     return out
 
 
+_THEMES = ("auto", "day", "night")
+_THEME_ALIAS = {"light": "day", "dark": "night"}
+
+
+def _norm_week_start(value: Any) -> int:
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        return 0
+    if n < 0 or n > 6:
+        return 0
+    return n
+
+
+def _norm_hidden_weekdays(values: Any) -> list[int]:
+    raw = values if isinstance(values, list) else []
+    out: list[int] = []
+    seen: set[int] = set()
+    for item in raw:
+        try:
+            n = int(item)
+        except (TypeError, ValueError):
+            continue
+        if n < 0 or n > 6 or n in seen:
+            continue
+        seen.add(n)
+        out.append(n)
+    if len(out) >= 7:
+        return []
+    out.sort()
+    return out
+
+
+def _norm_theme(value: Any) -> str:
+    raw = str(value or "").strip().lower()
+    raw = _THEME_ALIAS.get(raw, raw)
+    return raw if raw in _THEMES else "auto"
+
+
+def _norm_timeline_layout(value: Any) -> str:
+    raw = str(value or "").strip().lower()
+    if raw in ("h", "horizon", "horizontal"):
+        return "horizontal"
+    return "vertical"
+
+
+def _norm_timeline_days(value: Any) -> int:
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        return 7
+    return 30 if n == 30 else 7
+
+
+def _norm_preferences(incoming: dict | None, current: dict | None = None) -> dict:
+    cur = current if isinstance(current, dict) else {}
+    src = incoming if isinstance(incoming, dict) else {}
+    merged = {**cur, **src}
+    if "hidden_weekdays" in src:
+        hidden = src.get("hidden_weekdays")
+    else:
+        hidden = cur.get("hidden_weekdays", [])
+    return {
+        "week_start": _norm_week_start(merged.get("week_start", 0)),
+        "hidden_weekdays": _norm_hidden_weekdays(hidden),
+        "theme": _norm_theme(merged.get("theme", "auto")),
+        "timeline_layout": _norm_timeline_layout(merged.get("timeline_layout", "vertical")),
+        "timeline_past_days": _norm_timeline_days(merged.get("timeline_past_days", 7)),
+        "timeline_next_days": _norm_timeline_days(merged.get("timeline_next_days", 7)),
+    }
+
+
 def ts_to_iso(ts: str) -> str:
     raw = str(ts or "").strip()
     if not raw:
@@ -349,6 +421,11 @@ class CsmRepo:
             incoming["ai"] = {**(current.get("ai") or {}), **incoming["ai"]}
         if isinstance(incoming.get("sso"), dict):
             incoming["sso"] = {**(current.get("sso") or {}), **incoming["sso"]}
+        if isinstance(incoming.get("preferences"), dict):
+            incoming["preferences"] = _norm_preferences(
+                incoming["preferences"],
+                current.get("preferences") if isinstance(current.get("preferences"), dict) else {},
+            )
         merged = {**current, **incoming, "type": "settings"}
         self.store.save("settings", "settings", merged)
         saved = self.store.get("settings", "settings") or merged
@@ -358,6 +435,14 @@ class CsmRepo:
                 "csm.world_clock.saved count=%s hour24=%s",
                 len(clock.get("timezones") or []),
                 bool(clock.get("hour24")),
+            )
+        prefs = saved.get("preferences") or {}
+        if prefs:
+            log.info(
+                "csm.preferences.saved week_start=%s hidden=%s theme=%s",
+                prefs.get("week_start"),
+                ",".join(str(d) for d in (prefs.get("hidden_weekdays") or [])),
+                prefs.get("theme"),
             )
         return _attach(saved, "settings") or saved
 
@@ -432,6 +517,11 @@ class CsmRepo:
         if not zones:
             zones = [_norm_timezone(str(op.get("timezone") or "UTC"))]
         return {"timezones": zones, "hour24": bool(stored.get("hour24"))}
+
+    def preferences(self, doc: dict | None = None) -> dict:
+        doc = doc if doc is not None else (self.get_settings() or {})
+        stored = doc.get("preferences") if isinstance(doc.get("preferences"), dict) else {}
+        return _norm_preferences(stored)
 
     # -- accounts ----------------------------------------------------------
 
@@ -1009,6 +1099,7 @@ class CsmRepo:
         out["task_name"] = str(op.get("task_name") or "")
         out["task_kind"] = str(op.get("task_kind") or "")
         out["due_at"] = str(op.get("due_at") or "")
+        out["mailbox_sent_at"] = str(op.get("mailbox_sent_at") or "")
         out["content"] = content
         out["cc_addrs"] = list(doc.get("cc_addrs") or [])
         return out
@@ -1454,6 +1545,33 @@ class CsmRepo:
         self.store.save("drafts", draft_id, doc)
         return _attach(doc, draft_id) or doc
 
+    def mark_draft_sent(self, draft_id: str, *, error: str = "") -> dict:
+        doc = self.store.get("drafts", draft_id)
+        if not doc:
+            raise KeyError(draft_id)
+        now = utcnow()
+        if error:
+            doc["status"] = "failed"
+            doc["send_error"] = error
+        else:
+            doc["status"] = "sent"
+            doc["sent_at"] = now
+            doc["send_error"] = ""
+        doc["updated_at"] = now
+        self.store.save("drafts", draft_id, doc)
+        return _attach(doc, draft_id) or doc
+
+    def mark_task_sent(self, email_id: str) -> dict:
+        doc = self.get_email(email_id)
+        if not doc or not _is_task_email(doc):
+            raise KeyError(email_id)
+        op = dict(doc.get("operator") or {})
+        op["mailbox_sent_at"] = utcnow()
+        doc["operator"] = op
+        doc["updated_at"] = utcnow()
+        self.store.save("emails", email_id, doc)
+        return self.task_public(email_id) or _attach(doc, email_id) or doc
+
     def list_drafts(self, account_id: str) -> list[dict]:
         rows = self._account_rows("drafts", account_id)
         rows.sort(key=lambda r: str(r.get("updated_at") or ""), reverse=True)
@@ -1616,22 +1734,37 @@ class CsmRepo:
         account_id: str,
         *,
         since: str | None = None,
+        until: str | None = None,
         kind: str | None = None,
         project_id: str | None = None,
         q: str | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[dict]:
-        filtered = bool(project_id or q)
+        filtered = bool(project_id or q or since or until)
         fetch_limit = 200 if filtered else limit
         fetch_offset = 0 if filtered else offset
         fn = getattr(self.store, "page_timeline", None)
         if callable(fn):
-            rows = fn(account_id, since=since, kind=kind, limit=fetch_limit, offset=fetch_offset)
+            try:
+                rows = fn(
+                    account_id,
+                    since=since,
+                    until=until,
+                    kind=kind,
+                    limit=fetch_limit,
+                    offset=fetch_offset,
+                )
+            except TypeError:
+                rows = fn(account_id, since=since, kind=kind, limit=fetch_limit, offset=fetch_offset)
+                if until:
+                    rows = [r for r in rows if str(r.get("at") or "") <= until]
         else:
             rows = self._account_rows("activities", account_id)
             if since:
                 rows = [r for r in rows if str(r.get("at") or "") >= since]
+            if until:
+                rows = [r for r in rows if str(r.get("at") or "") <= until]
             if kind:
                 rows = [r for r in rows if r.get("kind") == kind]
             rows.sort(key=lambda r: str(r.get("at") or ""), reverse=True)
@@ -1697,10 +1830,17 @@ class CsmRepo:
         upcoming.sort(key=lambda r: r["start_at"])
         return upcoming[0] if upcoming else None
 
-    def home_agenda(self, day: str, *, inbox_limit: int = 50) -> dict:
-        raw = str(day or "")[:10]
-        if not re.match(r"^\d{4}-\d{2}-\d{2}$", raw):
-            raw = utcnow()[:10]
+    def home_agenda(self, day: str, *, start: str | None = None, end: str | None = None, inbox_limit: int = 50) -> dict:
+        def _day(value: str, fallback: str) -> str:
+            raw = str(value or "")[:10]
+            return raw if re.match(r"^\d{4}-\d{2}-\d{2}$", raw) else fallback
+
+        inbox_day = _day(day, utcnow()[:10])
+        meet_start = _day(start, inbox_day)
+        meet_end = _day(end, inbox_day)
+        if meet_end < meet_start:
+            meet_end = meet_start
+        raw = inbox_day
         meetings: list[dict] = []
         inbox: list[dict] = []
         project_filters: list[dict] = []
@@ -1740,7 +1880,8 @@ class CsmRepo:
                 )
             for ev in self.page_calendar(aid):
                 start = str(ev.get("start_at") or "")
-                if start[:10] != raw:
+                ev_day = start[:10]
+                if ev_day < meet_start or ev_day > meet_end:
                     continue
                 status = str(ev.get("status") or ev.get("response") or "").lower().replace(" ", "_")
                 if status in {"cancelled", "canceled", "declined"}:
@@ -1756,6 +1897,7 @@ class CsmRepo:
                         "end_at": ev.get("end_at") or "",
                         "location": ev.get("location") or "",
                         "status": "proposed" if proposed else "scheduled",
+                        "attendees": ev.get("attendees") or [],
                         "account": slim,
                     }
                 )
@@ -1824,6 +1966,8 @@ class CsmRepo:
         inbox.sort(key=lambda r: str(r.get("at") or ""), reverse=True)
         return {
             "date": raw,
+            "start": meet_start,
+            "end": meet_end,
             "meetings": meetings,
             "inbox": inbox[:inbox_limit],
             "project_filters": project_filters,
@@ -1941,6 +2085,7 @@ class CsmRepo:
             "email": n("threads"),
             "slack": n("slack_messages"),
             "teams": n("teams_messages"),
+            "chat": n("slack_messages") + n("teams_messages"),
             "salesforce": n("salesforce_opportunities") + n("salesforce_cases"),
             "calendar": n("calendar_events"),
             "projects": n("projects"),

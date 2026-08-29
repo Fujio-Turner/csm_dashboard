@@ -6,7 +6,7 @@
 | **Author** | Fujio Turner |
 | **Date** | 2026-08-17 |
 | **Status** | Draft |
-| **Version (product)** | 0.1.0 (first ship) |
+| **Version (product)** | 0.1.0 first-ship lock · **living desk is 0.1.85** — see [`ROADMAP.md`](ROADMAP.md) |
 | **License** | Apache License, Version 2.0 (Copyright 2026 Fujio Turner; contact mail@fuj.io) |
 | **Repo (locked)** | `/Users/fujioturner/Documents/git_folders/fujio-turner/csm_dashboard` |
 | **Not** | A Salesforce / Gainsight replacement. Local single-operator desk. |
@@ -19,7 +19,7 @@ Customer Success Managers live in five tabs — Jira, Gmail / Outlook, Slack, Ca
 
 **csm_dashboard** is a laptop product: one operator, one process, one Couchbase Lite Community 4.0.3 file. Stack: Python 3.11+, FastAPI, vanilla IIFE JS, ctypes `libcblite`, Grok at `https://api.x.ai/v1`, Apache License 2.0. Official Couchbase Lite has no Python SDK — the ctypes wrapper lives in this repo (`src/csm_dashboard/storage/cblite.py`). Do not add Enterprise vector-index binds (Community pin).
 
-v0.1 ships a working desk on **seed fixtures + connector stubs**. Live OAuth / IMAP / Jira / Slack land on the roadmap, not in PR1. Drafts are stored; send is an explicit later action.
+v0.1 shipped a working desk on **seed fixtures + connector stubs**. **Living product (0.1.85):** live Jira / Slack / Teams / Gmail / Calendar, SMTP send after confirm, Agenda Day/Week/Month, timeline Now, slack / teams tab. IMAP / Zendesk / Pydantic AI still sit on [`ROADMAP.md`](ROADMAP.md). This file remains the original v0.1 design lock — where it says send is `409 send_disabled_v0_1`, the desk now uses `send_not_configured` when SMTP is off and delivers when SMTP is live.
 
 ---
 

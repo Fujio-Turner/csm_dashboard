@@ -15,6 +15,7 @@ def test_account_rows_skips_other_books(repo):
     assert only[0]["name"] == "Pat"
     counts = repo.account_input_counts("acct:acme")
     assert counts["people"] == 1
+    assert counts["chat"] == counts["slack"] + counts["teams"]
 
 
 def test_create_account_and_abbr_lookup(repo):

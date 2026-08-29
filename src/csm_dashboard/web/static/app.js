@@ -16,6 +16,8 @@
   var notesDirty = false;
   var homeTab = "agenda";
   var agendaDay = "";
+  var agendaCalView = "day";
+  var agendaMeetings = [];
   var agendaInboxFilter = "all";
   var agendaInboxItems = [];
   var agendaProjFilter = "";
@@ -26,6 +28,10 @@
   var operatorTz = "UTC";
   var deskClockTimer = 0;
   var deskClockFmts = { tz: "", hour24: null, time: null, date: null, zone: null };
+  var themeMql = null;
+  var prefSave = Promise.resolve();
+  var TL_SIDE_CAP = 40;
+  var WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   var homeItems = null;
   var helpReady = false;
   var pickedConnector = "";
@@ -83,8 +89,9 @@
     { cmd: "people", tab: "people", note: false, label: "People", example: "/people bob" },
     { cmd: "email", tab: "email", note: false, label: "Email", example: "/email outage" },
     { cmd: "ticket", tab: "tickets", note: false, label: "Tickets", example: "/ticket ACME-12" },
-    { cmd: "slack", tab: "slack", note: false, label: "Slack", example: "/slack pin" },
-    { cmd: "teams", tab: "teams", note: false, label: "Teams", example: "/teams Bob" },
+    { cmd: "chat", tab: "chat", note: false, label: "Slack / Teams", example: "/chat DC3" },
+    { cmd: "slack", tab: "chat", note: false, label: "Slack", example: "/slack pin" },
+    { cmd: "teams", tab: "chat", note: false, label: "Teams", example: "/teams Bob" },
     { cmd: "calendar", tab: "calendar", note: false, label: "Meetings", example: "/calendar QBR" },
     { cmd: "sf", tab: "salesforce", note: false, label: "Salesforce", example: "/sf renewal" },
   ];
@@ -104,6 +111,22 @@
     ["cancelled", "Cancelled"],
   ];
   var HIDDEN_TABS = { actions: true, reports: true };
+  var ACCOUNT_TABS = ["timeline", "tickets", "email", "chat", "salesforce", "calendar", "projects", "people", "orgchart", "accountteam"];
+  var TAB_ALIASES = { slack: "chat", teams: "chat" };
+
+  function tabLabel(name) {
+    if (name === "orgchart") return "org chart";
+    if (name === "accountteam") return "account team";
+    if (name === "chat") return "slack / teams";
+    return name;
+  }
+
+  function canonicalTab(tab) {
+    tab = String(tab || "timeline").toLowerCase();
+    if (TAB_ALIASES[tab]) tab = TAB_ALIASES[tab];
+    if (ACCOUNT_TABS.indexOf(tab) < 0) return "timeline";
+    return tab;
+  }
 
   function $(id) {
     return document.getElementById(id);
@@ -171,9 +194,9 @@
     return img;
   }
 
-  function kindIcon(kind) {
+  function kindIcon(kind, size) {
     var wrap = document.createElement("span");
-    wrap.className = "kind-icon is-" + (kind || "email");
+    wrap.className = "kind-icon is-" + (kind || "email") + (size === "lg" ? " is-lg" : "");
     var img = document.createElement("img");
     var src = "/static/icon-email.svg";
     var label = "Email";
@@ -222,17 +245,59 @@
     return raw.split("/").filter(Boolean);
   }
 
+  function hashItemId(parts) {
+    parts = parts || hashParts();
+    for (var i = 0; i < parts.length; i++) {
+      if (parts[i].slice(0, 3) === "id=") {
+        try {
+          return decodeURIComponent(parts[i].slice(3));
+        } catch (err) {
+          return parts[i].slice(3);
+        }
+      }
+    }
+    return "";
+  }
+
+  function accountItemHash(abbr, tab, id) {
+    var base = "#account/" + (abbr || "") + "/" + (tab || "timeline");
+    if (!id) return base;
+    return base + "/id=" + String(id).replace(/\//g, "%2F");
+  }
+
+  function goAccountItem(abbr, tab, id) {
+    var next = accountItemHash(abbr, tab, id);
+    var sameBook = currentAccount && (currentAccount.abbr || "").toLowerCase() === String(abbr || "").toLowerCase();
+    if (sameBook && currentTab === tab && location.hash === next) {
+      openRoutedItem(tab, id);
+      return;
+    }
+    if (sameBook && currentTab === tab) {
+      if (history.replaceState) history.replaceState(null, "", next);
+      else location.hash = next;
+      openRoutedItem(tab, id);
+      return;
+    }
+    location.hash = next;
+  }
+
   function route() {
     closeDetail();
+    closeTaskForm();
     var parts = hashParts();
     var head = (parts[0] || "home").toLowerCase();
     if (head === "account" && parts[1]) {
       showView("home");
-      currentTab = (parts[2] || "timeline").toLowerCase();
-      if (HIDDEN_TABS[currentTab]) currentTab = "timeline";
+      var tab = (parts[2] || "timeline").toLowerCase();
+      var itemId = hashItemId(parts);
+      var openHint = tab;
+      if (tab.slice(0, 3) === "id=") tab = "timeline";
+      if (HIDDEN_TABS[tab]) tab = "timeline";
+      currentTab = canonicalTab(tab);
       setHomeMode(true);
       loadAccount(parts[1], currentTab).then(function () {
         syncChatScope(currentAccount && currentAccount.account_id);
+        if (itemId) openRoutedItem(openHint === "slack" || openHint === "teams" ? openHint : currentTab, itemId);
       });
       return;
     }
@@ -313,6 +378,8 @@
       if (tag) tag.textContent = s.tagline || "";
       operatorTz = (s.operator && s.operator.timezone) || "UTC";
       tickDeskClock();
+      applyTheme();
+      fillPreferencesForm();
       return s;
     });
   }
@@ -412,6 +479,270 @@
     });
   }
 
+  function userPrefs() {
+    var p = (status && status.preferences) || {};
+    var start = +p.week_start;
+    if (!(start >= 0 && start <= 6)) start = 0;
+    var hidden = [];
+    if (Array.isArray(p.hidden_weekdays)) {
+      p.hidden_weekdays.forEach(function (d) {
+        var n = +d;
+        if (n >= 0 && n <= 6 && hidden.indexOf(n) < 0) hidden.push(n);
+      });
+    }
+    var theme = p.theme === "day" || p.theme === "night" || p.theme === "auto" ? p.theme : "auto";
+    var layout = p.timeline_layout === "horizontal" ? "horizontal" : "vertical";
+    var pastDays = +p.timeline_past_days === 30 ? 30 : 7;
+    var nextDays = +p.timeline_next_days === 30 ? 30 : 7;
+    return {
+      week_start: start,
+      hidden_weekdays: hidden,
+      theme: theme,
+      timeline_layout: layout,
+      timeline_past_days: pastDays,
+      timeline_next_days: nextDays,
+    };
+  }
+
+  function timelineLayout() {
+    return userPrefs().timeline_layout === "horizontal" ? "horizontal" : "vertical";
+  }
+
+  function ymdWeekday(ymd) {
+    var parts = String(ymd || "").split("-");
+    return new Date(Date.UTC(+parts[0], +parts[1] - 1, +parts[2])).getUTCDay();
+  }
+
+  function visibleWeekdays() {
+    var hidden = {};
+    userPrefs().hidden_weekdays.forEach(function (d) {
+      hidden[d] = true;
+    });
+    var start = userPrefs().week_start;
+    var out = [];
+    var i;
+    for (i = 0; i < 7; i++) {
+      var d = (start + i) % 7;
+      if (!hidden[d]) out.push(d);
+    }
+    if (!out.length) {
+      for (i = 0; i < 7; i++) out.push((start + i) % 7);
+    }
+    return out;
+  }
+
+  function weekDaysFrom(ymd) {
+    var start = weekStartYmd(ymd);
+    var vis = visibleWeekdays();
+    var days = [];
+    var i;
+    for (i = 0; i < 7; i++) {
+      var d = shiftYmd(start, i);
+      if (vis.indexOf(ymdWeekday(d)) >= 0) days.push(d);
+    }
+    return days.length ? days : [start];
+  }
+
+  function weekStartYmd(ymd) {
+    var p = String(ymd || "").split("-");
+    var dt = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2]));
+    var dow = dt.getUTCDay();
+    var start = userPrefs().week_start;
+    var delta = (dow - start + 7) % 7;
+    return shiftYmd(ymd, -delta);
+  }
+
+  function resolvedTheme(pref) {
+    var t = pref || userPrefs().theme;
+    if (t === "night" || t === "day") return t;
+    try {
+      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "night" : "day";
+    } catch (e) {
+      return "day";
+    }
+  }
+
+  function onSystemTheme() {
+    if (userPrefs().theme === "auto") applyTheme("auto");
+  }
+
+  function bindThemeMql(on) {
+    if (themeMql) {
+      try { themeMql.removeEventListener("change", onSystemTheme); } catch (e) {}
+      themeMql = null;
+    }
+    if (!on) return;
+    try {
+      themeMql = window.matchMedia("(prefers-color-scheme: dark)");
+      themeMql.addEventListener("change", onSystemTheme);
+    } catch (e) {}
+  }
+
+  function applyTheme(prefTheme) {
+    var t = prefTheme || userPrefs().theme;
+    var resolved = resolvedTheme(t);
+    document.documentElement.setAttribute("data-theme", resolved);
+    try { localStorage.setItem("csm.theme", t); } catch (e) {}
+    var btn = $("btn-theme");
+    if (btn) {
+      btn.setAttribute("data-theme", resolved);
+      btn.setAttribute("aria-label", resolved === "night" ? "Switch to day" : "Switch to night");
+      btn.title = resolved === "night" ? "Night — click for Day" : "Day — click for Night";
+    }
+    bindThemeMql(t === "auto");
+  }
+
+  function fillPreferencesForm() {
+    var p = userPrefs();
+    if ($("pref-week-start")) $("pref-week-start").value = String(p.week_start);
+    document.querySelectorAll("#pref-days input[type=checkbox]").forEach(function (cb) {
+      cb.checked = p.hidden_weekdays.indexOf(+cb.value) < 0;
+    });
+    document.querySelectorAll("#pref-theme input[type=radio]").forEach(function (r) {
+      r.checked = r.value === p.theme;
+    });
+  }
+
+  function readHiddenDays() {
+    var shown = [];
+    document.querySelectorAll("#pref-days input[type=checkbox]").forEach(function (cb) {
+      if (cb.checked) shown.push(+cb.value);
+    });
+    if (!shown.length) return null;
+    var hidden = [];
+    var i;
+    for (i = 0; i < 7; i++) if (shown.indexOf(i) < 0) hidden.push(i);
+    return hidden;
+  }
+
+  function savePreferences(partial, opts) {
+    opts = opts || {};
+    var cur = userPrefs();
+    var next = {
+      week_start: cur.week_start,
+      hidden_weekdays: cur.hidden_weekdays.slice(),
+      theme: cur.theme,
+      timeline_layout: cur.timeline_layout,
+      timeline_past_days: cur.timeline_past_days,
+      timeline_next_days: cur.timeline_next_days,
+    };
+    if (partial.week_start != null) next.week_start = +partial.week_start;
+    if (Object.prototype.hasOwnProperty.call(partial, "hidden_weekdays")) {
+      next.hidden_weekdays = partial.hidden_weekdays || [];
+    }
+    if (partial.theme) next.theme = partial.theme;
+    if (partial.timeline_layout) {
+      next.timeline_layout = partial.timeline_layout === "horizontal" ? "horizontal" : "vertical";
+    }
+    if (partial.timeline_past_days) next.timeline_past_days = +partial.timeline_past_days === 30 ? 30 : 7;
+    if (partial.timeline_next_days) next.timeline_next_days = +partial.timeline_next_days === 30 ? 30 : 7;
+    if (!status) status = {};
+    status.preferences = next;
+    applyTheme(next.theme);
+    fillPreferencesForm();
+    var reloadCal = opts.calendar;
+    if (reloadCal == null) {
+      reloadCal = partial.week_start != null || Object.prototype.hasOwnProperty.call(partial, "hidden_weekdays");
+    }
+    if (reloadCal && homeTab === "agenda") loadAgenda();
+    prefSave = prefSave.catch(function () {}).then(function () {
+      return api("/api/settings", {
+        method: "PUT",
+        body: JSON.stringify({ preferences: next }),
+      });
+    }).catch(function (err) {
+      toast(String(err.message || err));
+    });
+    return prefSave;
+  }
+
+  function monthStartYmd(ymd) {
+    var p = String(ymd || "2000-01-01").split("-");
+    return p[0] + "-" + p[1] + "-01";
+  }
+
+  function lastOfMonthYmd(ymd) {
+    var p = String(ymd || "2000-01-01").split("-");
+    var dim = new Date(Date.UTC(+p[0], +p[1], 0)).getUTCDate();
+    return p[0] + "-" + p[1] + "-" + (dim < 10 ? "0" : "") + dim;
+  }
+
+  function shiftMonth(ymd, delta) {
+    var p = String(ymd || "").split("-");
+    var dt = new Date(Date.UTC(+p[0], +p[1] - 1 + delta, 1));
+    var dim = new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth() + 1, 0)).getUTCDate();
+    var day = Math.min(+p[2] || 1, dim);
+    return utcYmd(new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), day)));
+  }
+
+  function agendaMeetRange() {
+    if (agendaCalView === "week") {
+      var start = weekStartYmd(agendaDay);
+      return { start: start, end: shiftYmd(start, 6) };
+    }
+    if (agendaCalView === "month") {
+      var first = monthStartYmd(agendaDay);
+      return { start: weekStartYmd(first), end: shiftYmd(weekStartYmd(lastOfMonthYmd(first)), 6) };
+    }
+    return { start: agendaDay, end: agendaDay };
+  }
+
+  function formatRangeLabel(ymd) {
+    if (agendaCalView === "week") {
+      var days = weekDaysFrom(ymd);
+      var first = days[0];
+      var last = days[days.length - 1];
+      if (first === last) return formatDayLabel(first);
+      return formatDayLabel(first).replace(/,.*/, "") + " – " + formatDayLabel(last);
+    }
+    if (agendaCalView === "month") {
+      var p = String(ymd || "").split("-");
+      var dt = new Date(Date.UTC(+p[0], +p[1] - 1, 1));
+      return dt.toLocaleDateString(undefined, { month: "long", year: "numeric", timeZone: "UTC" });
+    }
+    return formatDayLabel(ymd);
+  }
+
+  function formatTimeTz(date) {
+    try {
+      return new Intl.DateTimeFormat("en-US", {
+        timeZone: operatorTz || "UTC",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: !deskClockHour24(),
+      }).format(date);
+    } catch (e) {
+      return formatClock(date);
+    }
+  }
+
+  function tzClock(date) {
+    var out = { hour: 0, minute: 0 };
+    try {
+      var parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: operatorTz || "UTC",
+        hour: "numeric",
+        minute: "2-digit",
+        hourCycle: "h23",
+      }).formatToParts(date);
+      var i;
+      for (i = 0; i < parts.length; i++) {
+        if (parts[i].type === "hour") out.hour = +parts[i].value;
+        if (parts[i].type === "minute") out.minute = +parts[i].value;
+      }
+      if (out.hour === 24) out.hour = 0;
+    } catch (e) {
+      out.hour = date.getHours();
+      out.minute = date.getMinutes();
+    }
+    return out;
+  }
+
+  function minutesOfDay(date) {
+    var c = tzClock(date);
+    return c.hour * 60 + c.minute;
+  }
+
   function deskClockHour24() {
     var clock = (status && status.world_clock) || {};
     return !!clock.hour24;
@@ -468,6 +799,7 @@
       if (root) {
         root.setAttribute("aria-label", timeStr + ". " + tip + ". Click for World Clock");
       }
+      paintAgendaNowLine();
     } catch (e) {
       timeEl.textContent = now.toLocaleTimeString();
       var whenFail = $("desk-clock-when");
@@ -573,6 +905,14 @@
     else loadAgenda();
   }
 
+  function syncAgendaViewChrome(pane) {
+    var split = pane.querySelector(".agenda-split");
+    if (split) split.classList.toggle("is-wide", agendaCalView !== "day");
+    pane.querySelectorAll("[data-cal-view]").forEach(function (b) {
+      b.classList.toggle("is-on", b.getAttribute("data-cal-view") === agendaCalView);
+    });
+  }
+
   function fetchAgendaLists(calList, inList) {
     empty(calList);
     empty(inList);
@@ -581,8 +921,11 @@
     loading.textContent = "Loading…";
     calList.appendChild(loading.cloneNode(true));
     inList.appendChild(loading);
-    return api("/api/home/agenda?date=" + encodeURIComponent(agendaDay)).then(function (data) {
-      renderAgendaMeetings(calList, data.meetings || []);
+    var range = agendaMeetRange();
+    var qs = "date=" + encodeURIComponent(agendaDay) + "&start=" + encodeURIComponent(range.start) + "&end=" + encodeURIComponent(range.end);
+    return api("/api/home/agenda?" + qs).then(function (data) {
+      agendaMeetings = data.meetings || [];
+      renderAgendaMeetings(calList, agendaMeetings);
       agendaInboxItems = data.inbox || [];
       agendaProjOptions = data.project_filters || [];
       fillAgendaProjFilter();
@@ -599,53 +942,75 @@
     if (!agendaDay) agendaDay = todayYmd();
     var pane = $("agenda-panel");
     if (!pane) return Promise.resolve();
-    var lists = pane.querySelectorAll(".agenda-list");
+    var calBoard = pane.querySelector(".agenda-cal");
+    var inList = $("agenda-inbox-list");
     var label = pane.querySelector(".agenda-day-label");
-    if (lists.length >= 2) {
-      if (label) label.textContent = formatDayLabel(agendaDay);
+    if (calBoard && inList) {
+      if (label) label.textContent = formatRangeLabel(agendaDay);
+      syncAgendaViewChrome(pane);
       var inHead = pane.querySelectorAll(".agenda-col-head")[1];
-      if (inHead) ensureAgendaProjFilter(inHead, lists[1]);
-      return fetchAgendaLists(lists[0], lists[1]);
+      if (inHead) ensureAgendaProjFilter(inHead, inList);
+      return fetchAgendaLists(calBoard, inList);
     }
     empty(pane);
     var split = document.createElement("div");
-    split.className = "agenda-split";
+    split.className = "agenda-split" + (agendaCalView === "day" ? "" : " is-wide");
     var cal = document.createElement("section");
     cal.className = "agenda-col";
     var calHead = document.createElement("div");
-    calHead.className = "agenda-col-head";
+    calHead.className = "agenda-col-head agenda-cal-head";
     var calTitle = document.createElement("h2");
     calTitle.textContent = "Meetings";
+    var views = document.createElement("div");
+    views.className = "agenda-views";
+    views.setAttribute("role", "tablist");
+    [["day", "Day"], ["week", "Week"], ["month", "Month"]].forEach(function (pair) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "tab" + (agendaCalView === pair[0] ? " is-on" : "");
+      b.textContent = pair[1];
+      b.setAttribute("data-cal-view", pair[0]);
+      b.addEventListener("click", function () {
+        agendaCalView = pair[0];
+        loadAgenda();
+      });
+      views.appendChild(b);
+    });
     var dayNav = document.createElement("div");
     dayNav.className = "agenda-day";
     var prev = document.createElement("button");
     prev.type = "button";
     prev.className = "btn";
     prev.textContent = "←";
-    prev.setAttribute("aria-label", "Previous day");
+    prev.setAttribute("aria-label", "Previous");
     prev.addEventListener("click", function () {
-      agendaDay = shiftYmd(agendaDay, -1);
+      if (agendaCalView === "week") agendaDay = shiftYmd(agendaDay, -7);
+      else if (agendaCalView === "month") agendaDay = shiftMonth(agendaDay, -1);
+      else agendaDay = shiftYmd(agendaDay, -1);
       loadAgenda();
     });
     var label = document.createElement("span");
     label.className = "agenda-day-label";
-    label.textContent = formatDayLabel(agendaDay);
+    label.textContent = formatRangeLabel(agendaDay);
     var next = document.createElement("button");
     next.type = "button";
     next.className = "btn";
     next.textContent = "→";
-    next.setAttribute("aria-label", "Next day");
+    next.setAttribute("aria-label", "Next");
     next.addEventListener("click", function () {
-      agendaDay = shiftYmd(agendaDay, 1);
+      if (agendaCalView === "week") agendaDay = shiftYmd(agendaDay, 7);
+      else if (agendaCalView === "month") agendaDay = shiftMonth(agendaDay, 1);
+      else agendaDay = shiftYmd(agendaDay, 1);
       loadAgenda();
     });
     dayNav.appendChild(prev);
     dayNav.appendChild(label);
     dayNav.appendChild(next);
     calHead.appendChild(calTitle);
+    calHead.appendChild(views);
     calHead.appendChild(dayNav);
     var calList = document.createElement("div");
-    calList.className = "agenda-list";
+    calList.className = "agenda-cal";
     cal.appendChild(calHead);
     cal.appendChild(calList);
     var inbox = document.createElement("section");
@@ -871,40 +1236,326 @@
     }
   }
 
+  function meetingLengthMins(start, end) {
+    var s = new Date(start);
+    var e = new Date(end);
+    if (isNaN(s.getTime()) || isNaN(e.getTime()) || e <= s) return 0;
+    return Math.max(1, Math.round((e.getTime() - s.getTime()) / 60000));
+  }
+
+  var CAL_PX = 56;
+  var CAL_DAY_SPAN = { startH: 0, endH: 24 };
+  var CAL_SCROLL_HOUR = 7;
+
+  function eventsOnDay(items, ymd) {
+    return (items || []).filter(function (ev) {
+      var s = new Date(ev.start_at);
+      if (isNaN(s.getTime())) return false;
+      return ymdInZone(s, operatorTz) === ymd;
+    });
+  }
+
+  function placedEvent(ev) {
+    var start = new Date(ev.start_at);
+    var end = new Date(ev.end_at || ev.start_at);
+    if (isNaN(end.getTime()) || end <= start) end = new Date(start.getTime() + 30 * 60000);
+    return {
+      raw: ev,
+      start: start,
+      end: end,
+      startMin: minutesOfDay(start),
+      endMin: minutesOfDay(end),
+      col: 0,
+      cols: 1,
+    };
+  }
+
+  function packDayEvents(items) {
+    var evs = items.map(placedEvent).sort(function (a, b) {
+      return a.start - b.start || a.end - b.end;
+    });
+    evs.forEach(function (ev) {
+      if (ev.endMin <= ev.startMin) ev.endMin = ev.startMin + 30;
+    });
+    var active = [];
+    evs.forEach(function (ev) {
+      active = active.filter(function (a) { return a.endMin > ev.startMin; });
+      var used = {};
+      active.forEach(function (a) { used[a.col] = true; });
+      var col = 0;
+      while (used[col]) col += 1;
+      ev.col = col;
+      active.push(ev);
+    });
+    evs.forEach(function (ev) {
+      var max = ev.col;
+      evs.forEach(function (o) {
+        if (o.startMin < ev.endMin && o.endMin > ev.startMin) max = Math.max(max, o.col);
+      });
+      ev.cols = max + 1;
+    });
+    return evs;
+  }
+
+  function hourSpan(evs) {
+    var startH = 7;
+    var endH = 19;
+    evs.forEach(function (ev) {
+      startH = Math.min(startH, Math.floor(ev.startMin / 60));
+      endH = Math.max(endH, Math.ceil(ev.endMin / 60));
+    });
+    startH = Math.max(0, startH);
+    endH = Math.min(24, Math.max(endH, startH + 1));
+    return { startH: startH, endH: endH };
+  }
+
+  function hourLabel(h) {
+    var d = new Date(Date.UTC(2026, 0, 1, h, 0, 0));
+    try {
+      return new Intl.DateTimeFormat("en-US", {
+        timeZone: "UTC",
+        hour: "numeric",
+        hour12: !deskClockHour24(),
+      }).format(d);
+    } catch (e) {
+      return h + ":00";
+    }
+  }
+
+  function calEventCard(placed, compact) {
+    var ev = placed.raw;
+    var mins = meetingLengthMins(placed.start, placed.end) || Math.max(1, placed.endMin - placed.startMin);
+    var card = document.createElement("article");
+    card.className = "cal-event" + (compact ? " is-compact" : "") + (placed.end.getTime() < Date.now() ? " is-past" : "");
+    if (ev._id) card.setAttribute("data-doc-id", ev._id);
+    if (ev.account && ev.account.color) card.style.borderLeftColor = ev.account.color;
+    var top = document.createElement("div");
+    top.className = "cal-event-top";
+    if (ev.account) top.appendChild(accountMark(ev.account, "inbox"));
+    var when = document.createElement("time");
+    when.className = "cal-event-time";
+    when.dateTime = ev.start_at || "";
+    when.textContent = formatTimeTz(placed.start) + "–" + formatTimeTz(placed.end);
+    top.appendChild(when);
+    var title = document.createElement("div");
+    title.className = "cal-event-title";
+    title.textContent = ev.title || "Meeting";
+    var meta = document.createElement("div");
+    meta.className = "cal-event-meta";
+    var bits = [];
+    if (ev.account && ev.account.abbr) bits.push(ev.account.abbr);
+    if (ev.location) bits.push(ev.location);
+    bits.push(mins + " min");
+    if (ev.status === "proposed") bits.push("proposed");
+    var who = (ev.attendees || []).map(function (a) { return (a && (a.name || a.email)) || ""; }).filter(Boolean);
+    if (who.length && !compact) bits.push(who.slice(0, 3).join(", "));
+    meta.textContent = bits.join(" · ");
+    card.appendChild(top);
+    card.appendChild(title);
+    if (!compact || mins >= 25) card.appendChild(meta);
+    if (ev.account && ev.account.abbr && ev._id) {
+      card.addEventListener("click", function () {
+        goAccountItem(ev.account.abbr, "calendar", ev._id);
+      });
+    }
+    return card;
+  }
+
+  function paintAgendaNowLine() {
+    var now = new Date();
+    var today = ymdInZone(now, operatorTz);
+    var nowMin = minutesOfDay(now);
+    document.querySelectorAll(".cal-now").forEach(function (line) {
+      var day = line.getAttribute("data-day") || "";
+      var startH = +line.getAttribute("data-hour-start") || 0;
+      var endH = +line.getAttribute("data-hour-end") || 24;
+      var px = +line.getAttribute("data-px") || CAL_PX;
+      if (day !== today) {
+        line.hidden = true;
+        return;
+      }
+      if (nowMin < startH * 60 || nowMin > endH * 60) {
+        line.hidden = true;
+        return;
+      }
+      line.hidden = false;
+      line.style.top = ((nowMin - startH * 60) / 60) * px + "px";
+    });
+  }
+
+  function renderDayColumn(ymd, items, span) {
+    var placed = packDayEvents(eventsOnDay(items, ymd));
+    var hours = span || hourSpan(placed);
+    var height = (hours.endH - hours.startH) * CAL_PX;
+    var col = document.createElement("div");
+    col.className = "cal-day";
+    var gutter = document.createElement("div");
+    gutter.className = "cal-gutter";
+    var h;
+    for (h = hours.startH; h < hours.endH; h++) {
+      var slot = document.createElement("div");
+      slot.className = "cal-hour";
+      slot.style.height = CAL_PX + "px";
+      var lab = document.createElement("span");
+      lab.textContent = hourLabel(h);
+      slot.appendChild(lab);
+      gutter.appendChild(slot);
+    }
+    var track = document.createElement("div");
+    track.className = "cal-track";
+    track.style.height = height + "px";
+    for (h = hours.startH; h < hours.endH; h++) {
+      var grid = document.createElement("div");
+      grid.className = "cal-grid-line";
+      grid.style.top = (h - hours.startH) * CAL_PX + "px";
+      track.appendChild(grid);
+    }
+    placed.forEach(function (ev) {
+      var top = ((ev.startMin - hours.startH * 60) / 60) * CAL_PX;
+      var ht = Math.max(18, ((ev.endMin - ev.startMin) / 60) * CAL_PX - 2);
+      var width = 100 / ev.cols;
+      var card = calEventCard(ev, ht < 40);
+      card.style.top = Math.max(0, top) + "px";
+      card.style.height = ht + "px";
+      card.style.left = "calc(" + (width * ev.col) + "% + 2px)";
+      card.style.width = "calc(" + width + "% - 4px)";
+      track.appendChild(card);
+    });
+    var nowLine = document.createElement("div");
+    nowLine.className = "cal-now";
+    nowLine.setAttribute("data-day", ymd);
+    nowLine.setAttribute("data-hour-start", String(hours.startH));
+    nowLine.setAttribute("data-hour-end", String(hours.endH));
+    nowLine.setAttribute("data-px", String(CAL_PX));
+    track.appendChild(nowLine);
+    col.appendChild(gutter);
+    col.appendChild(track);
+    return col;
+  }
+
   function renderAgendaMeetings(root, items) {
     empty(root);
-    if (!items.length) {
-      var p = document.createElement("p");
-      p.className = "muted";
-      p.textContent = "No meetings this day.";
-      root.appendChild(p);
+    if (agendaCalView === "month") {
+      renderMonthGrid(root, items || []);
       return;
     }
-    items.forEach(function (ev) {
-      var card = document.createElement("article");
-      card.className = "agenda-meet";
-      var when = document.createElement("div");
-      when.className = "agenda-meet-time";
-      when.textContent = formatWhen(ev.start_at) + (ev.status === "proposed" ? " · proposed" : "");
-      var title = document.createElement("div");
-      title.className = "acct-meeting-title";
-      title.textContent = ev.title || "Meeting";
-      var meta = document.createElement("div");
-      meta.className = "row-meta";
-      var bits = [];
-      if (ev.account && ev.account.abbr) bits.push(ev.account.abbr);
-      if (ev.location) bits.push(ev.location);
-      meta.textContent = bits.join(" · ");
-      card.appendChild(when);
-      card.appendChild(title);
-      card.appendChild(meta);
-      if (ev.account && ev.account.abbr) {
-        card.addEventListener("click", function () {
-          location.hash = "#account/" + ev.account.abbr + "/calendar";
-        });
-      }
-      root.appendChild(card);
+    if (agendaCalView === "week") {
+      renderWeekGrid(root, items || []);
+      return;
+    }
+    var wrap = document.createElement("div");
+    wrap.className = "cal-board is-day";
+    wrap.appendChild(renderDayColumn(agendaDay, items, CAL_DAY_SPAN));
+    root.appendChild(wrap);
+    paintAgendaNowLine();
+    root.scrollTop = CAL_SCROLL_HOUR * CAL_PX;
+  }
+
+  function renderWeekGrid(root, items) {
+    var days = weekDaysFrom(agendaDay);
+    var span = CAL_DAY_SPAN;
+    var board = document.createElement("div");
+    board.className = "cal-board is-week";
+    board.style.setProperty("--cal-days", String(days.length));
+    var head = document.createElement("div");
+    head.className = "cal-week-head";
+    head.appendChild(document.createElement("span"));
+    days.forEach(function (d) {
+      var cell = document.createElement("button");
+      cell.type = "button";
+      cell.className = "cal-week-day" + (d === agendaDay ? " is-on" : "") + (d === todayYmd() ? " is-today" : "");
+      cell.textContent = formatDayLabel(d).replace(/,.*/, "");
+      cell.addEventListener("click", function () {
+        agendaDay = d;
+        agendaCalView = "day";
+        loadAgenda();
+      });
+      head.appendChild(cell);
     });
+    board.appendChild(head);
+    var body = document.createElement("div");
+    body.className = "cal-week-body";
+    var gutter = document.createElement("div");
+    gutter.className = "cal-gutter";
+    var h;
+    for (h = span.startH; h < span.endH; h++) {
+      var slot = document.createElement("div");
+      slot.className = "cal-hour";
+      slot.style.height = CAL_PX + "px";
+      var lab = document.createElement("span");
+      lab.textContent = hourLabel(h);
+      slot.appendChild(lab);
+      gutter.appendChild(slot);
+    }
+    body.appendChild(gutter);
+    days.forEach(function (d) {
+      var col = renderDayColumn(d, items, span);
+      var track = col.querySelector(".cal-track");
+      col.querySelector(".cal-gutter").remove();
+      col.className = "cal-week-col";
+      body.appendChild(col);
+      if (track) track.style.minHeight = (span.endH - span.startH) * CAL_PX + "px";
+    });
+    board.appendChild(body);
+    root.appendChild(board);
+    paintAgendaNowLine();
+    body.scrollTop = CAL_SCROLL_HOUR * CAL_PX;
+  }
+
+  function renderMonthGrid(root, items) {
+    var first = monthStartYmd(agendaDay);
+    var gridStart = weekStartYmd(first);
+    var vis = visibleWeekdays();
+    var board = document.createElement("div");
+    board.className = "cal-board is-month";
+    board.style.setProperty("--cal-days", String(vis.length));
+    var head = document.createElement("div");
+    head.className = "cal-month-head";
+    vis.forEach(function (dow) {
+      var el = document.createElement("div");
+      el.textContent = WEEKDAY_SHORT[dow];
+      head.appendChild(el);
+    });
+    board.appendChild(head);
+    var body = document.createElement("div");
+    body.className = "cal-month-body";
+    var i;
+    for (i = 0; i < 42; i++) {
+      var ymd = shiftYmd(gridStart, i);
+      if (vis.indexOf(ymdWeekday(ymd)) < 0) continue;
+      var inMonth = ymd.slice(0, 7) === first.slice(0, 7);
+      var cell = document.createElement("button");
+      cell.type = "button";
+      cell.className = "cal-month-cell" + (inMonth ? "" : " is-out") + (ymd === agendaDay ? " is-on" : "") + (ymd === todayYmd() ? " is-today" : "");
+      var num = document.createElement("span");
+      num.className = "cal-month-num";
+      num.textContent = String(+ymd.slice(8));
+      cell.appendChild(num);
+      eventsOnDay(items, ymd).slice(0, 4).forEach(function (ev) {
+        var chip = document.createElement("span");
+        chip.className = "cal-month-chip";
+        if (ev.account && ev.account.color) chip.style.borderLeftColor = ev.account.color;
+        chip.textContent = ev.title || "Meeting";
+        cell.appendChild(chip);
+      });
+      var extra = eventsOnDay(items, ymd).length - 4;
+      if (extra > 0) {
+        var more = document.createElement("span");
+        more.className = "cal-month-more";
+        more.textContent = "+" + extra + " more";
+        cell.appendChild(more);
+      }
+      cell.addEventListener("click", function (picked) {
+        return function () {
+          agendaDay = picked;
+          agendaCalView = "day";
+          loadAgenda();
+        };
+      }(ymd));
+      body.appendChild(cell);
+    }
+    board.appendChild(body);
+    root.appendChild(board);
   }
 
   function renderAgendaInbox(root, items) {
@@ -935,37 +1586,42 @@
     shown.forEach(function (item) {
       var card = document.createElement("article");
       card.className = "agenda-item";
-      var top = document.createElement("div");
-      top.className = "agenda-item-top";
-      top.appendChild(kindIcon(item.kind));
-      if (item.account) top.appendChild(accountMark(item.account, "inbox"));
+      var ref = item.ref || {};
+      var itemId = item.kind === "email" ? (ref.thread_id || ref.id || "") : (ref.id || "");
+      if (itemId) card.setAttribute("data-doc-id", itemId);
+      var lead = document.createElement("div");
+      lead.className = "agenda-item-lead";
+      lead.appendChild(kindIcon(item.kind, "lg"));
+      if (item.account) lead.appendChild(accountMark(item.account, "inbox"));
+      var bodyWrap = document.createElement("div");
+      bodyWrap.className = "agenda-item-body";
       var title = document.createElement("strong");
       title.textContent = item.title || "";
-      top.appendChild(title);
       var body = document.createElement("div");
       body.className = "row-meta";
       body.textContent = item.body || "";
       var when = document.createElement("div");
       when.className = "row-meta";
       when.textContent = formatWhen(item.at);
-      card.appendChild(top);
-      card.appendChild(body);
-      card.appendChild(when);
+      bodyWrap.appendChild(title);
+      bodyWrap.appendChild(body);
+      bodyWrap.appendChild(when);
       if (item.kind === "task" && item.due_at) {
         var due = document.createElement("div");
         due.className = "row-meta agenda-task-due";
         due.textContent = "Due " + formatWhen(item.due_at);
-        card.appendChild(due);
+        bodyWrap.appendChild(due);
       }
+      card.appendChild(lead);
+      card.appendChild(bodyWrap);
       card.addEventListener("click", function () {
-        if (item.kind === "task") {
-          openTaskForm(item);
+        var abbr = item.account && item.account.abbr;
+        if (!abbr || !itemId) {
+          if (item.kind === "task") openTaskForm(item);
           return;
         }
-        var abbr = item.account && item.account.abbr;
-        if (!abbr) return;
-        var tab = item.kind === "email" ? "email" : item.kind === "teams" ? "teams" : "slack";
-        location.hash = "#account/" + abbr + "/" + tab;
+        var tab = (item.kind === "teams" || item.kind === "slack") ? "chat" : "email";
+        goAccountItem(abbr, tab, itemId);
       });
       root.appendChild(card);
     });
@@ -998,7 +1654,12 @@
     box.hidden = false;
     box.classList.remove("hidden");
     empty(box);
-    var emailId = item && item.ref && item.ref.id ? item.ref.id : "";
+    var emailId = "";
+    if (item) {
+      if (item.ref && item.ref.id) emailId = item.ref.id;
+      else if (item.operator && item.operator.task && item._id) emailId = item._id;
+      else if (item._id && (item.kind === "task" || item.task_name)) emailId = item._id;
+    }
     var sheet = document.createElement("article");
     sheet.className = "sheet sheet-task";
     var head = document.createElement("header");
@@ -1186,19 +1847,20 @@
         assist.textContent = "AI Assist";
       });
     });
-    save.addEventListener("click", function () {
-      var ccs = ccEmails();
-      var payload = {
+    function taskPayload() {
+      return {
         account_id: company.value,
         task_name: name.value,
         task_kind: kind.value,
         due_at: due.value,
-        cc_addrs: ccs,
+        cc_addrs: ccEmails(),
         body: body.value,
       };
+    }
+    save.addEventListener("click", function () {
       var req = emailId
-        ? api("/api/tasks/" + encodeURIComponent(emailId), { method: "PUT", body: JSON.stringify(payload) })
-        : api("/api/tasks", { method: "POST", body: JSON.stringify(payload) });
+        ? api("/api/tasks/" + encodeURIComponent(emailId), { method: "PUT", body: JSON.stringify(taskPayload()) })
+        : api("/api/tasks", { method: "POST", body: JSON.stringify(taskPayload()) });
       req.then(function () {
         toast(emailId ? "Task saved" : "Task created");
         closeTaskForm();
@@ -1207,7 +1869,32 @@
         toast(String(err.message || err));
       });
     });
+    var sendMe = document.createElement("button");
+    sendMe.type = "button";
+    sendMe.className = "btn";
+    sendMe.textContent = "Send to me";
+    sendMe.title = "Deliver this task to your mailbox after you confirm";
+    sendMe.addEventListener("click", function () {
+      if (!window.confirm("Send this task to your mailbox?")) return;
+      sendMe.disabled = true;
+      var req = emailId
+        ? api("/api/tasks/" + encodeURIComponent(emailId), { method: "PUT", body: JSON.stringify(taskPayload()) })
+        : api("/api/tasks", { method: "POST", body: JSON.stringify(taskPayload()) });
+      req.then(function (doc) {
+        var id = (doc && doc._id) || emailId;
+        return api("/api/tasks/" + encodeURIComponent(id) + "/send", { method: "POST", body: "{}" });
+      }).then(function () {
+        toast("Sent to your mailbox");
+        closeTaskForm();
+        loadAgenda();
+      }).catch(function (err) {
+        toast(String(err.message || err));
+      }).then(function () {
+        sendMe.disabled = false;
+      });
+    });
     actions.appendChild(save);
+    actions.appendChild(sendMe);
     sheet.appendChild(preview);
     sheet.appendChild(form);
     sheet.appendChild(ccRow);
@@ -1613,17 +2300,17 @@
   function markAccountTab(tab) {
     var tabs = $("account-tabs");
     if (!tabs) return;
-    var want = tab || "timeline";
-    tabs.querySelectorAll(".tab").forEach(function (b, i) {
-      var names = ["timeline", "tickets", "email", "slack", "teams", "salesforce", "calendar", "projects", "people", "orgchart", "accountteam"];
-      b.classList.toggle("is-on", names[i] === want);
+    var want = canonicalTab(tab);
+    tabs.querySelectorAll(".tab").forEach(function (b) {
+      b.classList.toggle("is-on", b.getAttribute("data-tab") === want);
     });
   }
 
   function loadAccount(abbr, tab) {
+    tab = canonicalTab(tab || "timeline");
     var want = (abbr || "").toLowerCase();
     if (currentAccount && lastAccountAbbr === want && $("account-tabs") && $("account-tabs").firstChild) {
-      currentTab = tab || "timeline";
+      currentTab = canonicalTab(tab || "timeline");
       markAccountTab(currentTab);
       syncAccountTools(currentTab);
       return Promise.resolve(renderPane(currentAccount, currentTab));
@@ -1738,16 +2425,17 @@
   }
 
   function renderTabs(acct, tab) {
-    var names = ["timeline", "tickets", "email", "slack", "teams", "salesforce", "calendar", "projects", "people", "orgchart", "accountteam"];
+    tab = canonicalTab(tab);
     var counts = acct.input_counts || {};
     var tabs = $("account-tabs");
     empty(tabs);
-    names.forEach(function (name) {
+    ACCOUNT_TABS.forEach(function (name) {
       var b = document.createElement("button");
       b.type = "button";
       b.className = "tab" + (name === tab ? " is-on" : "");
+      b.setAttribute("data-tab", name);
       var label = document.createElement("span");
-      label.textContent = name === "orgchart" ? "org chart" : name === "accountteam" ? "account team" : name;
+      label.textContent = tabLabel(name);
       b.appendChild(label);
       var n = counts[name];
       if (n != null) {
@@ -1769,15 +2457,14 @@
     var aid = acct.account_id;
     if (tab === "tickets") return fillList(pane, "/api/tickets" + accountQs(aid, true), ticketRow);
     if (tab === "email") return fillList(pane, "/api/threads?account_id=" + encodeURIComponent(aid), threadRow);
-    if (tab === "slack") return fillList(pane, "/api/slack/messages?account_id=" + encodeURIComponent(aid), slackRow);
-    if (tab === "teams") return fillList(pane, "/api/teams/messages?account_id=" + encodeURIComponent(aid), teamsRow);
+    if (tab === "chat") return fillChat(pane, aid);
     if (tab === "salesforce") return fillSalesforce(pane, aid);
     if (tab === "calendar") return fillList(pane, "/api/calendar?account_id=" + encodeURIComponent(aid), calRow);
     if (tab === "projects") return fillProjects(pane, acct);
     if (tab === "people") return fillPeople(pane, acct);
     if (tab === "orgchart") return fillOrgChart(pane, acct);
     if (tab === "accountteam") return fillAccountTeam(pane, acct);
-    return fillTimeline(pane, "/api/accounts/" + encodeURIComponent(aid) + "/timeline" + accountQs("", false));
+    return fillTimeline(pane, timelineFetchUrl(aid));
   }
 
   function slashState(raw) {
@@ -2036,6 +2723,176 @@
     return item || {};
   }
 
+  function itemTime(item) {
+    var raw = (item && (item.at || item.start_at)) || "";
+    var t = new Date(raw).getTime();
+    return isNaN(t) ? 0 : t;
+  }
+
+  function sortTimelineItems(items) {
+    return (items || []).slice().sort(function (a, b) {
+      return itemTime(a) - itemTime(b);
+    });
+  }
+
+  function timelineNowItem() {
+    var li = document.createElement("li");
+    li.className = "timeline-now-item";
+    li.setAttribute("data-now", "1");
+    var line = document.createElement("div");
+    line.className = "tl-now";
+    line.setAttribute("aria-hidden", "true");
+    var label = document.createElement("span");
+    label.className = "tl-now-label";
+    label.textContent = "Now";
+    li.appendChild(line);
+    li.appendChild(label);
+    return li;
+  }
+
+  function padTimelineAxis(root, layout) {
+    var ul = root.querySelector(".timeline");
+    if (!ul) return;
+    var want = layout === "horizontal" ? "horizontal" : "vertical";
+    var sc = want === "horizontal"
+      ? (root.querySelector(".timeline-scroll") || root)
+      : (root.closest ? (root.closest(".pane") || root) : root);
+    var size = want === "horizontal" ? sc.clientWidth : sc.clientHeight;
+    var pad = Math.max(32, Math.floor((size || 0) / 2));
+    if (want === "horizontal") {
+      ul.style.paddingLeft = pad + "px";
+      ul.style.paddingRight = pad + "px";
+      ul.style.paddingTop = "";
+      ul.style.paddingBottom = "";
+    } else {
+      ul.style.paddingTop = pad + "px";
+      ul.style.paddingBottom = pad + "px";
+      ul.style.paddingLeft = "";
+      ul.style.paddingRight = "";
+    }
+  }
+
+  function scrollTimelineToNow(root, layout, opts) {
+    var nowEl = root.querySelector("[data-now]");
+    if (!nowEl) return;
+    var behavior = (opts && opts.behavior) || "auto";
+    requestAnimationFrame(function () {
+      padTimelineAxis(root, layout || timelineLayout());
+      requestAnimationFrame(function () {
+        nowEl.scrollIntoView({ block: "center", inline: "center", behavior: behavior });
+      });
+    });
+  }
+
+  function applyTimelineLayout(root, layout) {
+    var want = layout === "horizontal" ? "horizontal" : "vertical";
+    var ul = root.querySelector(".timeline");
+    if (ul) {
+      ul.classList.toggle("timeline-vertical", want === "vertical");
+      ul.classList.toggle("timeline-horizontal", want === "horizontal");
+    }
+    var scroll = root.querySelector(".timeline-scroll");
+    if (scroll) scroll.classList.toggle("is-horizontal", want === "horizontal");
+    var shell = root.querySelector(".timeline-shell");
+    if (shell) {
+      shell.classList.toggle("is-horizontal", want === "horizontal");
+      shell.classList.toggle("is-vertical", want === "vertical");
+    }
+    root.querySelectorAll("[data-tl-layout]").forEach(function (b) {
+      b.classList.toggle("is-on", b.getAttribute("data-tl-layout") === want);
+    });
+    scrollTimelineToNow(root, want);
+  }
+
+  function timelineWindow() {
+    var p = userPrefs();
+    var now = Date.now();
+    return {
+      now: now,
+      pastDays: p.timeline_past_days,
+      nextDays: p.timeline_next_days,
+      since: now - p.timeline_past_days * 86400000,
+      until: now + p.timeline_next_days * 86400000,
+    };
+  }
+
+  function timelineFetchUrl(aid) {
+    var w = timelineWindow();
+    var parts = [];
+    var extra = accountQs("", false);
+    if (extra.charAt(0) === "?") extra = extra.slice(1);
+    if (extra) parts.push(extra);
+    parts.push("since=" + encodeURIComponent(new Date(w.since).toISOString()));
+    parts.push("until=" + encodeURIComponent(new Date(w.until).toISOString()));
+    parts.push("limit=200");
+    return "/api/accounts/" + encodeURIComponent(aid) + "/timeline?" + parts.join("&");
+  }
+
+  function reloadTimeline() {
+    if (!currentAccount || currentTab !== "timeline") return;
+    var pane = $("account-pane");
+    if (!pane) return;
+    empty(pane);
+    fillTimeline(pane, timelineFetchUrl(currentAccount.account_id));
+  }
+
+  function timelineRangeButtons(side) {
+    var box = document.createElement("div");
+    box.className = "timeline-range is-" + side;
+    var current = side === "past" ? userPrefs().timeline_past_days : userPrefs().timeline_next_days;
+    var pairs = side === "past"
+      ? [[7, "Past 7 days"], [30, "Past 30 days"]]
+      : [[7, "Next 7 days"], [30, "Next 30 days"]];
+    pairs.forEach(function (pair) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "btn" + (current === pair[0] ? " is-on" : "");
+      b.textContent = pair[1];
+      b.setAttribute("data-tl-range", side + "-" + pair[0]);
+      b.addEventListener("click", function () {
+        var patch = side === "past"
+          ? { timeline_past_days: pair[0] }
+          : { timeline_next_days: pair[0] };
+        savePreferences(patch, { calendar: false });
+        reloadTimeline();
+      });
+      box.appendChild(b);
+    });
+    return box;
+  }
+
+  function timelineOrientBar(pane, layout) {
+    var bar = document.createElement("div");
+    bar.className = "pane-toolbar pane-toolbar-spread";
+    var nowBtn = document.createElement("button");
+    nowBtn.type = "button";
+    nowBtn.className = "btn timeline-now-btn";
+    nowBtn.textContent = "Now";
+    nowBtn.title = "Scroll to now";
+    nowBtn.addEventListener("click", function () {
+      scrollTimelineToNow(pane, layout, { behavior: "smooth" });
+    });
+    bar.appendChild(nowBtn);
+    var views = document.createElement("div");
+    views.className = "timeline-orient";
+    views.setAttribute("role", "tablist");
+    views.setAttribute("aria-label", "Timeline layout");
+    [["vertical", "Vertical"], ["horizontal", "Horizontal"]].forEach(function (pair) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "tab" + (layout === pair[0] ? " is-on" : "");
+      b.textContent = pair[1];
+      b.setAttribute("data-tl-layout", pair[0]);
+      b.addEventListener("click", function () {
+        savePreferences({ timeline_layout: pair[0] }, { calendar: false });
+        reloadTimeline();
+      });
+      views.appendChild(b);
+    });
+    bar.appendChild(views);
+    return bar;
+  }
+
   function fillTimeline(pane, url) {
     var aid = currentAccount && currentAccount.account_id;
     var notesP = aid ? api("/api/notes?account_id=" + encodeURIComponent(aid)) : Promise.resolve({ items: [] });
@@ -2062,29 +2919,74 @@
           });
         });
       }
-      if (!items.length) {
+      var layout = timelineLayout();
+      pane.appendChild(timelineOrientBar(pane, layout));
+      var w = timelineWindow();
+      items = sortTimelineItems(items).filter(function (it) {
+        var t = itemTime(it);
+        return t >= w.since && t <= w.until;
+      });
+      var past = [];
+      var future = [];
+      items.forEach(function (it) {
+        if (itemTime(it) > w.now) future.push(it);
+        else past.push(it);
+      });
+      if (past.length > TL_SIDE_CAP) past = past.slice(-TL_SIDE_CAP);
+      if (future.length > TL_SIDE_CAP) future = future.slice(0, TL_SIDE_CAP);
+      var shell = document.createElement("div");
+      shell.className = "timeline-shell " + (layout === "horizontal" ? "is-horizontal" : "is-vertical");
+      var scroll = document.createElement("div");
+      scroll.className = "timeline-scroll" + (layout === "horizontal" ? " is-horizontal" : "");
+      if (!past.length && !future.length) {
         var p = document.createElement("p");
         p.className = "muted";
-        p.textContent = "Nothing here yet.";
-        pane.appendChild(p);
-        return;
+        p.textContent = "No events in this window.";
+        scroll.appendChild(p);
+      } else {
+        var ul = document.createElement("ul");
+        ul.className = "timeline timeline-snap-icon " + (layout === "horizontal" ? "timeline-horizontal" : "timeline-vertical");
+        var visual = layout === "vertical"
+          ? future.slice().reverse().concat([null]).concat(past.slice().reverse())
+          : past.concat([null]).concat(future);
+        function addCard(item, visIndex) {
+          var count = (byAct[item._id] || []).length || item.note_count || 0;
+          item.note_count = count;
+          ul.appendChild(timelineItem(item, visIndex, {
+            lead: visIndex > 0,
+            trail: visIndex < visual.length - 1,
+          }));
+        }
+        visual.forEach(function (item, visIndex) {
+          if (!item) {
+            ul.appendChild(timelineNowItem());
+            return;
+          }
+          addCard(item, visIndex);
+        });
+        scroll.appendChild(ul);
       }
-      var ul = document.createElement("ul");
-      ul.className = "timeline timeline-vertical timeline-snap-icon";
-      items.forEach(function (item, i) {
-        var count = (byAct[item._id] || []).length || item.note_count || 0;
-        item.note_count = count;
-        ul.appendChild(timelineItem(item, i, items.length));
-      });
-      pane.appendChild(ul);
+      if (layout === "vertical") {
+        shell.appendChild(timelineRangeButtons("next"));
+        shell.appendChild(scroll);
+        shell.appendChild(timelineRangeButtons("past"));
+      } else {
+        shell.appendChild(timelineRangeButtons("past"));
+        shell.appendChild(scroll);
+        shell.appendChild(timelineRangeButtons("next"));
+      }
+      pane.appendChild(shell);
+      scrollTimelineToNow(pane, layout);
     });
   }
 
-  function timelineItem(item, index, total) {
+  function timelineItem(item, index, opts) {
+    opts = opts || {};
     var group = kindGroup(item.kind);
     var li = document.createElement("li");
     li.className = "is-" + group;
-    if (index > 0) li.appendChild(document.createElement("hr"));
+    if (itemTime(item) < Date.now()) li.classList.add("is-past");
+    if (opts.lead) li.appendChild(document.createElement("hr"));
     var mid = document.createElement("div");
     mid.className = "timeline-middle is-" + group;
     var emoji = document.createElement("span");
@@ -2143,7 +3045,7 @@
       }
     });
     li.appendChild(side);
-    if (index < total - 1) li.appendChild(document.createElement("hr"));
+    if (opts.trail) li.appendChild(document.createElement("hr"));
     return li;
   }
 
@@ -2172,6 +3074,88 @@
       notesDirty = false;
       renderPane(currentAccount, "timeline");
     }
+  }
+
+  function openRoutedItem(tab, itemId) {
+    if (!itemId) return Promise.resolve();
+    if (tab === "calendar") {
+      return api("/api/calendar/" + encodeURIComponent(itemId)).then(openCalendarLightbox).catch(function (err) {
+        toast(String(err.message || err));
+      });
+    }
+    if (tab === "chat" || tab === "slack" || tab === "teams") {
+      return openChatMessage(itemId, tab);
+    }
+    return api("/api/tasks/" + encodeURIComponent(itemId)).then(function (doc) {
+      openTaskForm(doc);
+    }).catch(function () {
+      return api("/api/threads/" + encodeURIComponent(itemId)).then(openThreadLightbox);
+    }).catch(function (err) {
+      toast(String(err.message || err));
+    });
+  }
+
+  function openSheet(titleText) {
+    var box = $("detail-box");
+    if (!box) return null;
+    box.hidden = false;
+    box.classList.remove("hidden");
+    empty(box);
+    var sheet = document.createElement("article");
+    sheet.className = "sheet";
+    var head = document.createElement("header");
+    var h = document.createElement("h2");
+    h.textContent = titleText || "";
+    var close = document.createElement("button");
+    close.type = "button";
+    close.className = "btn btn-ghost sheet-close";
+    close.setAttribute("aria-label", "Close");
+    close.textContent = "×";
+    close.addEventListener("click", closeDetail);
+    head.appendChild(h);
+    head.appendChild(close);
+    sheet.appendChild(head);
+    box.appendChild(sheet);
+    return sheet;
+  }
+
+  function openCalendarLightbox(ev) {
+    if (!ev) return;
+    var sheet = openSheet(ev.title || "Meeting");
+    if (!sheet) return;
+    var when = document.createElement("p");
+    when.className = "muted";
+    var bits = [formatWhen(ev.start_at)];
+    if (ev.end_at) bits.push("– " + formatWhen(ev.end_at).replace(/^Today @ /, ""));
+    var mins = meetingLengthMins(ev.start_at, ev.end_at);
+    if (mins) bits.push(mins + " min");
+    if (ev.location) bits.push(ev.location);
+    if (ev.status === "proposed") bits.push("proposed");
+    when.textContent = bits.join(" · ");
+    sheet.appendChild(when);
+    var dl = document.createElement("dl");
+    dl.className = "sheet-kv";
+    kvRow(dl, "Account", (ev.account && (ev.account.name || ev.account.abbr)) || (currentAccount && currentAccount.name) || "");
+    kvRow(dl, "Location", ev.location || "");
+    var names = (ev.attendees || []).map(function (a) {
+      return (a && (a.name || a.email)) || "";
+    }).filter(Boolean);
+    kvRow(dl, "Attendees", names.join(", "));
+    if (dl.firstChild) sheet.appendChild(dl);
+  }
+
+  function openChatLightbox(doc, kind) {
+    if (!doc) return;
+    var sheet = openSheet(doc.user_name || doc.user || (kind === "teams" ? "Teams" : "Slack"));
+    if (!sheet) return;
+    var when = document.createElement("p");
+    when.className = "muted";
+    when.textContent = formatWhen(doc.ts || doc.at) + " · " + (kind === "teams" ? "Teams" : "Slack");
+    sheet.appendChild(when);
+    var body = document.createElement("div");
+    body.className = "sheet-body";
+    body.textContent = doc.text || doc.body || "";
+    sheet.appendChild(body);
   }
 
   function kvRow(dl, key, value) {
@@ -2517,13 +3501,15 @@
   function threadRow(item) {
     var row = rowEl((item.message_count || 0) + " msgs", item.subject || "", (item.last_at || "").replace("T", " ").slice(0, 16));
     row.classList.add("is-click");
+    if (item._id) row.setAttribute("data-doc-id", item._id);
     row.addEventListener("click", function () {
       if (!item._id) return;
       api("/api/threads/" + encodeURIComponent(item._id) + "/operator", {
         method: "PATCH",
         body: JSON.stringify({ unread: false }),
       }).catch(function () {});
-      openThreadLightbox(item);
+      if (currentAccount && currentAccount.abbr) goAccountItem(currentAccount.abbr, "email", item._id);
+      else openThreadLightbox(item);
     });
     return row;
   }
@@ -2576,6 +3562,12 @@
     use.type = "button";
     use.className = "btn";
     use.textContent = "Open in Compose";
+    var sendDraft = document.createElement("button");
+    sendDraft.type = "button";
+    sendDraft.className = "btn";
+    sendDraft.textContent = "Send";
+    sendDraft.disabled = true;
+    var savedDraftId = "";
     suggest.appendChild(sh);
     suggest.appendChild(hint);
     suggest.appendChild(go);
@@ -2583,6 +3575,7 @@
     suggest.appendChild(draftSub);
     suggest.appendChild(draftBody);
     suggest.appendChild(use);
+    suggest.appendChild(sendDraft);
     sheet.appendChild(suggest);
     box.appendChild(sheet);
     api("/api/threads/" + encodeURIComponent(item._id) + "?include=messages").then(function (doc) {
@@ -2618,11 +3611,33 @@
         draftTo.value = (doc.to_addrs || []).join(", ");
         draftSub.value = doc.subject || "";
         draftBody.value = doc.body || "";
-        toast(doc.result === "grok" ? "Suggested with Grok" : "Template suggestion");
+        savedDraftId = doc.draft_id || "";
+        sendDraft.disabled = !savedDraftId;
+        toast(doc.result === "grok" ? "Suggested with Grok · saved as draft" : "Template suggestion · saved as draft");
       }).catch(function (err) {
         toast(String(err.message || err));
       }).then(function () {
         go.disabled = false;
+      });
+    });
+    sendDraft.addEventListener("click", function () {
+      if (!savedDraftId || !window.confirm("Send this reply now?")) return;
+      sendDraft.disabled = true;
+      api("/api/drafts/" + encodeURIComponent(savedDraftId), {
+        method: "PATCH",
+        body: JSON.stringify({
+          to_addrs: draftTo.value.split(",").map(function (s) { return s.trim(); }).filter(Boolean),
+          subject: draftSub.value,
+          body: draftBody.value,
+        }),
+      }).then(function () {
+        return api("/api/drafts/" + encodeURIComponent(savedDraftId) + "/send", { method: "POST", body: "{}" });
+      }).then(function () {
+        toast("Sent");
+        closeDetail();
+      }).catch(function (err) {
+        toast(String(err.message || err));
+        sendDraft.disabled = false;
       });
     });
     use.addEventListener("click", function () {
@@ -2637,12 +3652,88 @@
     });
   }
 
-  function slackRow(item) {
-    return rowEl(item.user_name || "", item.text || "", item.ts || "");
+  function chatKindOf(item, hint) {
+    var id = String((item && item._id) || "");
+    var type = String((item && item.type) || "");
+    if (id.indexOf("tmm:") === 0 || type.indexOf("teams") === 0) return "teams";
+    if (id.indexOf("slm:") === 0 || type.indexOf("slack") === 0) return "slack";
+    if (hint === "teams" || hint === "slack") return hint;
+    return "";
   }
 
-  function teamsRow(item) {
-    return rowEl(item.user_name || "", item.text || "", "Teams · " + (item.ts || ""));
+  function chatWhen(item) {
+    var raw = (item && (item.ts || item.at)) || "";
+    var n = Number(raw);
+    if (!isNaN(n) && n > 1e9) return formatWhen(new Date(n < 1e12 ? n * 1000 : n).toISOString());
+    return formatWhen(raw) || String(raw || "");
+  }
+
+  function openChatMessage(itemId, hint) {
+    var kind = chatKindOf({ _id: itemId }, hint);
+    var slackPath = "/api/slack/messages/" + encodeURIComponent(itemId);
+    var teamsPath = "/api/teams/messages/" + encodeURIComponent(itemId);
+    function show(doc, source) {
+      openChatLightbox(doc, source);
+    }
+    function fail(err) {
+      toast(String(err.message || err));
+    }
+    if (kind === "teams") {
+      return api(teamsPath).then(function (doc) { show(doc, "teams"); }).catch(function () {
+        return api(slackPath).then(function (doc) { show(doc, "slack"); });
+      }).catch(fail);
+    }
+    return api(slackPath).then(function (doc) { show(doc, "slack"); }).catch(function () {
+      return api(teamsPath).then(function (doc) { show(doc, "teams"); });
+    }).catch(fail);
+  }
+
+  function chatRow(item) {
+    var kind = chatKindOf(item);
+    var row = rowEl(item.user_name || "", item.text || "", chatWhen(item));
+    row.classList.add("is-click", "is-chat");
+    row.setAttribute("data-chat-kind", kind);
+    row.insertBefore(kindIcon(kind), row.firstChild);
+    if (item._id) row.setAttribute("data-doc-id", item._id);
+    row.addEventListener("click", function () {
+      if (currentAccount && currentAccount.abbr && item._id) goAccountItem(currentAccount.abbr, "chat", item._id);
+    });
+    return row;
+  }
+
+  function fillChat(pane, aid) {
+    var s = slashState(accountQ);
+    var want = s.exact && (s.cmd === "slack" || s.cmd === "teams") ? s.cmd : "";
+    var qs = "?account_id=" + encodeURIComponent(aid) + "&limit=100";
+    var needle = (searchNeedle() || "").toLowerCase();
+    var slackReq = want === "teams" ? Promise.resolve({ items: [] }) : api("/api/slack/messages" + qs);
+    var teamsReq = want === "slack" ? Promise.resolve({ items: [] }) : api("/api/teams/messages" + qs);
+    return Promise.all([slackReq, teamsReq]).then(function (pair) {
+      var slack = (pair[0].items || []).map(function (item) {
+        return Object.assign({}, item, { type: item.type || "slack_message" });
+      });
+      var teams = (pair[1].items || []).map(function (item) {
+        return Object.assign({}, item, { type: item.type || "teams_message" });
+      });
+      var items = slack.concat(teams).sort(function (a, b) {
+        return String(b.ts || "").localeCompare(String(a.ts || ""));
+      });
+      if (needle) {
+        items = items.filter(function (item) {
+          return JSON.stringify(item).toLowerCase().indexOf(needle) >= 0;
+        });
+      }
+      if (!items.length) {
+        var p = document.createElement("p");
+        p.className = "muted";
+        p.textContent = want === "slack" ? "No Slack." : want === "teams" ? "No Teams." : "No Slack or Teams yet.";
+        pane.appendChild(p);
+        return;
+      }
+      items.forEach(function (item) {
+        pane.appendChild(chatRow(item));
+      });
+    });
   }
 
   function fillSalesforce(pane, aid) {
@@ -2693,7 +3784,13 @@
   }
 
   function calRow(item) {
-    return rowEl((item.start_at || "").slice(0, 16), item.title || "", item.location || "");
+    var row = rowEl((item.start_at || "").slice(0, 16), item.title || "", item.location || "");
+    row.classList.add("is-click");
+    if (item._id) row.setAttribute("data-doc-id", item._id);
+    row.addEventListener("click", function () {
+      if (currentAccount && currentAccount.abbr && item._id) goAccountItem(currentAccount.abbr, "calendar", item._id);
+    });
+    return row;
   }
 
   function projectKindLabel(kind) {
@@ -3065,7 +4162,9 @@
     });
     if (extra.firstChild && row.children[1]) row.children[1].appendChild(extra);
     if (acct) {
-      row.addEventListener("click", function () {
+      row.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
         openPersonForm(acct, item);
       });
     }
@@ -3086,7 +4185,9 @@
     add.type = "button";
     add.className = "btn btn-primary";
     add.textContent = "Add person";
-    add.addEventListener("click", function () {
+    add.addEventListener("click", function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
       openPersonForm(acct);
     });
     bar.appendChild(add);
@@ -3162,6 +4263,10 @@
       });
       scroll.appendChild(ul);
       pane.appendChild(scroll);
+      requestAnimationFrame(function () {
+        var extra = scroll.scrollWidth - scroll.clientWidth;
+        if (extra > 0) scroll.scrollLeft = extra / 2;
+      });
     });
   }
 
@@ -3212,7 +4317,9 @@
     card.appendChild(text);
     if (acct) {
       card.classList.add("is-click");
-      card.addEventListener("click", function () {
+      card.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
         openPersonForm(acct, person);
       });
     }
@@ -3264,7 +4371,9 @@
           td.textContent = val;
           tr.appendChild(td);
         });
-        tr.addEventListener("click", function () {
+        tr.addEventListener("click", function (ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
           openPersonForm(acct, person);
         });
         tbody.appendChild(tr);
@@ -3294,7 +4403,7 @@
     box.className = "check-row";
     var have = {};
     (values || []).forEach(function (v) { have[v] = true; });
-    items.forEach(function (item) {
+    (items || []).forEach(function (item) {
       var id = typeof item === "string" ? item : (item._id || "");
       var label = typeof item === "string" ? item : (labelFn ? labelFn(item) : (item.name || id));
       var lab = document.createElement("label");
@@ -3311,25 +4420,9 @@
 
   function openPersonForm(acct, person) {
     person = person || null;
-    var box = $("detail-box");
-    if (!box) return;
-    box.hidden = false;
-    box.classList.remove("hidden");
-    empty(box);
-    var sheet = document.createElement("article");
-    sheet.className = "sheet";
-    var head = document.createElement("header");
-    var h = document.createElement("h2");
-    h.textContent = person ? "Edit person" : "Add person";
-    var close = document.createElement("button");
-    close.type = "button";
-    close.className = "btn btn-ghost sheet-close";
-    close.setAttribute("aria-label", "Close");
-    close.textContent = "×";
-    close.addEventListener("click", closeDetail);
-    head.appendChild(h);
-    head.appendChild(close);
-    sheet.appendChild(head);
+    var sheet = openSheet(person ? "Edit person" : "Add person");
+    if (!sheet) return;
+    sheet.classList.add("sheet-person");
     var form = document.createElement("form");
     form.className = "form-grid";
     var name = document.createElement("input");
@@ -3361,7 +4454,7 @@
     form.appendChild(fieldLabel("Title", title));
     form.appendChild(fieldLabel("Kind", kind));
     form.appendChild(fieldLabel("Reports to", reports));
-    var projChecks = checkGroup(person && person.project_ids, accountProjects, function (p) {
+    var projChecks = checkGroup(person && person.project_ids, accountProjects || [], function (p) {
       return p.name || p._id;
     });
     form.appendChild(fieldLabel("Projects", projChecks));
@@ -3383,7 +4476,6 @@
     foot.appendChild(save);
     form.appendChild(foot);
     sheet.appendChild(form);
-    box.appendChild(sheet);
     api("/api/people?account_id=" + encodeURIComponent(acct.account_id)).then(function (data) {
       var selfId = (person && person._id) || "";
       (data.items || []).forEach(function (row) {
@@ -3581,7 +4673,7 @@
     });
   }
 
-  function fieldLabel(name) {
+  function humanizeField(name) {
     return String(name || "").replace(/_/g, " ");
   }
 
@@ -3754,7 +4846,7 @@
     form.appendChild(modeLabel);
     (c.fields || []).forEach(function (f) {
       var label = document.createElement("label");
-      label.textContent = fieldLabel(f.name) + (f.present ? " (saved)" : "");
+      label.textContent = humanizeField(f.name) + (f.present ? " (saved)" : "");
       var input = document.createElement("input");
       input.setAttribute("data-field", f.name);
       input.type = f.secret ? "password" : "text";
@@ -4582,6 +5674,34 @@
         });
       });
     }
+    if ($("pref-week-start")) {
+      $("pref-week-start").addEventListener("change", function () {
+        savePreferences({ week_start: +$("pref-week-start").value });
+      });
+    }
+    if ($("pref-days")) {
+      $("pref-days").addEventListener("change", function (ev) {
+        var hidden = readHiddenDays();
+        if (hidden === null) {
+          var cb = ev.target;
+          if (cb && cb.type === "checkbox") cb.checked = true;
+          toast("Keep at least one day visible");
+          return;
+        }
+        savePreferences({ hidden_weekdays: hidden });
+      });
+    }
+    if ($("pref-theme")) {
+      $("pref-theme").addEventListener("change", function (ev) {
+        var v = ev.target && ev.target.value;
+        if (v) savePreferences({ theme: v }, { calendar: false });
+      });
+    }
+    if ($("btn-theme")) {
+      $("btn-theme").addEventListener("click", function () {
+        savePreferences({ theme: resolvedTheme() === "night" ? "day" : "night" }, { calendar: false });
+      });
+    }
     if ($("btn-add-company")) {
       $("btn-add-company").addEventListener("click", function () {
         openCompanyForm(null);
@@ -4724,6 +5844,9 @@
     },
     getWorldClock: function () {
       return (status && status.world_clock) || {};
+    },
+    getPreferences: function () {
+      return userPrefs();
     },
     setWorldClock: function (clock) {
       if (!status) status = {};

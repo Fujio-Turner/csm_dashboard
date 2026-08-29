@@ -24,6 +24,7 @@ from csm_dashboard.compose.grok import (
 )
 from csm_dashboard.config import ROOT, Settings, fixtures_dir, load_settings
 from csm_dashboard.connectors import oauth as oauth_flow
+from csm_dashboard.connectors.smtp_imap import SendFailed, SendNotConfigured, deliver_mail
 from csm_dashboard.connectors.registry import PULL_CONNECTORS, connector_mode, get_connector, list_connectors
 from csm_dashboard.credentials import (
     AI_KEY_ALIASES,
@@ -35,6 +36,7 @@ from csm_dashboard.credentials import (
     connector_fields,
     normalize_ai_provider,
 )
+from csm_dashboard.ingest.activities import emit_email_activity
 from csm_dashboard.ingest.route import route_event
 from csm_dashboard.prompts import help_public, prompt_system
 from csm_dashboard.seed.load import apply_seed, apply_sync_event
@@ -46,6 +48,25 @@ log = logging.getLogger(__name__)
 
 HERE = Path(__file__).resolve().parent
 _INDEX_HTML: str | None = None
+
+
+def _send_mail(repo, *, from_addr: str, to_addrs: list, cc_addrs: list, subject: str, body: str) -> dict:
+    try:
+        return deliver_mail(
+            repo,
+            from_addr=from_addr,
+            to_addrs=list(to_addrs or []),
+            cc_addrs=list(cc_addrs or []),
+            subject=subject,
+            body=body,
+        )
+    except SendNotConfigured as exc:
+        raise HTTPException(409, str(exc) or "send_not_configured") from exc
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except SendFailed as exc:
+        log.warning("csm.mail.send_failed err=%s", exc.message)
+        raise HTTPException(502, "send_failed") from exc
 
 
 def _settings() -> Settings:
@@ -173,6 +194,7 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
             "tagline": settings.tagline,
             "operator": repo.operator_profile(doc),
             "world_clock": repo.world_clock(doc),
+            "preferences": repo.preferences(doc),
             "models": spec["models"],
             "default_model": spec["default_model"],
             "ai": {
@@ -225,6 +247,14 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
                 len(clock.get("timezones") or []),
                 clock.get("hour24"),
             )
+        if "preferences" in body:
+            prefs = repo_obj().preferences()
+            log.info(
+                "csm.preferences.updated week_start=%s hidden=%s theme=%s",
+                prefs.get("week_start"),
+                ",".join(str(d) for d in (prefs.get("hidden_weekdays") or [])),
+                prefs.get("theme"),
+            )
         return saved
 
     @app.get("/api/settings")
@@ -236,6 +266,7 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
             **doc,
             "operator": op,
             "world_clock": repo.world_clock(doc),
+            "preferences": repo.preferences(doc),
             "ai": doc.get("ai") or {"provider": "grok", "model": _settings().xai_default_model},
             "sso": public_sso(
                 doc,
@@ -308,8 +339,8 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         return {"items": _home_items()}
 
     @app.get("/api/home/agenda")
-    def get_home_agenda(date: str | None = None):
-        return repo_obj().home_agenda(date or "")
+    def get_home_agenda(date: str | None = None, start: str | None = None, end: str | None = None):
+        return repo_obj().home_agenda(date or "", start=start, end=end)
 
     @app.get("/api/accounts")
     def list_accounts(q: str | None = None, status: str | None = None, include: str | None = None):
@@ -344,6 +375,7 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
     def list_timeline(
         account_id: str,
         since: str | None = None,
+        until: str | None = None,
         kind: str | None = None,
         project_id: str | None = None,
         q: str | None = None,
@@ -354,6 +386,7 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
             "items": repo_obj().page_timeline(
                 account_id,
                 since=since,
+                until=until,
                 kind=kind,
                 project_id=project_id,
                 q=q,
@@ -603,13 +636,28 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         to_addrs = draft_body.get("to") or []
         if last and last.get("from_addr") and last.get("from_addr") not in to_addrs:
             to_addrs = [last["from_addr"], *to_addrs]
-        log.info("csm.draft.suggest_reply result=%s thread_id=%s", result, thread_id)
+        saved = repo_obj().create_draft(
+            {
+                "account_id": account_id,
+                "subject": draft_body.get("subject") or "",
+                "body": draft_body.get("body") or "",
+                "to_addrs": to_addrs,
+                "prompt_name": "email_draft",
+                "model": model,
+                "created_by": "grok" if result != "fallback" else "you",
+                "context_ref": {"thread_id": thread_id},
+                "status": "ready",
+                "channel": "email",
+            }
+        )
+        log.info("csm.draft.suggest_reply result=%s thread_id=%s draft_id=%s", result, thread_id, saved.get("_id"))
         return {
             "account_id": account_id,
             "thread_id": thread_id,
-            "subject": draft_body.get("subject") or "",
-            "body": draft_body.get("body") or "",
-            "to_addrs": to_addrs,
+            "draft_id": saved.get("_id") or "",
+            "subject": saved.get("subject") or "",
+            "body": saved.get("body") or "",
+            "to_addrs": saved.get("to_addrs") or to_addrs,
             "result": result,
             "model": model,
         }
@@ -743,6 +791,26 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
             len(doc.get("cc_addrs") or []),
         )
         return doc
+
+    @app.post("/api/tasks/{email_id:path}/send")
+    def send_task(email_id: str):
+        repo = repo_obj()
+        doc = repo.task_public(email_id)
+        if not doc:
+            raise HTTPException(404, "not found")
+        me = str(repo.operator_profile().get("email") or "").strip()
+        to_addrs = [addr for addr in (doc.get("to_addrs") or []) if addr] or ([me] if me else [])
+        sent = _send_mail(
+            repo,
+            from_addr=str(doc.get("from_addr") or me),
+            to_addrs=to_addrs,
+            cc_addrs=list(doc.get("cc_addrs") or []),
+            subject=str(doc.get("subject") or ""),
+            body=str(doc.get("body_text") or doc.get("content") or ""),
+        )
+        out = repo.mark_task_sent(email_id)
+        log.info("csm.task.sent email_id=%s via=%s", email_id, sent.get("via"))
+        return {**out, "sent": sent}
 
     @app.get("/api/tasks/{email_id:path}")
     def get_task(email_id: str):
@@ -984,10 +1052,45 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
 
     @app.post("/api/drafts/{draft_id}/send")
     def send_draft(draft_id: str):
-        if not repo_obj().get_draft(draft_id):
+        repo = repo_obj()
+        doc = repo.get_draft(draft_id)
+        if not doc:
             raise HTTPException(404, "not found")
-        log.info("csm.draft.send_blocked draft_id=%s", draft_id)
-        raise HTTPException(409, "send_disabled_v0_1")
+        me = str(repo.operator_profile().get("email") or "").strip()
+        to_addrs = [addr for addr in (doc.get("to_addrs") or []) if addr]
+        try:
+            sent = _send_mail(
+                repo,
+                from_addr=me,
+                to_addrs=to_addrs,
+                cc_addrs=list(doc.get("cc_addrs") or []),
+                subject=str(doc.get("subject") or ""),
+                body=str(doc.get("body") or ""),
+            )
+        except HTTPException as exc:
+            if exc.status_code == 502:
+                repo.mark_draft_sent(draft_id, error="send_failed")
+            raise
+        out = repo.mark_draft_sent(draft_id)
+        outbound = repo.upsert_email(
+            {
+                "account_id": doc.get("account_id") or "",
+                "direction": "outbound",
+                "from_addr": sent.get("from_addr") or me,
+                "to_addrs": sent.get("to_addrs") or to_addrs,
+                "cc_addrs": list(doc.get("cc_addrs") or []),
+                "subject": doc.get("subject") or "",
+                "body_text": doc.get("body") or "",
+                "snippet": str(doc.get("body") or "")[:180],
+                "sent_at": out.get("sent_at") or utcnow(),
+                "message_id": f"<draft.{draft_id.split(':')[-1]}@csm.local>",
+                "operator": {"unread": False},
+                "sources": {"smtp": {"draft_id": draft_id}},
+            }
+        )
+        emit_email_activity(repo, outbound)
+        log.info("csm.draft.sent draft_id=%s via=%s", draft_id, sent.get("via"))
+        return {**out, "sent": sent}
 
     @app.get("/api/reports")
     def list_reports(account_id: str | None = None):

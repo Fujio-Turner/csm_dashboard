@@ -46,7 +46,10 @@ Event names: `csm.<area>.<verb>`.
 | `csm.settings.provider_test` | AI test button |
 | `csm.connector.test` | connector Test button |
 | `csm.draft.created` / `updated` / `compose` | `result=grok\|fallback`, `prompt_name` |
-| `csm.draft.send_blocked` | v0.1 409 |
+| `csm.draft.sent` | SMTP delivered a draft; `draft_id`, `via` |
+| `csm.task.sent` | SMTP delivered a self-email task; `email_id`, `via` |
+| `csm.mail.sent` | SMTP accepted the message; `host`, `to_count` (no addresses) |
+| `csm.mail.send_failed` | SMTP raised; `err` only |
 | `csm.report.generated` | `kind`, `account_id` |
 | `csm.ai.complete` | `account_id`, `prompt_name`, `model`, token counts, `truncated` |
 | `csm.chat.turn` | `model`, `tools=`, `result=` |

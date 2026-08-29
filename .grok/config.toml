@@ -1,0 +1,14 @@
+# Project-scoped MCP. Grok loads this when the cwd is this repo.
+# Playwright drives the local desk at http://127.0.0.1:8788 (or localhost:8788).
+
+[mcp_servers.playwright]
+command = "npx"
+args = [
+  "-y",
+  "@playwright/mcp@latest",
+  "--isolated",
+  "--viewport-size=1280x800",
+]
+enabled = true
+startup_timeout_sec = 120
+tool_timeout_sec = 120
