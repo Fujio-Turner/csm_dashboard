@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import logging
 import smtplib
 from email.message import EmailMessage
@@ -72,13 +73,53 @@ def send_configured(repo) -> bool:
     )
 
 
+_MAX_ATTACH_BYTES = 5 * 1024 * 1024
+_MAX_ATTACH_COUNT = 8
+
+
+def parse_attachments(items: list | None) -> list[tuple[str, str, bytes]]:
+    out: list[tuple[str, str, bytes]] = []
+    for item in items or []:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("filename") or "file")[:180] or "file"
+        ctype = str(item.get("content_type") or "application/octet-stream")
+        raw = str(item.get("content_b64") or "")
+        if not raw:
+            continue
+        try:
+            data = base64.b64decode(raw, validate=False)
+        except Exception as exc:
+            raise ValueError("attachment_invalid") from exc
+        if len(data) > _MAX_ATTACH_BYTES:
+            raise ValueError("attachment_too_large")
+        out.append((name, ctype, data))
+        if len(out) > _MAX_ATTACH_COUNT:
+            raise ValueError("too_many_attachments")
+    return out
+
+
+def add_attachments(msg: EmailMessage, attachments: list | None) -> None:
+    for item in attachments or []:
+        name, ctype, data = item
+        main, _, sub = str(ctype or "application/octet-stream").partition("/")
+        msg.add_attachment(
+            data,
+            maintype=main or "application",
+            subtype=sub or "octet-stream",
+            filename=str(name or "file"),
+        )
+
+
 def build_message(
     *,
     from_addr: str,
     to_addrs: list[str],
     cc_addrs: list[str] | None = None,
+    bcc_addrs: list[str] | None = None,
     subject: str,
     body: str,
+    attachments: list | None = None,
 ) -> EmailMessage:
     msg = EmailMessage()
     msg["From"] = from_addr
@@ -86,8 +127,12 @@ def build_message(
     cc = [addr for addr in (cc_addrs or []) if addr]
     if cc:
         msg["Cc"] = ", ".join(cc)
+    bcc = [addr for addr in (bcc_addrs or []) if addr]
+    if bcc:
+        msg["Bcc"] = ", ".join(bcc)
     msg["Subject"] = subject or ""
     msg.set_content(body or "")
+    add_attachments(msg, attachments)
     return msg
 
 
@@ -135,8 +180,10 @@ def deliver_mail(
     from_addr: str,
     to_addrs: list[str],
     cc_addrs: list[str] | None = None,
+    bcc_addrs: list[str] | None = None,
     subject: str,
     body: str,
+    attachments: list | None = None,
 ) -> dict:
     secret = smtp_secret(repo)
     if not send_configured(repo):
@@ -147,13 +194,22 @@ def deliver_mail(
         raise SendNotConfigured("operator_email_required")
     if not to:
         raise ValueError("to_addrs required")
+    raw = list(attachments or [])
+    files = parse_attachments(raw) if raw and isinstance(raw[0], dict) else raw
     msg = build_message(
         from_addr=sender,
         to_addrs=to,
         cc_addrs=cc_addrs,
+        bcc_addrs=bcc_addrs,
         subject=subject,
         body=body,
+        attachments=files,
     )
     host = send_via_smtp(secret, msg)
-    log.info("csm.mail.sent via=smtp host=%s to_count=%s", host, len(to))
-    return {"via": "smtp", "host": host, "from_addr": sender, "to_addrs": to}
+    log.info(
+        "csm.mail.sent via=smtp host=%s to_count=%s attach_count=%s",
+        host,
+        len(to),
+        len(files),
+    )
+    return {"via": "smtp", "host": host, "from_addr": sender, "to_addrs": to, "attach_count": len(files)}

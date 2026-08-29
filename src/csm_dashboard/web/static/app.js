@@ -231,6 +231,293 @@
     if (node) node.textContent = "";
   }
 
+  var _searchSelectOpen = null;
+  var _searchSelectBound = false;
+
+  function closeSearchSelect(inst) {
+    if (!inst) inst = _searchSelectOpen;
+    if (!inst || !inst.menu) return;
+    inst.menu.hidden = true;
+    inst.menu.classList.add("hidden");
+    if (_searchSelectOpen === inst) _searchSelectOpen = null;
+  }
+
+  function ensureSearchSelectDoc() {
+    if (_searchSelectBound) return;
+    _searchSelectBound = true;
+    document.addEventListener("click", function (ev) {
+      if (!_searchSelectOpen) return;
+      if (_searchSelectOpen.wrap && _searchSelectOpen.wrap.contains(ev.target)) return;
+      if (_searchSelectOpen.menu && _searchSelectOpen.menu.contains(ev.target)) return;
+      closeSearchSelect();
+    });
+    window.addEventListener("resize", function () {
+      if (_searchSelectOpen && _searchSelectOpen.place) _searchSelectOpen.place();
+    });
+    window.addEventListener("scroll", function () {
+      if (_searchSelectOpen && _searchSelectOpen.place) _searchSelectOpen.place();
+    }, true);
+  }
+
+  function mountSearchSelect(opts) {
+    opts = opts || {};
+    ensureSearchSelectDoc();
+    var items = (opts.items || []).slice();
+    var multiple = !!opts.multiple;
+    var allowCustom = !!opts.allowCustom;
+    var trigger = opts.trigger === "input" ? "input" : "button";
+    var selected = multiple ? (opts.value ? opts.value.slice() : []) : (opts.value || "");
+    var query = "";
+    var hi = -1;
+    var shown = [];
+    var wrap = document.createElement("div");
+    wrap.className = "search-select" + (trigger === "input" ? " is-input" : "") + (opts.wrapClass ? " " + opts.wrapClass : "");
+    var btn;
+    if (trigger === "input") {
+      btn = document.createElement("input");
+      btn.type = "search";
+      btn.className = "search search-select-input" + (opts.btnClass ? " " + opts.btnClass : "");
+      btn.placeholder = opts.placeholder || "";
+      btn.setAttribute("autocomplete", "off");
+    } else {
+      btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "toolbar-filter search-select-btn" + (opts.btnClass ? " " + opts.btnClass : "");
+    }
+    if (opts.ariaLabel) btn.setAttribute("aria-label", opts.ariaLabel);
+    btn.setAttribute("aria-haspopup", "listbox");
+    var menu = document.createElement("div");
+    menu.className = "search-select-menu hidden";
+    menu.hidden = true;
+    var search = null;
+    if (trigger !== "input") {
+      search = document.createElement("input");
+      search.type = "search";
+      search.className = "search";
+      search.placeholder = opts.searchPlaceholder || opts.placeholder || "Search";
+      search.setAttribute("aria-label", opts.searchPlaceholder || "Search");
+      search.setAttribute("autocomplete", "off");
+      menu.appendChild(search);
+    }
+    var list = document.createElement("div");
+    list.className = "search-select-list";
+    list.setAttribute("role", "listbox");
+    menu.appendChild(list);
+    wrap.appendChild(btn);
+    document.body.appendChild(menu);
+
+    function labelFor(value) {
+      if (value === "" && opts.emptyLabel) return opts.emptyLabel;
+      var hit = items.filter(function (it) { return String(it.value) === String(value); })[0];
+      return (hit && (hit.label || hit.value)) || String(value || "");
+    }
+    function hay(it) {
+      return String((it && (it.search || it.label || it.value)) || "").toLowerCase();
+    }
+    function isOn(value) {
+      if (multiple) return selected.indexOf(value) >= 0;
+      return String(selected) === String(value);
+    }
+    function buttonText() {
+      if (multiple) {
+        if (!selected.length) return opts.placeholder || opts.emptyLabel || "Select";
+        if (selected.length === 1) return labelFor(selected[0]);
+        return selected.length + " selected";
+      }
+      if (selected === "" || selected == null) return opts.placeholder || opts.emptyLabel || "Select";
+      return labelFor(selected);
+    }
+    function paintBtn() {
+      if (trigger === "input") {
+        if (document.activeElement !== btn) {
+          btn.value = multiple ? (selected.length ? buttonText() : "") : (selected ? labelFor(selected) : query);
+          if (allowCustom && !multiple && selected) btn.value = labelFor(selected);
+        }
+        return;
+      }
+      btn.textContent = buttonText();
+      btn.title = multiple ? selected.map(labelFor).join(", ") : buttonText();
+    }
+    function place() {
+      if (menu.hidden) return;
+      var cap = Math.min(window.innerWidth - 16, 42 * 16);
+      var w = Math.min(cap, Math.max(opts.minWidth || 16 * 16, wrap.getBoundingClientRect().width || 16 * 16));
+      var r = wrap.getBoundingClientRect();
+      var top = r.bottom + 4;
+      var left = r.left;
+      if (opts.align === "right") left = r.right - w;
+      if (left < 8) left = 8;
+      if (left + w > window.innerWidth - 8) left = Math.max(8, window.innerWidth - 8 - w);
+      var maxH = Math.min(18 * 16, window.innerHeight - top - 12);
+      if (maxH < 8 * 16 && r.top > window.innerHeight / 2) {
+        maxH = Math.min(18 * 16, r.top - 16);
+        top = Math.max(8, r.top - 4 - maxH);
+      }
+      menu.style.top = top + "px";
+      menu.style.left = left + "px";
+      menu.style.width = w + "px";
+      list.style.maxHeight = Math.max(6 * 16, maxH - (search ? 48 : 12)) + "px";
+    }
+    function emit() {
+      if (opts.onChange) opts.onChange(multiple ? selected.slice() : selected, query);
+    }
+    function choose(value) {
+      if (multiple) {
+        var i = selected.indexOf(value);
+        if (i >= 0) selected.splice(i, 1);
+        else selected.push(value);
+        paintBtn();
+        paintList();
+        emit();
+        return;
+      }
+      selected = value;
+      query = "";
+      if (trigger === "input") btn.value = labelFor(value);
+      paintBtn();
+      closeSearchSelect(api);
+      emit();
+    }
+    function paintList() {
+      empty(list);
+      var q = (trigger === "input" ? String(btn.value || "") : query).toLowerCase().trim();
+      shown = [];
+      if (!q && opts.emptyLabel && !multiple) {
+        shown.push({ value: "", label: opts.emptyLabel, search: opts.emptyLabel });
+      }
+      var cap = opts.maxShown || 80;
+      var pin = opts.pinValues || [];
+      items.forEach(function (it) {
+        if (q && hay(it).indexOf(q) < 0) return;
+        if (!q && it.value === "" && opts.emptyLabel) return;
+        if (!q && pin.length && it.value && pin.indexOf(it.value) < 0 && !isOn(it.value)) return;
+        shown.push(it);
+      });
+      if (shown.length > cap) shown = shown.slice(0, cap);
+      if (allowCustom && q) {
+        var exists = shown.some(function (it) {
+          return String(it.label || it.value).toLowerCase() === q;
+        });
+        if (!exists) shown.unshift({ value: trigger === "input" ? btn.value.trim() : q, label: "Use “" + (trigger === "input" ? btn.value.trim() : q) + "”", search: q, custom: true });
+      }
+      if (hi >= shown.length) hi = shown.length - 1;
+      shown.forEach(function (it, idx) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "search-select-opt" + (isOn(it.value) ? " is-on" : "") + (idx === hi ? " is-hi" : "");
+        b.textContent = it.label || it.value;
+        b.title = it.label || it.value;
+        b.addEventListener("mousedown", function (ev) { ev.preventDefault(); });
+        b.addEventListener("click", function () { choose(it.custom ? it.value : it.value); });
+        list.appendChild(b);
+      });
+      if (!list.firstChild) {
+        var p = document.createElement("p");
+        p.className = "muted";
+        p.textContent = allowCustom ? "Type to add, or pick a match." : "No match.";
+        list.appendChild(p);
+      }
+      place();
+    }
+    function open() {
+      if (_searchSelectOpen && _searchSelectOpen !== api) closeSearchSelect(_searchSelectOpen);
+      if (search) search.value = "";
+      query = "";
+      hi = -1;
+      menu.hidden = false;
+      menu.classList.remove("hidden");
+      _searchSelectOpen = api;
+      paintList();
+      place();
+      var focusEl = search || (trigger === "input" ? btn : search);
+      if (focusEl) focusEl.focus();
+    }
+    function onQuery(ev) {
+      query = (search && search.value) || (trigger === "input" ? btn.value : "") || "";
+      hi = 0;
+      paintList();
+      if (opts.onQuery) opts.onQuery(query);
+      if (ev && ev.type === "input" && trigger === "input" && allowCustom && !multiple) {
+        selected = btn.value;
+      }
+    }
+    function onKey(ev) {
+      if (ev.key === "Escape") {
+        ev.preventDefault();
+        closeSearchSelect(api);
+        btn.focus();
+        return;
+      }
+      if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+        ev.preventDefault();
+        if (menu.hidden) {
+          open();
+          return;
+        }
+        if (!shown.length) return;
+        if (ev.key === "ArrowDown") hi = hi < 0 ? 0 : (hi + 1) % shown.length;
+        else hi = hi <= 0 ? shown.length - 1 : hi - 1;
+        paintList();
+        var hit = list.querySelector(".is-hi");
+        if (hit && hit.scrollIntoView) hit.scrollIntoView({ block: "nearest" });
+        return;
+      }
+      if (ev.key === "Enter") {
+        if (menu.hidden) return;
+        ev.preventDefault();
+        if (hi >= 0 && shown[hi]) choose(shown[hi].value);
+        else if (allowCustom && (trigger === "input" ? btn.value.trim() : query)) {
+          choose(trigger === "input" ? btn.value.trim() : query);
+        }
+      }
+    }
+    btn.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      if (trigger === "button") {
+        if (!menu.hidden && _searchSelectOpen === api) {
+          closeSearchSelect(api);
+          return;
+        }
+        open();
+      }
+    });
+    btn.addEventListener("focus", function () {
+      if (trigger === "input") open();
+    });
+    btn.addEventListener("input", onQuery);
+    btn.addEventListener("keydown", onKey);
+    if (search) {
+      search.addEventListener("input", onQuery);
+      search.addEventListener("keydown", onKey);
+    }
+    paintBtn();
+    var api = {
+      wrap: wrap,
+      menu: menu,
+      el: wrap,
+      place: place,
+      get: function () {
+        return multiple ? selected.slice() : selected;
+      },
+      set: function (value) {
+        selected = multiple ? (value ? value.slice() : []) : (value || "");
+        query = "";
+        paintBtn();
+        if (!menu.hidden) paintList();
+      },
+      setItems: function (next) {
+        items = (next || []).slice();
+        if (!menu.hidden) paintList();
+        paintBtn();
+      },
+      destroy: function () {
+        closeSearchSelect(api);
+        if (menu.parentNode) menu.parentNode.removeChild(menu);
+      },
+    };
+    return api;
+  }
+
   function showView(name) {
     document.querySelectorAll(".view").forEach(function (v) {
       v.classList.toggle("is-on", v.getAttribute("data-view") === name);
@@ -409,31 +696,41 @@
   }
 
   function fillTimezoneSelect(selected) {
-    var sel = $("op-timezone");
-    if (!sel) return;
+    var hidden = $("op-timezone");
+    var host = $("op-timezone-picker");
     var wanted = (selected || "").trim() || "UTC";
-    if (sel.options.length > 20) {
-      sel.value = wanted;
-      if (sel.value !== wanted) {
-        var extra = document.createElement("option");
-        extra.value = wanted;
-        extra.textContent = String(wanted).replace(/_/g, " ");
-        sel.insertBefore(extra, sel.firstChild);
-        sel.value = wanted;
-      }
-      return;
-    }
+    if (hidden) hidden.value = wanted;
+    if (!host) return;
     var zones = timezoneOptions();
     if (zones.indexOf("UTC") < 0) zones = ["UTC"].concat(zones);
     if (wanted && zones.indexOf(wanted) < 0) zones = [wanted].concat(zones);
-    empty(sel);
-    zones.forEach(function (z) {
-      var opt = document.createElement("option");
-      opt.value = z;
-      opt.textContent = String(z).replace(/_/g, " ");
-      sel.appendChild(opt);
+    var items = zones.map(function (z) {
+      var parts = String(z).split("/");
+      var city = (parts[parts.length - 1] || z).replace(/_/g, " ");
+      var region = parts.length > 1 ? parts.slice(0, -1).join(" / ").replace(/_/g, " ") : "";
+      var label = region ? city + " · " + region : city;
+      return { value: z, label: label, search: (label + " " + z + " " + city).toLowerCase() };
     });
-    sel.value = wanted;
+    if (host._picker) {
+      host._picker.setItems(items);
+      host._picker.set(wanted);
+      return;
+    }
+    host._picker = mountSearchSelect({
+      placeholder: "Timezone",
+      searchPlaceholder: "Search city or timezone",
+      ariaLabel: "Timezone",
+      items: items,
+      value: wanted,
+      pinValues: TZ_FALLBACK.concat([wanted]),
+      maxShown: 60,
+      minWidth: 22 * 16,
+      btnClass: "search-select-btn-block",
+      onChange: function (v) {
+        if (hidden) hidden.value = v;
+      },
+    });
+    host.appendChild(host._picker.el);
   }
 
   function ymdInZone(d, tz) {
@@ -1558,6 +1855,26 @@
     root.appendChild(board);
   }
 
+  var AUDIENCE_STAMP = {
+    me: { label: "Me", title: "To Me" },
+    us: { label: "Us", title: "To Us" },
+    them: { label: "Them", title: "To Them" },
+    all: { label: "All", title: "To All" },
+    unknown: { label: "??", title: "Don't know" },
+    na: { label: "n/a", title: "n/a" },
+  };
+
+  function audienceStamp(value) {
+    var key = AUDIENCE_STAMP[value] ? value : "unknown";
+    var spec = AUDIENCE_STAMP[key];
+    var el = document.createElement("span");
+    el.className = "agenda-who is-" + key;
+    el.textContent = spec.label;
+    el.title = spec.title;
+    el.setAttribute("aria-label", spec.title);
+    return el;
+  }
+
   function renderAgendaInbox(root, items) {
     empty(root);
     var want = agendaInboxFilter || "all";
@@ -1614,6 +1931,7 @@
       }
       card.appendChild(lead);
       card.appendChild(bodyWrap);
+      card.appendChild(audienceStamp(item.audience));
       card.addEventListener("click", function () {
         var abbr = item.account && item.account.abbr;
         if (!abbr || !itemId) {
@@ -1632,6 +1950,10 @@
   function closeTaskForm() {
     var box = $("task-box");
     if (!box) return;
+    if (box._mail && box._mail.destroy) box._mail.destroy();
+    box._mail = null;
+    if (box._namePick && box._namePick.destroy) box._namePick.destroy();
+    box._namePick = null;
     box.hidden = true;
     box.classList.add("hidden");
     empty(box);
@@ -1677,9 +1999,16 @@
     preview.className = "muted task-subject-preview";
     var company = document.createElement("select");
     company.id = "task-account";
-    var name = document.createElement("input");
-    name.id = "task-name";
-    name.placeholder = "Task name";
+    var namePick = mountSearchSelect({
+      trigger: "input",
+      placeholder: "Task name",
+      ariaLabel: "Task name",
+      allowCustom: true,
+      items: [],
+      onChange: function () { refreshPreview(); },
+      onQuery: function () { refreshPreview(); },
+    });
+    namePick.el.id = "task-name";
     var kind = document.createElement("select");
     kind.id = "task-kind";
     TASK_KINDS.forEach(function (k) {
@@ -1691,86 +2020,18 @@
     var due = document.createElement("input");
     due.id = "task-due";
     due.type = "datetime-local";
-    var cc = document.createElement("input");
-    cc.id = "task-cc";
-    cc.className = "tag-input";
-    cc.placeholder = "Name or email";
-    var body = document.createElement("textarea");
-    body.id = "task-body";
-    body.rows = 7;
-    body.placeholder = "What needs to happen";
-    var peopleTagify = null;
-    var companyPeople = [];
     function companyLabel() {
       var opt = company.options[company.selectedIndex];
       return opt ? opt.getAttribute("data-name") || opt.textContent : "";
     }
+    function taskNameValue() {
+      return String(namePick.get() || "").trim();
+    }
     function refreshPreview() {
-      preview.textContent = taskSubjectPreview(companyLabel(), name.value, kind.value);
+      var line = taskSubjectPreview(companyLabel(), taskNameValue(), kind.value);
+      preview.textContent = line;
+      if (mail) mail.setSubject(line);
     }
-    function peopleWhitelist(items) {
-      return (items || []).filter(function (p) { return p.email; }).map(function (p) {
-        return { value: p.email, name: p.name || p.email, email: p.email };
-      });
-    }
-    function ccEmails() {
-      if (peopleTagify) {
-        return peopleTagify.value.map(function (t) { return t.value || t.email; }).filter(Boolean);
-      }
-      return csvList(cc.value);
-    }
-    function setCcEmails(addrs) {
-      if (peopleTagify) {
-        peopleTagify.removeAllTags();
-        var tags = (addrs || []).map(function (addr) {
-          var want = String(addr || "").toLowerCase();
-          var hit = companyPeople.filter(function (p) {
-            return String(p.email || "").toLowerCase() === want;
-          })[0];
-          return hit
-            ? { value: hit.email, name: hit.name || hit.email, email: hit.email }
-            : { value: addr, name: addr };
-        });
-        if (tags.length) peopleTagify.addTags(tags);
-        return;
-      }
-      cc.value = (addrs || []).join(", ");
-    }
-    function bindPeopleTagify(selected) {
-      if (peopleTagify) {
-        try { peopleTagify.destroy(); } catch (e) {}
-        peopleTagify = null;
-      }
-      if (!window.Tagify) {
-        cc.value = (selected || []).join(", ");
-        return;
-      }
-      peopleTagify = new window.Tagify(cc, {
-        whitelist: peopleWhitelist(companyPeople),
-        tagTextProp: "name",
-        enforceWhitelist: false,
-        dropdown: { enabled: 0, maxItems: 20, searchKeys: ["value", "name", "email"], closeOnSelect: false },
-        delimiters: ",|\n",
-      });
-      setCcEmails(selected || []);
-    }
-    function loadCompanyPeople(aid, selected) {
-      if (!aid) {
-        companyPeople = [];
-        bindPeopleTagify(selected || []);
-        return Promise.resolve();
-      }
-      return api("/api/people?account_id=" + encodeURIComponent(aid)).then(function (data) {
-        companyPeople = data.items || [];
-        bindPeopleTagify(selected || []);
-      });
-    }
-    company.addEventListener("change", function () {
-      refreshPreview();
-      loadCompanyPeople(company.value, ccEmails());
-      assist.disabled = !company.value;
-    });
-    name.addEventListener("input", refreshPreview);
     kind.addEventListener("change", refreshPreview);
     var form = document.createElement("div");
     form.className = "settings-form";
@@ -1779,7 +2040,7 @@
     labCo.appendChild(company);
     var labName = document.createElement("label");
     labName.appendChild(document.createTextNode("Task name"));
-    labName.appendChild(name);
+    labName.appendChild(namePick.el);
     var labKind = document.createElement("label");
     labKind.appendChild(document.createTextNode("Type"));
     labKind.appendChild(kind);
@@ -1790,117 +2051,113 @@
     form.appendChild(labName);
     form.appendChild(labKind);
     form.appendChild(labDue);
-    var assist = document.createElement("button");
-    assist.type = "button";
-    assist.className = "btn";
-    assist.id = "btn-task-assist";
-    assist.textContent = "AI Assist";
-    assist.disabled = true;
-    assist.title = "Draft this task from the company, type, and desk context";
-    var labCc = document.createElement("label");
-    labCc.className = "task-cc-field";
-    labCc.appendChild(document.createTextNode("CC"));
-    labCc.appendChild(cc);
-    var ccRow = document.createElement("div");
-    ccRow.className = "task-cc-row settings-span";
-    ccRow.appendChild(assist);
-    ccRow.appendChild(labCc);
-    var labBody = document.createElement("label");
-    labBody.className = "settings-span";
-    labBody.appendChild(document.createTextNode("Body"));
-    labBody.appendChild(body);
-    var actions = document.createElement("div");
-    actions.className = "settings-actions";
-    var save = document.createElement("button");
-    save.type = "button";
-    save.className = "btn btn-primary";
-    save.textContent = emailId ? "Save task" : "Create task";
-    assist.addEventListener("click", function () {
-      if (!company.value) {
-        toast("Pick a company first");
-        return;
-      }
-      assist.disabled = true;
-      assist.textContent = "Working…";
-      api("/api/tasks/assist", {
-        method: "POST",
-        body: JSON.stringify({
-          account_id: company.value,
-          task_kind: kind.value,
-          task_name: name.value,
-          due_at: due.value,
-          body: body.value,
-          cc_addrs: ccEmails(),
-        }),
-      }).then(function (doc) {
-        if (doc.task_name) name.value = doc.task_name;
-        if (doc.task_kind) kind.value = doc.task_kind;
-        if (doc.due_at) due.value = dueInputValue(doc.due_at);
-        if (doc.body) body.value = doc.body;
-        if (doc.cc_addrs) setCcEmails(doc.cc_addrs);
-        refreshPreview();
-        toast(doc.result === "grok" ? "Task drafted with Grok" : "Task draft filled");
-      }).catch(function (err) {
-        toast(String(err.message || err));
-      }).then(function () {
-        assist.disabled = !company.value;
-        assist.textContent = "AI Assist";
-      });
-    });
-    function taskPayload() {
+    var me = ((status && status.operator) || {}).email || "";
+    var mail = null;
+    function taskPayload(snap) {
+      snap = snap || (mail && mail.snapshot()) || {};
       return {
         account_id: company.value,
-        task_name: name.value,
+        task_name: taskNameValue(),
         task_kind: kind.value,
         due_at: due.value,
-        cc_addrs: ccEmails(),
-        body: body.value,
+        cc_addrs: snap.cc_addrs || [],
+        bcc_addrs: snap.bcc_addrs || [],
+        body: snap.body || "",
       };
     }
-    save.addEventListener("click", function () {
+    function saveTask(snap) {
+      if (!company.value) return Promise.reject(new Error("Pick a company first"));
+      if (!taskNameValue()) return Promise.reject(new Error("Task name required"));
       var req = emailId
-        ? api("/api/tasks/" + encodeURIComponent(emailId), { method: "PUT", body: JSON.stringify(taskPayload()) })
-        : api("/api/tasks", { method: "POST", body: JSON.stringify(taskPayload()) });
-      req.then(function () {
-        toast(emailId ? "Task saved" : "Task created");
-        closeTaskForm();
-        loadAgenda();
-      }).catch(function (err) {
-        toast(String(err.message || err));
+        ? api("/api/tasks/" + encodeURIComponent(emailId), { method: "PUT", body: JSON.stringify(taskPayload(snap)) })
+        : api("/api/tasks", { method: "POST", body: JSON.stringify(taskPayload(snap)) });
+      return req.then(function (doc) {
+        if (doc && doc._id) emailId = doc._id;
+        return doc;
       });
-    });
-    var sendMe = document.createElement("button");
-    sendMe.type = "button";
-    sendMe.className = "btn";
-    sendMe.textContent = "Send to me";
-    sendMe.title = "Deliver this task to your mailbox after you confirm";
-    sendMe.addEventListener("click", function () {
-      if (!window.confirm("Send this task to your mailbox?")) return;
-      sendMe.disabled = true;
-      var req = emailId
-        ? api("/api/tasks/" + encodeURIComponent(emailId), { method: "PUT", body: JSON.stringify(taskPayload()) })
-        : api("/api/tasks", { method: "POST", body: JSON.stringify(taskPayload()) });
-      req.then(function (doc) {
-        var id = (doc && doc._id) || emailId;
-        return api("/api/tasks/" + encodeURIComponent(id) + "/send", { method: "POST", body: "{}" });
-      }).then(function () {
-        toast("Sent to your mailbox");
-        closeTaskForm();
-        loadAgenda();
-      }).catch(function (err) {
-        toast(String(err.message || err));
-      }).then(function () {
-        sendMe.disabled = false;
-      });
-    });
-    actions.appendChild(save);
-    actions.appendChild(sendMe);
+    }
     sheet.appendChild(preview);
     sheet.appendChild(form);
-    sheet.appendChild(ccRow);
-    sheet.appendChild(labBody);
-    sheet.appendChild(actions);
-    save.disabled = true;
+    mail = mountMailComposer(sheet, {
+      accountId: "",
+      to: me ? [me] : [],
+      lockTo: !!me,
+      bodyPlaceholder: "What needs to happen",
+      sendConfirm: "Send this task to your mailbox?",
+      onSuggest: function (snap) {
+        if (!company.value) return Promise.reject(new Error("Pick a company first"));
+        return api("/api/tasks/assist", {
+          method: "POST",
+          body: JSON.stringify({
+            account_id: company.value,
+            task_kind: kind.value,
+            task_name: taskNameValue(),
+            due_at: due.value,
+            body: snap.body,
+            cc_addrs: snap.cc_addrs,
+          }),
+        }).then(function (doc) {
+          if (doc.task_name) namePick.set(doc.task_name);
+          if (doc.task_kind) kind.value = doc.task_kind;
+          if (doc.due_at) due.value = dueInputValue(doc.due_at);
+          mail.set({
+            cc_addrs: doc.cc_addrs || snap.cc_addrs,
+            body: doc.body || snap.body,
+            subject: taskSubjectPreview(companyLabel(), taskNameValue(), kind.value),
+          });
+          refreshPreview();
+          toast(doc.result === "grok" ? "Drafted with Grok" : "Template draft");
+        });
+      },
+      onSave: function (snap) {
+        return saveTask(snap).then(function () {
+          toast("Draft saved");
+          closeTaskForm();
+          loadAgenda();
+        });
+      },
+      onSend: function (snap, attachments) {
+        return saveTask(snap).then(function (doc) {
+          var id = (doc && doc._id) || emailId;
+          return api("/api/tasks/" + encodeURIComponent(id) + "/send", {
+            method: "POST",
+            body: JSON.stringify({
+              to_addrs: snap.to_addrs,
+              cc_addrs: snap.cc_addrs,
+              bcc_addrs: snap.bcc_addrs,
+              subject: snap.subject,
+              body: snap.body,
+              attachments: attachments || [],
+            }),
+          });
+        }).then(function () {
+          toast("Sent");
+          closeTaskForm();
+          loadAgenda();
+        });
+      },
+    });
+    function refreshTaskNames() {
+      var aid = company.value;
+      var seen = {};
+      var items = [];
+      (agendaInboxItems || []).forEach(function (it) {
+        if (it.kind !== "task") return;
+        if (aid && it.account && it.account.account_id !== aid) return;
+        var n = String(it.task_name || it.title || "").replace(/^Tasks:\s*[^:]+:\s*/i, "").replace(/\s*\{[^}]+\}\s*$/, "").trim();
+        if (!n || seen[n.toLowerCase()]) return;
+        seen[n.toLowerCase()] = true;
+        items.push({ value: n, label: n });
+      });
+      namePick.setItems(items);
+    }
+    company.addEventListener("change", function () {
+      refreshPreview();
+      refreshTaskNames();
+      mail.setAccount(company.value);
+    });
+    box._mail = mail;
+    box._namePick = namePick;
     box.appendChild(sheet);
     api("/api/accounts").then(function (data) {
       empty(company);
@@ -1920,21 +2177,23 @@
     }).then(function (doc) {
       if (doc) {
         company.value = doc.account_id || "";
-        name.value = doc.task_name || "";
+        namePick.set(doc.task_name || "");
         kind.value = doc.task_kind || TASK_KINDS[0];
         due.value = dueInputValue(doc.due_at);
-        body.value = doc.content || "";
+        mail.set({
+          to_addrs: doc.to_addrs && doc.to_addrs.length ? doc.to_addrs : (me ? [me] : []),
+          cc_addrs: doc.cc_addrs || [],
+          bcc_addrs: doc.bcc_addrs || [],
+          body: doc.content || "",
+          subject: doc.subject || taskSubjectPreview(companyLabel(), taskNameValue(), kind.value),
+        });
       } else if (item && item.account && item.account.account_id) {
         company.value = item.account.account_id;
       }
       refreshPreview();
-      assist.disabled = !company.value;
-      var selectedCc = doc ? (doc.cc_addrs || []) : csvList(cc.value);
-      return loadCompanyPeople(company.value, selectedCc).then(function () {
-        save.disabled = false;
-      });
+      refreshTaskNames();
+      return mail.setAccount(company.value);
     }).catch(function (err) {
-      save.disabled = false;
       toast(String(err.message || err));
     });
   }
@@ -3067,6 +3326,12 @@
   function closeDetail() {
     var box = $("detail-box");
     if (!box || box.hidden) return;
+    if (box._mail && box._mail.destroy) box._mail.destroy();
+    box._mail = null;
+    (box._picks || []).forEach(function (p) {
+      if (p && p.destroy) p.destroy();
+    });
+    box._picks = null;
     box.hidden = true;
     box.classList.add("hidden");
     empty(box);
@@ -3544,40 +3809,109 @@
     var suggest = document.createElement("section");
     suggest.className = "suggest-box";
     var sh = document.createElement("h3");
-    sh.textContent = "Reply suggestion";
+    sh.textContent = "Reply";
     var hint = document.createElement("p");
     hint.className = "muted";
     hint.textContent = "Uses this thread plus the account (tickets, people, projects).";
-    var go = document.createElement("button");
-    go.type = "button";
-    go.className = "btn btn-primary";
-    go.textContent = "Suggest reply";
-    var draftTo = document.createElement("input");
-    draftTo.placeholder = "To";
-    var draftSub = document.createElement("input");
-    draftSub.placeholder = "Subject";
-    var draftBody = document.createElement("textarea");
-    draftBody.placeholder = "Suggested reply appears here";
-    var use = document.createElement("button");
-    use.type = "button";
-    use.className = "btn";
-    use.textContent = "Open in Compose";
-    var sendDraft = document.createElement("button");
-    sendDraft.type = "button";
-    sendDraft.className = "btn";
-    sendDraft.textContent = "Send";
-    sendDraft.disabled = true;
-    var savedDraftId = "";
     suggest.appendChild(sh);
     suggest.appendChild(hint);
-    suggest.appendChild(go);
-    suggest.appendChild(draftTo);
-    suggest.appendChild(draftSub);
-    suggest.appendChild(draftBody);
-    suggest.appendChild(use);
-    suggest.appendChild(sendDraft);
+    var savedDraftId = "";
+    var openFull = document.createElement("button");
+    openFull.type = "button";
+    openFull.className = "btn btn-ghost";
+    openFull.textContent = "Open full Compose";
+    var mail = mountMailComposer(suggest, {
+      accountId: currentAccount && currentAccount.account_id,
+      to: [],
+      subject: item.subject ? "Re: " + String(item.subject).replace(/^Re:\s*/i, "") : "",
+      bodyPlaceholder: "Write the reply",
+      extraActions: [openFull],
+      onSuggest: function (snap) {
+        return api("/api/threads/" + encodeURIComponent(item._id) + "/suggest-reply", {
+          method: "POST",
+          body: "{}",
+        }).then(function (doc) {
+          savedDraftId = doc.draft_id || "";
+          mail.set({
+            to_addrs: doc.to_addrs || [],
+            cc_addrs: doc.cc_addrs || [],
+            subject: doc.subject || snap.subject,
+            body: doc.body || "",
+          });
+          toast(doc.result === "grok" ? "Drafted with Grok" : "Template draft");
+        });
+      },
+      onSave: function (snap) {
+        var payload = {
+          account_id: (currentAccount && currentAccount.account_id) || "",
+          subject: snap.subject,
+          body: snap.body,
+          to_addrs: snap.to_addrs,
+          cc_addrs: snap.cc_addrs,
+          bcc_addrs: snap.bcc_addrs,
+          attachment_names: snap.attachment_names,
+          created_by: "you",
+          context_ref: { thread_id: item._id },
+        };
+        var req = savedDraftId
+          ? api("/api/drafts/" + encodeURIComponent(savedDraftId), { method: "PATCH", body: JSON.stringify(payload) })
+          : api("/api/drafts", { method: "POST", body: JSON.stringify(payload) });
+        return req.then(function (doc) {
+          if (doc && doc._id) savedDraftId = doc._id;
+          toast("Draft saved");
+        });
+      },
+      onSend: function (snap, attachments) {
+        var payload = {
+          account_id: (currentAccount && currentAccount.account_id) || "",
+          subject: snap.subject,
+          body: snap.body,
+          to_addrs: snap.to_addrs,
+          cc_addrs: snap.cc_addrs,
+          bcc_addrs: snap.bcc_addrs,
+          attachment_names: snap.attachment_names,
+          created_by: "you",
+          context_ref: { thread_id: item._id },
+        };
+        var req = savedDraftId
+          ? api("/api/drafts/" + encodeURIComponent(savedDraftId), { method: "PATCH", body: JSON.stringify(payload) })
+          : api("/api/drafts", { method: "POST", body: JSON.stringify(payload) });
+        return req.then(function (doc) {
+          savedDraftId = (doc && doc._id) || savedDraftId;
+          return api("/api/drafts/" + encodeURIComponent(savedDraftId) + "/send", {
+            method: "POST",
+            body: JSON.stringify({
+              to_addrs: snap.to_addrs,
+              cc_addrs: snap.cc_addrs,
+              bcc_addrs: snap.bcc_addrs,
+              subject: snap.subject,
+              body: snap.body,
+              attachment_names: snap.attachment_names,
+              attachments: attachments || [],
+            }),
+          });
+        }).then(function () {
+          toast("Sent");
+          closeDetail();
+        });
+      },
+    });
+    openFull.addEventListener("click", function () {
+      if (!currentAccount || !window.CSMCompose) return;
+      var snap = mail.snapshot();
+      closeDetail();
+      window.CSMCompose.open(currentAccount, {
+        thread_id: item._id,
+        to: (snap.to_addrs || []).join(", "),
+        cc: snap.cc_addrs,
+        bcc: snap.bcc_addrs,
+        subject: snap.subject,
+        body: snap.body,
+      });
+    });
     sheet.appendChild(suggest);
     box.appendChild(sheet);
+    box._mail = mail;
     api("/api/threads/" + encodeURIComponent(item._id) + "?include=messages").then(function (doc) {
       status.textContent = (doc.message_count || (doc.messages || []).length || 0) + " messages";
       empty(stack);
@@ -3601,54 +3935,6 @@
       }
     }).catch(function (err) {
       status.textContent = String(err.message || err);
-    });
-    go.addEventListener("click", function () {
-      go.disabled = true;
-      api("/api/threads/" + encodeURIComponent(item._id) + "/suggest-reply", {
-        method: "POST",
-        body: "{}",
-      }).then(function (doc) {
-        draftTo.value = (doc.to_addrs || []).join(", ");
-        draftSub.value = doc.subject || "";
-        draftBody.value = doc.body || "";
-        savedDraftId = doc.draft_id || "";
-        sendDraft.disabled = !savedDraftId;
-        toast(doc.result === "grok" ? "Suggested with Grok · saved as draft" : "Template suggestion · saved as draft");
-      }).catch(function (err) {
-        toast(String(err.message || err));
-      }).then(function () {
-        go.disabled = false;
-      });
-    });
-    sendDraft.addEventListener("click", function () {
-      if (!savedDraftId || !window.confirm("Send this reply now?")) return;
-      sendDraft.disabled = true;
-      api("/api/drafts/" + encodeURIComponent(savedDraftId), {
-        method: "PATCH",
-        body: JSON.stringify({
-          to_addrs: draftTo.value.split(",").map(function (s) { return s.trim(); }).filter(Boolean),
-          subject: draftSub.value,
-          body: draftBody.value,
-        }),
-      }).then(function () {
-        return api("/api/drafts/" + encodeURIComponent(savedDraftId) + "/send", { method: "POST", body: "{}" });
-      }).then(function () {
-        toast("Sent");
-        closeDetail();
-      }).catch(function (err) {
-        toast(String(err.message || err));
-        sendDraft.disabled = false;
-      });
-    });
-    use.addEventListener("click", function () {
-      if (!currentAccount || !window.CSMCompose) return;
-      closeDetail();
-      window.CSMCompose.open(currentAccount, {
-        thread_id: item._id,
-        to: draftTo.value,
-        subject: draftSub.value,
-        body: draftBody.value,
-      });
     });
   }
 
@@ -3819,12 +4105,19 @@
     bar.className = "pane-toolbar pane-toolbar-spread";
     var left = document.createElement("div");
     left.className = "pane-toolbar-left";
-    var search = document.createElement("input");
-    search.className = "search";
-    search.type = "search";
-    search.id = "project-q";
-    search.placeholder = "Search projects";
-    search.setAttribute("aria-label", "Search projects");
+    var projPick = mountSearchSelect({
+      trigger: "input",
+      placeholder: "Search projects",
+      searchPlaceholder: "Search projects",
+      ariaLabel: "Search projects",
+      allowCustom: true,
+      emptyLabel: "All projects",
+      items: [],
+      wrapClass: "project-q-wrap",
+      onChange: function () { paint(accountProjects); },
+      onQuery: function () { paint(accountProjects); },
+    });
+    projPick.el.id = "project-q";
     var kind = document.createElement("select");
     kind.className = "toolbar-filter";
     kind.setAttribute("aria-label", "Type");
@@ -3851,7 +4144,7 @@
       opt.textContent = pair[1];
       status.appendChild(opt);
     });
-    left.appendChild(search);
+    left.appendChild(projPick.el);
     left.appendChild(kind);
     left.appendChild(status);
     var add = document.createElement("button");
@@ -3874,7 +4167,8 @@
     }
     function paint(items) {
       empty(list);
-      var q = (search.value || "").trim().toLowerCase();
+      var picked = projPick.get();
+      var q = String(picked || "").trim().toLowerCase();
       var wantKind = kind.value;
       var wantStatus = status.value;
       var shown = (items || []).filter(function (item) {
@@ -3916,12 +4210,12 @@
         (pair[1].items || []).forEach(function (p) {
           if (p._id) peopleById[p._id] = p;
         });
+        projPick.setItems((accountProjects || []).map(function (p) {
+          return { value: p.name || p._id, label: p.name || p._id, search: (p.name || "") + " " + (p.summary || "") + " " + ((p.tags || []).join(" ")) };
+        }));
         paint(accountProjects);
       });
     }
-    search.addEventListener("input", function () {
-      paint(accountProjects);
-    });
     kind.addEventListener("change", function () {
       paint(accountProjects);
     });
@@ -4004,9 +4298,20 @@
     group.type = "email";
     group.placeholder = "team@company.com";
     group.value = (proj && proj.group_email) || "";
-    var tags = document.createElement("input");
-    tags.id = "project-tags";
-    tags.placeholder = "Add tags";
+    var tagWhitelist = [];
+    accountProjects.forEach(function (p) {
+      (p.tags || []).forEach(function (t) {
+        if (tagWhitelist.indexOf(t) < 0) tagWhitelist.push(t);
+      });
+    });
+    var tagsPick = mountTagifyMulti({
+      placeholder: "Add tags",
+      ariaLabel: "Tags",
+      allowCustom: true,
+      items: tagWhitelist.map(function (t) { return { value: t, label: t }; }),
+      value: (proj && proj.tags) || [],
+    });
+    tagsPick.el.id = "project-tags";
     var summary = document.createElement("textarea");
     summary.rows = 4;
     summary.value = (proj && proj.summary) || "";
@@ -4028,7 +4333,7 @@
     var labTags = document.createElement("label");
     labTags.className = "settings-span";
     labTags.appendChild(document.createTextNode("Tags"));
-    labTags.appendChild(tags);
+    labTags.appendChild(tagsPick.el);
     var labSum = document.createElement("label");
     labSum.className = "settings-span";
     labSum.appendChild(document.createTextNode("Summary"));
@@ -4067,16 +4372,8 @@
     save.type = "button";
     save.className = "btn btn-primary";
     save.textContent = proj ? "Save project" : "Add project";
-    var tagify = null;
     save.addEventListener("click", function () {
-      var tagVals = [];
-      if (tagify) {
-        tagify.value.forEach(function (t) {
-          if (t && t.value) tagVals.push(t.value);
-        });
-      } else {
-        tagVals = csvList(tags.value);
-      }
+      var tagVals = tagsPick.get() || [];
       var payload = {
         account_id: acct.account_id,
         name: name.value,
@@ -4106,6 +4403,8 @@
     sheet.appendChild(form);
     sheet.appendChild(actions);
     box.appendChild(sheet);
+    tagsPick.bind();
+    box._picks = [tagsPick];
     api("/api/people?account_id=" + encodeURIComponent(acct.account_id)).then(function (data) {
       (data.items || []).forEach(function (p) {
         if (!p._id) return;
@@ -4116,21 +4415,6 @@
         owner.appendChild(opt);
       });
     });
-    var whitelist = [];
-    accountProjects.forEach(function (p) {
-      (p.tags || []).forEach(function (t) {
-        if (whitelist.indexOf(t) < 0) whitelist.push(t);
-      });
-    });
-    if (window.Tagify) {
-      tagify = new window.Tagify(tags, {
-        whitelist: whitelist,
-        dropdown: { enabled: 0, maxItems: 20 },
-      });
-      if (proj && proj.tags && proj.tags.length) tagify.addTags(proj.tags);
-    } else if (proj && proj.tags) {
-      tags.value = proj.tags.join(", ");
-    }
   }
 
   function personRow(item, acct) {
@@ -4180,7 +4464,16 @@
 
   function fillPeople(pane, acct) {
     var bar = document.createElement("div");
-    bar.className = "pane-toolbar";
+    bar.className = "pane-toolbar pane-toolbar-spread";
+    var left = document.createElement("div");
+    left.className = "pane-toolbar-left";
+    var search = document.createElement("input");
+    search.type = "search";
+    search.className = "search";
+    search.id = "people-q";
+    search.placeholder = "Search people";
+    search.setAttribute("aria-label", "Search people");
+    left.appendChild(search);
     var add = document.createElement("button");
     add.type = "button";
     add.className = "btn btn-primary";
@@ -4190,6 +4483,7 @@
       ev.stopPropagation();
       openPersonForm(acct);
     });
+    bar.appendChild(left);
     bar.appendChild(add);
     pane.appendChild(bar);
     if (peopleAllProjects) {
@@ -4198,8 +4492,40 @@
       note.textContent = "Directors / VPs who own all projects.";
       pane.appendChild(note);
     }
-    return fillList(pane, peopleUrl(acct), function (item) {
-      return personRow(item, acct);
+    var list = document.createElement("div");
+    list.id = "people-list";
+    pane.appendChild(list);
+    return api(peopleUrl(acct)).then(function (data) {
+      var items = data.items || [];
+      function paint() {
+        empty(list);
+        var q = (search.value || "").toLowerCase().trim();
+        var shown = items.filter(function (item) {
+          if (!q) return true;
+          var blob = [
+            item.name,
+            item.email,
+            item.title,
+            item.role,
+            item.kind,
+            item.location,
+            (item.functions || []).join(" "),
+          ].join(" ").toLowerCase();
+          return blob.indexOf(q) >= 0;
+        });
+        if (!shown.length) {
+          var p = document.createElement("p");
+          p.className = "muted";
+          p.textContent = items.length ? "No people match." : "No people yet.";
+          list.appendChild(p);
+          return;
+        }
+        shown.forEach(function (item) {
+          list.appendChild(personRow(item, acct));
+        });
+      }
+      search.addEventListener("input", paint);
+      paint();
     });
   }
 
@@ -4424,7 +4750,14 @@
     if (!sheet) return;
     sheet.classList.add("sheet-person");
     var form = document.createElement("form");
-    form.className = "form-grid";
+    form.className = "settings-form";
+    function lab(text, node, span) {
+      var el = document.createElement("label");
+      if (span) el.className = "settings-span";
+      el.appendChild(document.createTextNode(text));
+      el.appendChild(node);
+      return el;
+    }
     var name = document.createElement("input");
     name.required = true;
     name.value = (person && person.name) || "";
@@ -4435,38 +4768,66 @@
     location.value = (person && person.location) || "";
     var title = document.createElement("input");
     title.value = (person && person.title) || "";
-    var kind = document.createElement("select");
-    [["customer", "Customer"], ["account_team", "Account team"], ["ps_team", "PS team"]].forEach(function (pair) {
-      var opt = document.createElement("option");
-      opt.value = pair[0];
-      opt.textContent = pair[1];
-      if (person && person.kind === pair[0]) opt.selected = true;
-      kind.appendChild(opt);
+    var kindPick = mountSearchSelect({
+      items: [
+        { value: "customer", label: "Customer" },
+        { value: "account_team", label: "Account team" },
+        { value: "ps_team", label: "PS team" },
+      ],
+      value: (person && person.kind) || "customer",
+      btnClass: "search-select-btn-block",
     });
-    var reports = document.createElement("select");
-    var none = document.createElement("option");
-    none.value = "";
-    none.textContent = "No manager";
-    reports.appendChild(none);
-    form.appendChild(fieldLabel("Name", name));
-    form.appendChild(fieldLabel("Email", email));
-    form.appendChild(fieldLabel("Location", location));
-    form.appendChild(fieldLabel("Title", title));
-    form.appendChild(fieldLabel("Kind", kind));
-    form.appendChild(fieldLabel("Reports to", reports));
-    var projChecks = checkGroup(person && person.project_ids, accountProjects || [], function (p) {
-      return p.name || p._id;
+    var reportsPick = mountSearchSelect({
+      placeholder: "No manager",
+      emptyLabel: "No manager",
+      searchPlaceholder: "Search people",
+      items: [{ value: "", label: "No manager" }],
+      value: (person && person.reports_to) || "",
+      btnClass: "search-select-btn-block",
     });
-    form.appendChild(fieldLabel("Projects", projChecks));
+    var projPick = mountTagifyMulti({
+      placeholder: "Search projects",
+      ariaLabel: "Projects",
+      enforceWhitelist: true,
+      items: (accountProjects || []).map(function (p) {
+        return { value: p._id || "", label: p.name || p._id };
+      }),
+      value: (person && person.project_ids) || [],
+    });
+    projPick.el.id = "person-projects";
+    var fnPick = mountTagifyMulti({
+      placeholder: "Search functions",
+      ariaLabel: "Functions",
+      allowCustom: true,
+      items: PERSON_FUNCS.map(function (fn) { return { value: fn, label: fn }; }),
+      value: (person && person.functions) || [],
+    });
+    fnPick.el.id = "person-functions";
     var allProj = document.createElement("input");
     allProj.type = "checkbox";
     allProj.checked = !!(person && person.owns_all_projects);
     var allLab = document.createElement("label");
+    allLab.className = "settings-span check-inline";
     allLab.appendChild(allProj);
-    allLab.appendChild(document.createTextNode(" All projects (director / VP)"));
+    allLab.appendChild(document.createTextNode("All projects (director / VP)"));
+    function syncAllProj() {
+      if (allProj.checked) {
+        projPick.set([]);
+        projPick.setReadonly(true);
+      } else {
+        projPick.setReadonly(false);
+      }
+    }
+    allProj.addEventListener("change", syncAllProj);
+    form.appendChild(lab("Name", name));
+    form.appendChild(lab("Email", email));
+    form.appendChild(lab("Title", title));
+    form.appendChild(lab("Location", location));
+    form.appendChild(lab("Kind", kindPick.el));
+    form.appendChild(lab("Reports to", reportsPick.el));
+    form.appendChild(lab("Projects", projPick.el, true));
     form.appendChild(allLab);
-    var fnChecks = checkGroup(person && person.functions, PERSON_FUNCS);
-    form.appendChild(fieldLabel("Functions", fnChecks));
+    form.appendChild(lab("Functions", fnPick.el, true));
     var foot = document.createElement("div");
     foot.className = "sheet-foot";
     var save = document.createElement("button");
@@ -4476,16 +4837,24 @@
     foot.appendChild(save);
     form.appendChild(foot);
     sheet.appendChild(form);
+    projPick.bind();
+    fnPick.bind();
+    if (allProj.checked) projPick.setReadonly(true);
+    var box = $("detail-box");
+    if (box) box._picks = [kindPick, reportsPick, projPick, fnPick];
     api("/api/people?account_id=" + encodeURIComponent(acct.account_id)).then(function (data) {
       var selfId = (person && person._id) || "";
+      var items = [{ value: "", label: "No manager" }];
       (data.items || []).forEach(function (row) {
         if (!row._id || row._id === selfId) return;
-        var opt = document.createElement("option");
-        opt.value = row._id;
-        opt.textContent = row.name || row._id;
-        if (person && person.reports_to === row._id) opt.selected = true;
-        reports.appendChild(opt);
+        items.push({
+          value: row._id,
+          label: row.name || row._id,
+          search: [row.name, row.email, row.title].join(" "),
+        });
       });
+      reportsPick.setItems(items);
+      if (person && person.reports_to) reportsPick.set(person.reports_to);
     });
     form.addEventListener("submit", function (ev) {
       ev.preventDefault();
@@ -4495,10 +4864,10 @@
         email: email.value,
         location: location.value,
         title: title.value,
-        kind: kind.value,
-        reports_to: reports.value,
-        project_ids: checkedValues(projChecks),
-        functions: checkedValues(fnChecks),
+        kind: kindPick.get() || "customer",
+        reports_to: reportsPick.get() || "",
+        project_ids: allProj.checked ? [] : (projPick.get() || []),
+        functions: fnPick.get() || [],
         owns_all_projects: !!allProj.checked,
       };
       var req = person && person._id
@@ -5096,6 +5465,341 @@
     return String(text || "").split(/[\n,]/).map(function (s) { return s.trim(); }).filter(Boolean);
   }
 
+  function peopleAsTags(items) {
+    return (items || []).filter(function (p) { return p && p.email; }).map(function (p) {
+      return { value: p.email, name: p.name || p.email, email: p.email };
+    });
+  }
+
+  function filesToPayload(files) {
+    return Promise.all((files || []).map(function (f) {
+      return new Promise(function (resolve, reject) {
+        if (f.size > 5 * 1024 * 1024) {
+          reject(new Error("Attachment too large: " + f.name));
+          return;
+        }
+        var reader = new FileReader();
+        reader.onload = function () {
+          var raw = String(reader.result || "");
+          var b64 = raw.indexOf(",") >= 0 ? raw.split(",")[1] : raw;
+          resolve({
+            filename: f.name,
+            content_type: f.type || "application/octet-stream",
+            content_b64: b64,
+          });
+        };
+        reader.onerror = function () {
+          reject(new Error("Could not read " + f.name));
+        };
+        reader.readAsDataURL(f);
+      });
+    }));
+  }
+
+  function bindAddrTagify(input, whitelist, selected) {
+    var inst = null;
+    function destroy() {
+      if (!inst) return;
+      try { inst.destroy(); } catch (e) {}
+      inst = null;
+    }
+    function set(addrs) {
+      var tags = (addrs || []).map(function (addr) {
+        var want = String(addr || "").toLowerCase();
+        var hit = (whitelist || []).filter(function (p) {
+          return String(p.email || p.value || "").toLowerCase() === want;
+        })[0];
+        return hit
+          ? { value: hit.email || hit.value, name: hit.name || hit.email || hit.value, email: hit.email || hit.value }
+          : { value: addr, name: addr, email: addr };
+      });
+      if (inst) {
+        inst.removeAllTags();
+        if (tags.length) inst.addTags(tags);
+        return;
+      }
+      input.value = (addrs || []).join(", ");
+    }
+    function values() {
+      if (inst) {
+        return inst.value.map(function (t) { return t.value || t.email; }).filter(Boolean);
+      }
+      return csvList(input.value);
+    }
+    function bind(list, addrs) {
+      whitelist = list || [];
+      destroy();
+      if (!window.Tagify) {
+        set(addrs || []);
+        return;
+      }
+      inst = new window.Tagify(input, {
+        whitelist: whitelist,
+        tagTextProp: "name",
+        enforceWhitelist: false,
+        delimiters: ",|\n",
+        dropdown: { enabled: 0, maxItems: 20, searchKeys: ["value", "name", "email"], closeOnSelect: false },
+      });
+      set(addrs || []);
+    }
+    function setReadonly(on) {
+      if (inst && inst.setReadonly) inst.setReadonly(!!on);
+      input.readOnly = !!on;
+    }
+    bind(whitelist || [], selected || []);
+    return { values: values, set: set, bind: bind, destroy: destroy, setReadonly: setReadonly };
+  }
+
+  function mountMailComposer(parent, opts) {
+    opts = opts || {};
+    var wrap = document.createElement("div");
+    wrap.className = "mail-composer";
+    var toInput = document.createElement("input");
+    toInput.className = "tag-input";
+    toInput.placeholder = "Name or email";
+    var ccInput = document.createElement("input");
+    ccInput.className = "tag-input";
+    ccInput.placeholder = "Name or email";
+    var bccInput = document.createElement("input");
+    bccInput.className = "tag-input";
+    bccInput.placeholder = "Name or email";
+    var subject = document.createElement("input");
+    subject.className = "mail-subject";
+    subject.placeholder = "Subject";
+    subject.value = opts.subject || "";
+    var body = document.createElement("textarea");
+    body.className = "mail-body";
+    body.rows = 8;
+    body.placeholder = opts.bodyPlaceholder || "Write the message";
+    body.value = opts.body || "";
+    var whitelist = [];
+    var toTags = null;
+    var ccTags = null;
+    var bccTags = null;
+    var files = [];
+    var bccOn = !!(opts.bcc && opts.bcc.length);
+    function mailRow(key, node, extra) {
+      var row = document.createElement("div");
+      row.className = "mail-row";
+      var lab = document.createElement("span");
+      lab.className = "mail-key";
+      lab.textContent = key;
+      var hold = document.createElement("div");
+      hold.className = "mail-val";
+      hold.appendChild(node);
+      if (extra) hold.appendChild(extra);
+      row.appendChild(lab);
+      row.appendChild(hold);
+      return row;
+    }
+    var bccBtn = document.createElement("button");
+    bccBtn.type = "button";
+    bccBtn.className = "btn btn-ghost mail-bcc-toggle";
+    bccBtn.textContent = "Bcc";
+    var bccRow = mailRow("Bcc", bccInput);
+    bccRow.hidden = !bccOn;
+    bccBtn.addEventListener("click", function () {
+      bccOn = !bccOn;
+      bccRow.hidden = !bccOn;
+      bccBtn.classList.toggle("is-on", bccOn);
+    });
+    wrap.appendChild(mailRow("To", toInput));
+    wrap.appendChild(mailRow("Cc", ccInput, bccBtn));
+    wrap.appendChild(bccRow);
+    wrap.appendChild(mailRow("Subject", subject));
+    wrap.appendChild(mailRow("Body", body));
+    var attachRow = document.createElement("div");
+    attachRow.className = "mail-attach";
+    var attachBtn = document.createElement("button");
+    attachBtn.type = "button";
+    attachBtn.className = "btn";
+    attachBtn.textContent = "Attach";
+    var fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.multiple = true;
+    fileInput.hidden = true;
+    var chipBox = document.createElement("div");
+    chipBox.className = "mail-attach-list";
+    function paintFiles() {
+      empty(chipBox);
+      files.forEach(function (f, i) {
+        var chip = document.createElement("span");
+        chip.className = "mail-chip";
+        chip.textContent = f.name;
+        var rm = document.createElement("button");
+        rm.type = "button";
+        rm.className = "mail-chip-x";
+        rm.setAttribute("aria-label", "Remove " + f.name);
+        rm.textContent = "×";
+        rm.addEventListener("click", function () {
+          files.splice(i, 1);
+          paintFiles();
+        });
+        chip.appendChild(rm);
+        chipBox.appendChild(chip);
+      });
+    }
+    attachBtn.addEventListener("click", function () { fileInput.click(); });
+    fileInput.addEventListener("change", function () {
+      Array.prototype.forEach.call(fileInput.files || [], function (f) {
+        files.push(f);
+      });
+      fileInput.value = "";
+      paintFiles();
+    });
+    attachRow.appendChild(attachBtn);
+    attachRow.appendChild(fileInput);
+    attachRow.appendChild(chipBox);
+    wrap.appendChild(attachRow);
+    var foot = document.createElement("div");
+    foot.className = "sheet-foot mail-foot";
+    var suggest = document.createElement("button");
+    suggest.type = "button";
+    suggest.className = "btn btn-primary";
+    suggest.textContent = "AI Suggest";
+    suggest.title = "Draft with Grok from this book, or a template if no key";
+    var save = document.createElement("button");
+    save.type = "button";
+    save.className = "btn";
+    save.textContent = "Save draft";
+    var send = document.createElement("button");
+    send.type = "button";
+    send.className = "btn";
+    send.textContent = "Send";
+    send.title = "Saves, then sends after you confirm";
+    if (opts.lockTo) {
+      toInput.readOnly = true;
+      toInput.title = "Sends to you";
+    }
+    function snapshot() {
+      return {
+        to_addrs: toTags ? toTags.values() : csvList(toInput.value),
+        cc_addrs: ccTags ? ccTags.values() : csvList(ccInput.value),
+        bcc_addrs: bccTags ? bccTags.values() : csvList(bccInput.value),
+        subject: subject.value,
+        body: body.value,
+        attachment_names: files.map(function (f) { return f.name; }),
+      };
+    }
+    function busy(on) {
+      suggest.disabled = !!on;
+      save.disabled = !!on;
+      send.disabled = !!on;
+    }
+    suggest.addEventListener("click", function () {
+      if (!opts.onSuggest) return;
+      busy(true);
+      Promise.resolve(opts.onSuggest(snapshot())).then(function () {
+        busy(false);
+      }).catch(function (err) {
+        busy(false);
+        toast(String(err.message || err));
+      });
+    });
+    save.addEventListener("click", function () {
+      if (!opts.onSave) return;
+      busy(true);
+      Promise.resolve(opts.onSave(snapshot())).then(function () {
+        busy(false);
+      }).catch(function (err) {
+        busy(false);
+        toast(String(err.message || err));
+      });
+    });
+    send.addEventListener("click", function () {
+      if (!opts.onSend) return;
+      if (!window.confirm(opts.sendConfirm || "Send this email now?")) return;
+      busy(true);
+      filesToPayload(files).then(function (attachments) {
+        return opts.onSend(snapshot(), attachments);
+      }).then(function () {
+        busy(false);
+      }).catch(function (err) {
+        busy(false);
+        toast(String(err.message || err));
+      });
+    });
+    foot.appendChild(suggest);
+    (opts.extraActions || []).forEach(function (el) { foot.appendChild(el); });
+    var spacer = document.createElement("span");
+    spacer.className = "mail-foot-spacer";
+    foot.appendChild(spacer);
+    foot.appendChild(save);
+    foot.appendChild(send);
+    wrap.appendChild(foot);
+    parent.appendChild(wrap);
+    function applyPeople(list, keep) {
+      whitelist = list || [];
+      var cur = keep || snapshot();
+      if (!toTags) {
+        toTags = bindAddrTagify(toInput, whitelist, cur.to_addrs);
+        ccTags = bindAddrTagify(ccInput, whitelist, cur.cc_addrs);
+        bccTags = bindAddrTagify(bccInput, whitelist, cur.bcc_addrs);
+      } else {
+        toTags.bind(whitelist, cur.to_addrs);
+        ccTags.bind(whitelist, cur.cc_addrs);
+        bccTags.bind(whitelist, cur.bcc_addrs);
+      }
+      if (opts.lockTo) toTags.setReadonly(true);
+    }
+    function loadPeople(accountId, keep) {
+      if (!accountId) {
+        applyPeople([], keep);
+        return Promise.resolve();
+      }
+      return api("/api/people?account_id=" + encodeURIComponent(accountId)).then(function (data) {
+        applyPeople(peopleAsTags(data.items || []), keep);
+      });
+    }
+    function bootTagify() {
+      applyPeople(whitelist, {
+        to_addrs: opts.to || [],
+        cc_addrs: opts.cc || [],
+        bcc_addrs: opts.bcc || [],
+      });
+      if (opts.accountId) loadPeople(opts.accountId);
+    }
+    requestAnimationFrame(function () {
+      requestAnimationFrame(bootTagify);
+    });
+    return {
+      el: wrap,
+      snapshot: snapshot,
+      set: function (doc) {
+        doc = doc || {};
+        if (!toTags) {
+          opts.to = doc.to_addrs || opts.to;
+          opts.cc = doc.cc_addrs || opts.cc;
+          opts.bcc = doc.bcc_addrs || opts.bcc;
+        }
+        if (doc.to_addrs && toTags) toTags.set(doc.to_addrs);
+        if (doc.cc_addrs && ccTags) ccTags.set(doc.cc_addrs);
+        if (doc.bcc_addrs && bccTags) {
+          bccTags.set(doc.bcc_addrs);
+          if (doc.bcc_addrs.length) {
+            bccOn = true;
+            bccRow.hidden = false;
+            bccBtn.classList.add("is-on");
+          }
+        }
+        if (doc.subject != null) subject.value = doc.subject;
+        if (doc.body != null) body.value = doc.body;
+      },
+      setAccount: function (accountId) {
+        return loadPeople(accountId, snapshot());
+      },
+      setSubject: function (text) {
+        subject.value = text || "";
+      },
+      subjectEl: subject,
+      destroy: function () {
+        if (toTags) toTags.destroy();
+        if (ccTags) ccTags.destroy();
+        if (bccTags) bccTags.destroy();
+      },
+    };
+  }
+
   function connectorList(conn, name, key) {
     var rows = ((conn || {})[name] || {})[key];
     return rows && rows.length ? rows.slice() : [];
@@ -5105,31 +5809,137 @@
     return connectorList(conn, name, key).join("\n");
   }
 
-  function makeTagInput(placeholder, values) {
+  function mountTagifyMulti(opts) {
+    opts = opts || {};
+    var items = (opts.items || []).slice();
+    var selected = (opts.value || []).slice();
+    var readonly = false;
+    var inst = null;
+    var allowCustom = !!opts.allowCustom;
     var input = document.createElement("input");
     input.className = "tag-input";
-    input.placeholder = placeholder || "";
-    var inst = null;
+    input.placeholder = opts.placeholder || "";
+    if (opts.ariaLabel) input.setAttribute("aria-label", opts.ariaLabel);
+    var wrap = document.createElement("div");
+    wrap.className = "tag-multi" + (opts.wrapClass ? " " + opts.wrapClass : "");
+    wrap.appendChild(input);
+
+    function asItem(it) {
+      if (it == null) return null;
+      if (typeof it === "string") return { value: it, name: it };
+      var value = String(it.value == null ? "" : it.value);
+      if (!value) return null;
+      return { value: value, name: String(it.label || it.name || value) };
+    }
+    function whitelistFrom(list) {
+      return (list || []).map(asItem).filter(Boolean);
+    }
+    function whitelistForBind() {
+      var wl = whitelistFrom(items);
+      var seen = {};
+      wl.forEach(function (it) { seen[String(it.value)] = true; });
+      (selected || []).forEach(function (v) {
+        var want = String(v || "");
+        if (!want || seen[want]) return;
+        wl.push({ value: want, name: want });
+        seen[want] = true;
+      });
+      return wl;
+    }
+    function tagsFromValues(vals) {
+      var byVal = {};
+      whitelistForBind().forEach(function (it) { byVal[String(it.value)] = it; });
+      return (vals || []).map(function (v) {
+        var want = String(v || "");
+        return byVal[want] || { value: want, name: want };
+      }).filter(function (it) { return it.value; });
+    }
+    function values() {
+      if (inst) {
+        return inst.value.map(function (t) { return t && t.value; }).filter(Boolean);
+      }
+      return csvList(input.value);
+    }
+    function destroy() {
+      if (!inst) return;
+      try { inst.destroy(); } catch (e) {}
+      inst = null;
+    }
+    function bind() {
+      selected = values().length ? values() : selected;
+      destroy();
+      if (!window.Tagify) {
+        input.value = (selected || []).join(", ");
+        input.readOnly = readonly;
+        return;
+      }
+      inst = new window.Tagify(input, {
+        whitelist: whitelistForBind(),
+        tagTextProp: "name",
+        enforceWhitelist: allowCustom ? false : opts.enforceWhitelist !== false,
+        skipInvalid: !allowCustom,
+        duplicates: false,
+        editTags: allowCustom ? 1 : false,
+        delimiters: allowCustom ? ",|\n" : ",",
+        dropdown: {
+          enabled: 0,
+          maxItems: opts.maxItems || 20,
+          searchKeys: ["value", "name"],
+          mapValueTo: "name",
+          closeOnSelect: false,
+          highlightFirst: true,
+          appendTarget: document.body,
+        },
+      });
+      if (selected && selected.length) inst.addTags(tagsFromValues(selected));
+      if (inst.setReadonly) inst.setReadonly(readonly);
+      input.readOnly = readonly;
+    }
+    function set(vals) {
+      selected = (vals || []).slice();
+      if (inst) {
+        inst.removeAllTags();
+        if (selected.length) inst.addTags(tagsFromValues(selected));
+        return;
+      }
+      input.value = selected.join(", ");
+    }
+    function setItems(list) {
+      items = (list || []).slice();
+      selected = inst ? values() : selected;
+      if (!inst) return;
+      var next = whitelistForBind();
+      inst.settings.whitelist.length = 0;
+      next.forEach(function (it) { inst.settings.whitelist.push(it); });
+    }
+    function setReadonly(on) {
+      readonly = !!on;
+      wrap.classList.toggle("is-readonly", readonly);
+      if (inst && inst.setReadonly) inst.setReadonly(readonly);
+      input.readOnly = readonly;
+    }
     return {
-      el: input,
-      bind: function () {
-        if (inst) return;
-        if (window.Tagify) {
-          inst = new window.Tagify(input, {
-            delimiters: ",|\n",
-            dropdown: { enabled: 0, maxItems: 20 },
-          });
-          if (values && values.length) inst.addTags(values);
-        } else if (values && values.length) {
-          input.value = values.join(", ");
-        }
-      },
-      values: function () {
-        if (inst) {
-          return inst.value.map(function (t) { return t && t.value; }).filter(Boolean);
-        }
-        return csvList(input.value);
-      },
+      el: wrap,
+      bind: bind,
+      get: values,
+      set: set,
+      setItems: setItems,
+      setReadonly: setReadonly,
+      destroy: destroy,
+    };
+  }
+
+  function makeTagInput(placeholder, values) {
+    var pick = mountTagifyMulti({
+      placeholder: placeholder,
+      allowCustom: true,
+      items: values || [],
+      value: values || [],
+    });
+    return {
+      el: pick.el,
+      bind: pick.bind,
+      values: pick.get,
     };
   }
 
@@ -5829,6 +6639,9 @@
     api: api,
     toast: toast,
     accountChip: accountChip,
+    mountMailComposer: mountMailComposer,
+    mountSearchSelect: mountSearchSelect,
+    mountTagifyMulti: mountTagifyMulti,
     refreshStatus: refreshStatus,
     formatWhen: formatWhen,
     kindEmoji: kindEmoji,

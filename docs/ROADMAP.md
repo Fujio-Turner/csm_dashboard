@@ -1,7 +1,7 @@
 # CSM Dashboard roadmap
 
 > Living train map · last updated **2026-08-29**  
-> **Current baseline:** `0.1.85` · Apache License 2.0
+> **Current baseline:** `0.1.91` · Apache License 2.0
 
 This file answers **what ships when**. Design depth lives in [`DESIGN.md`](DESIGN.md).
 
@@ -22,7 +22,7 @@ The desk stays **one operator, one machine, Couchbase Lite JSON documents**. Big
 
 ---
 
-## 1. Shipped now (0.1.85)
+## 1. Shipped now (0.1.91)
 
 | Area | State |
 | --- | --- |
@@ -31,14 +31,14 @@ The desk stays **one operator, one machine, Couchbase Lite JSON documents**. Big
 | Home | Agenda and Companies tiles. Mini sidebar default. Meeting cards: company logo left, duration minutes right, subject on the card. Inbox rows: type icon + company logo |
 | Agenda calendar | **Day / Week / Month**. 24-hour Day and Week, default scroll ~7 AM. Now line. Time-proportional gaps. Hide weekdays and week-begins from User Preferences |
 | Deep links | `#account/{abbr}/{tab}/id={id}` opens the matching meeting, mail, chat, or task lightbox |
-| Inbox | Mail, Slack, Teams, **tasks** (self-emails). Filter All / Email / Slack / Tasks / Teams. `+` creates a task |
+| Inbox | Mail, Slack, Teams, **tasks** (self-emails). Filter All / Email / Slack / Tasks / Teams. `+` creates a task. Far-right stamp is who it is **to**: Me / Us / Them / All / ?? / n/a |
 | World clock | Globe lightbox. Add / remove / reorder zones. Persists in CBL `settings.world_clock` |
 | Appearance | Settings → User Preferences: Day / Night / Auto. Sidebar sun/moon toggle. `html[data-theme]` |
 | Account | Timeline, tickets, mail, **slack / teams** (one tab), Salesforce, calendar, **projects CRUD**, people, org chart, account team |
 | Timeline | Vertical (future top, oldest bottom) or Horizontal (past left, future right). Red **Now** line + **Now** button. Past 7 / 30 and Next 7 / 30 bound the window. Horizontal range labels are spine text so the rail stays narrow |
-| People | Add / Edit person sheet (`#detail-box` `.sheet-person`). Org chart scrolls; the tree is `max-content` so the left edge is not clipped |
-| Projects | Search, type, status, owner from people, group email, Tagify tags, remove |
-| Compose | Context builder + Grok or template. Suggest reply writes a `drafts` doc. **Send after confirm** when SMTP is live; otherwise 409 `send_not_configured` |
+| People | Add / Edit person sheet (`#detail-box` `.sheet-person`). Kind / Reports to are search-select. **Projects** and **Functions** are Tagify chips. Org chart scrolls; the tree is `max-content` so the left edge is not clipped |
+| Projects | Search, type, status, owner from people, group email, Tagify tag chips, remove |
+| Compose | Shared `.mail-composer` (Compose, thread Reply, New task): Tagify To / Cc / Bcc, subject, body, Attach, **AI Suggest**, **Save draft**, **Send**. Compose **Tickets** are Tagify chips; Thread is search-select. SMTP after confirm; 409 `send_not_configured` when SMTP is off. Attachments ride with the send (not stored as blobs). |
 | Chat | Desk / account scoped. Fallback SSE without a key |
 | Settings / Help | Sectioned operator profile, companies, AI keys, connectors, lab seed, User Preferences |
 | Connectors | Live **Jira**, **Slack**, **Teams**, **Gmail**, **Google Calendar**. **SMTP send** (drafts + task self-emails) after confirm when `smtp_imap` is live. Gmail/Calendar use local `credentials.json` plus Sign in with Google. Seed is Lab; Sync no longer replays fixtures. |

@@ -24,7 +24,7 @@ from csm_dashboard.compose.grok import (
 )
 from csm_dashboard.config import ROOT, Settings, fixtures_dir, load_settings
 from csm_dashboard.connectors import oauth as oauth_flow
-from csm_dashboard.connectors.smtp_imap import SendFailed, SendNotConfigured, deliver_mail
+from csm_dashboard.connectors.smtp_imap import SendFailed, SendNotConfigured, deliver_mail, parse_attachments
 from csm_dashboard.connectors.registry import PULL_CONNECTORS, connector_mode, get_connector, list_connectors
 from csm_dashboard.credentials import (
     AI_KEY_ALIASES,
@@ -50,15 +50,28 @@ HERE = Path(__file__).resolve().parent
 _INDEX_HTML: str | None = None
 
 
-def _send_mail(repo, *, from_addr: str, to_addrs: list, cc_addrs: list, subject: str, body: str) -> dict:
+def _send_mail(
+    repo,
+    *,
+    from_addr: str,
+    to_addrs: list,
+    cc_addrs: list,
+    subject: str,
+    body: str,
+    bcc_addrs: list | None = None,
+    attachments: list | None = None,
+) -> dict:
     try:
+        files = parse_attachments(attachments)
         return deliver_mail(
             repo,
             from_addr=from_addr,
             to_addrs=list(to_addrs or []),
             cc_addrs=list(cc_addrs or []),
+            bcc_addrs=list(bcc_addrs or []),
             subject=subject,
             body=body,
+            attachments=files,
         )
     except SendNotConfigured as exc:
         raise HTTPException(409, str(exc) or "send_not_configured") from exc
@@ -793,20 +806,25 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         return doc
 
     @app.post("/api/tasks/{email_id:path}/send")
-    def send_task(email_id: str):
+    def send_task(email_id: str, body: dict | None = None):
+        body = body or {}
         repo = repo_obj()
         doc = repo.task_public(email_id)
         if not doc:
             raise HTTPException(404, "not found")
         me = str(repo.operator_profile().get("email") or "").strip()
-        to_addrs = [addr for addr in (doc.get("to_addrs") or []) if addr] or ([me] if me else [])
+        to_addrs = [addr for addr in (body.get("to_addrs") or doc.get("to_addrs") or []) if addr] or ([me] if me else [])
+        cc_addrs = list(body.get("cc_addrs") if "cc_addrs" in body else (doc.get("cc_addrs") or []))
+        bcc_addrs = list(body.get("bcc_addrs") if "bcc_addrs" in body else (doc.get("bcc_addrs") or []))
         sent = _send_mail(
             repo,
             from_addr=str(doc.get("from_addr") or me),
             to_addrs=to_addrs,
-            cc_addrs=list(doc.get("cc_addrs") or []),
-            subject=str(doc.get("subject") or ""),
-            body=str(doc.get("body_text") or doc.get("content") or ""),
+            cc_addrs=cc_addrs,
+            bcc_addrs=bcc_addrs,
+            subject=str(body.get("subject") or doc.get("subject") or ""),
+            body=str(body.get("body") or doc.get("body_text") or doc.get("content") or ""),
+            attachments=body.get("attachments") or [],
         )
         out = repo.mark_task_sent(email_id)
         log.info("csm.task.sent email_id=%s via=%s", email_id, sent.get("via"))
@@ -1051,11 +1069,22 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         return doc
 
     @app.post("/api/drafts/{draft_id}/send")
-    def send_draft(draft_id: str):
+    def send_draft(draft_id: str, body: dict | None = None):
+        body = body or {}
         repo = repo_obj()
         doc = repo.get_draft(draft_id)
         if not doc:
             raise HTTPException(404, "not found")
+        patch = {
+            k: body[k]
+            for k in ("to_addrs", "cc_addrs", "bcc_addrs", "subject", "body", "attachment_names")
+            if k in body
+        }
+        if patch:
+            try:
+                doc = repo.patch_draft(draft_id, patch)
+            except KeyError:
+                raise HTTPException(404, "not found") from None
         me = str(repo.operator_profile().get("email") or "").strip()
         to_addrs = [addr for addr in (doc.get("to_addrs") or []) if addr]
         try:
@@ -1064,8 +1093,10 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
                 from_addr=me,
                 to_addrs=to_addrs,
                 cc_addrs=list(doc.get("cc_addrs") or []),
+                bcc_addrs=list(doc.get("bcc_addrs") or []),
                 subject=str(doc.get("subject") or ""),
                 body=str(doc.get("body") or ""),
+                attachments=body.get("attachments") or [],
             )
         except HTTPException as exc:
             if exc.status_code == 502:
@@ -1079,9 +1110,11 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
                 "from_addr": sent.get("from_addr") or me,
                 "to_addrs": sent.get("to_addrs") or to_addrs,
                 "cc_addrs": list(doc.get("cc_addrs") or []),
+                "bcc_addrs": list(doc.get("bcc_addrs") or []),
                 "subject": doc.get("subject") or "",
                 "body_text": doc.get("body") or "",
                 "snippet": str(doc.get("body") or "")[:180],
+                "has_attachments": bool(sent.get("attach_count")),
                 "sent_at": out.get("sent_at") or utcnow(),
                 "message_id": f"<draft.{draft_id.split(':')[-1]}@csm.local>",
                 "operator": {"unread": False},

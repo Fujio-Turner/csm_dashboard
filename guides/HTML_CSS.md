@@ -48,7 +48,7 @@ Use the `:root` variables in `app.css`. Do not introduce a second palette.
 
 Appearance: `html[data-theme="day"|"night"]` from User Preferences (`auto` follows `prefers-color-scheme`). Sidebar sun/moon is `#btn-theme`.
 
-Font: **Source Sans 3** (Google Fonts). CDN allow-list: that font, plus **Tagify** for project tags only. No Leaflet or ECharts.
+Font: **Source Sans 3** (Google Fonts). CDN allow-list: that font, plus **Tagify** for people emails (To / Cc / Bcc) and every multi-value field (project tags, person Projects / Functions, compose tickets). No Leaflet, ECharts, or a second email-composer kit — the desk’s `.mail-composer` is the shared prompt.
 
 ## Components (reuse these)
 
@@ -61,13 +61,16 @@ Font: **Source Sans 3** (Google Fonts). CDN allow-list: that font, plus **Tagify
 | Account chip | `.acct-chip` + `.acct-swatch` + `.acct-abbr` |
 | Health word | `.health-pill.healthy\|watch\|at_risk\|critical` |
 | Card | `.card` |
+| Mail composer | `.mail-composer` — To / Cc / Bcc (Tagify), Subject, Body, Attach, **AI Suggest**, **Save draft**, **Send**. Used by Compose, thread Reply, and New task. |
+| Search select | `.search-select` type-ahead (same pattern as Company : Project). Single-value only: Timezone, Task name, Search projects, Compose Thread, person Kind / Reports to. |
+| Multi chips | `mountTagifyMulti` / `.tag-multi` — Projects, Functions, tags, compose Tickets. Each pick is a Tagify badge. |
 | Agenda calendar | `.agenda-cal` Day / Week / Month. `.cal-now` now-line. 24h track, default scroll ~7 AM |
 | Meeting card | company logo left (`.acct-logo`), duration minutes right, subject on the card |
-| Inbox row | `.agenda-item-lead` type icon (`.kind-icon.is-lg`) + company logo |
+| Inbox row | `.agenda-item-lead` type icon (`.kind-icon.is-lg`) + company logo. Far right: `.agenda-who` stamp — **Me** / **Us** / **Them** / **All** / **??** / **n/a** |
 | Account timeline | `.timeline-shell` with `.timeline-range` (Past 7/30 · Next 7/30). Horizontal range labels: `writing-mode: vertical-rl`. Vertical: oldest at the bottom. `ul.timeline` cards. Now line `.tl-now`. **Now** button `.timeline-now-btn`. Layout: `.timeline-orient` |
 | Timeline thumb | `span.tl-emoji` (Unicode emoji, operator-requested) |
 | slack / teams tab | `data-tab="chat"`. Rows `.row.is-chat` with `.kind-icon.is-slack` / `.is-teams`. Hash aliases: `slack`, `teams` |
-| People sheet | `#detail-box` `.sheet-person` + `form.form-grid`. Helper is `fieldLabel(text, node)` — do not reuse that name |
+| People sheet | `#detail-box` `.sheet-person` + `settings-form` (same 2-col as New task). Kind / Reports to use `.search-select`. Projects / Functions are Tagify chips (`.tag-multi`). All-projects is `.check-inline`. |
 | Org chart | `.org-chart` `width: max-content`; pane `overflow-x: auto`. Center with `scrollLeft` |
 | Activity lightbox | `#detail-box` + `.sheet` — close `×` top-right. Notes live at the bottom. |
 | Timeline note badge | `img.tl-sticky` → `/static/sticky-note.png` |

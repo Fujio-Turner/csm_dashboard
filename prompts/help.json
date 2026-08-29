@@ -68,7 +68,7 @@
         {
           "id": "compose",
           "h": "Compose and reply",
-          "p": "Compose drafts from tickets, recent mail, Slack, Teams, and calendar. Grok writes when a key is present; otherwise a template is saved. Open a thread and click Suggest reply for a draft on that conversation. Send is off in this version."
+          "p": "Compose, thread Reply, and New task share one mail composer: Tagify To / Cc / Bcc, subject, body, Attach, AI Suggest, Save draft, Send. Grok writes when a key is present; otherwise a template. Send after confirm when SMTP is live."
         }
       ]
     },

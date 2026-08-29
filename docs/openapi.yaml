@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: CSM Dashboard API
-  version: 0.1.85
+  version: 0.1.91
   description: Local Customer Success Manager desk. Hand-maintained source of truth.
 servers:
   - url: http://127.0.0.1:8788
@@ -933,6 +933,26 @@ paths:
           name: draft_id
           required: true
           schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              properties:
+                to_addrs: { type: array, items: { type: string } }
+                cc_addrs: { type: array, items: { type: string } }
+                bcc_addrs: { type: array, items: { type: string } }
+                subject: { type: string }
+                body: { type: string }
+                attachments:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      filename: { type: string }
+                      content_type: { type: string }
+                      content_b64: { type: string }
       responses:
         "200":
           description: sent via SMTP after operator confirm

@@ -30,10 +30,12 @@ def test_views_present():
     assert "syncChatScope" in js
     assert "toggleChatBookmark" in js
     assert "tab-count" in js
-    assert "Suggest reply" in js
-    assert "Send to me" in js
+    assert "AI Suggest" in js
+    assert "mountMailComposer" in js
+    assert "mail-composer" in js
     compose = (ROOT / "src" / "csm_dashboard" / "web" / "static" / "compose.js").read_text(encoding="utf-8")
-    assert "Send this email now?" in compose
+    assert "mountMailComposer" in compose
+    assert "Send this email now?" in js
     assert "openCompanyForm" in js
     assert "makeTagInput" in js
     assert "sheet-company" in js
@@ -65,6 +67,11 @@ def test_views_present():
     assert "help-q" in css
     assert "help-q-icon" in css
     assert "fillTimezoneSelect" in js
+    assert "mountSearchSelect" in js
+    assert "mountTagifyMulti" in js
+    assert "tag-multi" in css
+    assert "search-select-menu" in css
+    assert "op-timezone-picker" in HTML
     assert "btn-world-clock" not in HTML
     assert "openHelpItem" in js
     assert "world-box" in HTML
@@ -120,9 +127,9 @@ def test_views_present():
     assert "Search company or project" in js
     assert "agendaInboxFilter" in js
     assert "openTaskForm" in js
-    assert "btn-task-assist" in js
-    assert "AI Assist" in js
-    assert "bindPeopleTagify" in js
+    assert "AI Suggest" in js
+    assert "mountMailComposer" in js
+    assert "bindAddrTagify" in js
     assert "/api/tasks/assist" in js
     assert "btn-add-task" in js
     assert "icon-task.svg" in js
@@ -131,6 +138,9 @@ def test_views_present():
     assert "goAccountItem" in js
     assert "openCalendarLightbox" in js
     assert "agenda-item-lead" in js
+    assert "audienceStamp" in js
+    assert "agenda-who" in css
+    assert "To Me" in js
     assert "is-lg" in js
     assert "/id=" in js
     assert "agendaCalView" in js
@@ -228,6 +238,12 @@ def test_timeline_css_present():
     assert 'href="#actions"' not in HTML
     assert 'href="#reports"' not in HTML
     assert "openPersonForm" in js
+    assert "person-projects" in js
+    assert "person-functions" in js
+    assert "people-q" in js
+    assert "Search people" in js
+    assert "pinValues" in js
+    assert "maxShown" in js
     assert "ACCOUNT_TABS" in js
     assert "TAB_ALIASES" in js
     assert "slack / teams" in js

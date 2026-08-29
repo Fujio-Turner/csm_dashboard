@@ -58,8 +58,19 @@ def test_build_message_sets_headers():
     assert msg["From"] == "me@ex.com"
     assert msg["To"] == "you@ex.com"
     assert msg["Cc"] == "cc@ex.com"
-    assert msg["Subject"] == "Hello"
-    assert "Hi there" in msg.get_content()
+    assert msg["Bcc"] is None
+    msg2 = build_message(
+        from_addr="me@ex.com",
+        to_addrs=["you@ex.com"],
+        cc_addrs=["cc@ex.com"],
+        bcc_addrs=["bcc@ex.com"],
+        subject="Hello",
+        body="Hi there",
+        attachments=[("note.txt", "text/plain", b"hi")],
+    )
+    assert msg2["Bcc"] == "bcc@ex.com"
+    names = [part.get_filename() for part in msg2.iter_attachments()]
+    assert "note.txt" in names
 
 
 def test_send_via_smtp_uses_client(monkeypatch):

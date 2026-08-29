@@ -32,6 +32,9 @@ def test_seed_home_compose_send(client):
     assert any("ACME" in ((m.get("account") or {}).get("abbr") or "") for m in meets)
     inbox = agenda.json()["inbox"]
     assert inbox
+    allowed_audience = {"me", "us", "them", "all", "unknown", "na"}
+    assert all(i.get("audience") in allowed_audience for i in inbox)
+    assert {i["audience"] for i in inbox} & {"me", "us", "them", "all"}
     filters = agenda.json().get("project_filters") or []
     assert filters
     assert any(":" in (p.get("label") or "") for p in filters)

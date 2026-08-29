@@ -220,6 +220,108 @@ def _norm_emails(value: Any) -> list[str]:
     return out
 
 
+AUDIENCE_ME = "me"
+AUDIENCE_US = "us"
+AUDIENCE_THEM = "them"
+AUDIENCE_ALL = "all"
+AUDIENCE_UNKNOWN = "unknown"
+AUDIENCE_NA = "na"
+AUDIENCE_VALUES = (AUDIENCE_ME, AUDIENCE_US, AUDIENCE_THEM, AUDIENCE_ALL, AUDIENCE_UNKNOWN, AUDIENCE_NA)
+
+
+def _addr_domain(addr: str) -> str:
+    raw = str(addr or "").strip().lower()
+    if "@" not in raw:
+        return ""
+    return raw.rsplit("@", 1)[-1]
+
+
+def _addr_side(
+    addr: str,
+    *,
+    me: str,
+    us_emails: set[str],
+    them_emails: set[str],
+    us_domains: set[str],
+    them_domains: set[str],
+) -> str:
+    a = str(addr or "").strip().lower()
+    if not a:
+        return ""
+    if me and a == me:
+        return AUDIENCE_ME
+    if a in us_emails:
+        return AUDIENCE_US
+    if a in them_emails:
+        return AUDIENCE_THEM
+    domain = _addr_domain(a)
+    if domain and domain in us_domains:
+        return AUDIENCE_US
+    if domain and domain in them_domains:
+        return AUDIENCE_THEM
+    return AUDIENCE_UNKNOWN
+
+
+def fold_audience_sides(sides: set[str]) -> str:
+    known = {s for s in sides if s and s != AUDIENCE_UNKNOWN}
+    if not known:
+        return AUDIENCE_UNKNOWN
+    has_me = AUDIENCE_ME in known
+    has_us = AUDIENCE_US in known
+    has_them = AUDIENCE_THEM in known
+    if has_them and (has_me or has_us):
+        return AUDIENCE_ALL
+    if has_them:
+        return AUDIENCE_THEM
+    if has_us:
+        return AUDIENCE_US
+    if has_me:
+        return AUDIENCE_ME
+    return AUDIENCE_UNKNOWN
+
+
+def inbox_audience(
+    *,
+    kind: str = "",
+    to_addrs: list | None = None,
+    cc_addrs: list | None = None,
+    bcc_addrs: list | None = None,
+    channel_id: str = "",
+    is_im: bool = False,
+    me: str = "",
+    us_emails: set[str] | None = None,
+    them_emails: set[str] | None = None,
+    us_domains: set[str] | None = None,
+    them_domains: set[str] | None = None,
+) -> str:
+    """Who this inbox row is to: me, us, them, all, unknown (??), or na."""
+    kind = str(kind or "")
+    if kind in {"slack", "teams"}:
+        cid = str(channel_id or "")
+        if is_im or cid.startswith("D"):
+            return AUDIENCE_ME
+        if cid:
+            return AUDIENCE_ALL
+        return AUDIENCE_UNKNOWN
+    addrs = list(to_addrs or []) + list(cc_addrs or []) + list(bcc_addrs or [])
+    if not addrs:
+        if kind in {"email", "task"}:
+            return AUDIENCE_UNKNOWN
+        return AUDIENCE_NA
+    sides = {
+        _addr_side(
+            addr,
+            me=str(me or "").strip().lower(),
+            us_emails=set(us_emails or ()),
+            them_emails=set(them_emails or ()),
+            us_domains=set(us_domains or ()),
+            them_domains=set(them_domains or ()),
+        )
+        for addr in addrs
+    }
+    return fold_audience_sides(sides)
+
+
 def _is_task_email(doc: dict) -> bool:
     if (doc.get("operator") or {}).get("task"):
         return True
@@ -1028,6 +1130,7 @@ class CsmRepo:
         profile = self.operator_profile()
         me = str(profile.get("email") or "").strip() or "operator@local"
         cc = _norm_emails(body.get("cc_addrs"))
+        bcc = _norm_emails(body.get("bcc_addrs"))
         due_at = str(body.get("due_at") or "").strip()
         content = str(body.get("body") or body.get("content") or "")
         now = utcnow()
@@ -1044,6 +1147,7 @@ class CsmRepo:
             "from_addr": me,
             "to_addrs": [me],
             "cc_addrs": cc,
+            "bcc_addrs": bcc,
             "body_text": _task_body(content, due_at),
             "snippet": content.strip()[:180],
             "sent_at": now if not existing else (existing.get("sent_at") or now),
@@ -1102,6 +1206,7 @@ class CsmRepo:
         out["mailbox_sent_at"] = str(op.get("mailbox_sent_at") or "")
         out["content"] = content
         out["cc_addrs"] = list(doc.get("cc_addrs") or [])
+        out["bcc_addrs"] = list(doc.get("bcc_addrs") or [])
         return out
 
     def get_email(self, email_id: str) -> dict | None:
@@ -1517,6 +1622,8 @@ class CsmRepo:
             "channel": body.get("channel") or "email",
             "to_addrs": body.get("to_addrs") or [],
             "cc_addrs": body.get("cc_addrs") or [],
+            "bcc_addrs": body.get("bcc_addrs") or [],
+            "attachment_names": body.get("attachment_names") or [],
             "subject": body.get("subject") or "",
             "body": body.get("body") or "",
             "prompt_name": body.get("prompt_name") or "",
@@ -1538,7 +1645,7 @@ class CsmRepo:
         doc = self.store.get("drafts", draft_id)
         if not doc:
             raise KeyError(draft_id)
-        for key in ("subject", "body", "to_addrs", "cc_addrs", "status"):
+        for key in ("subject", "body", "to_addrs", "cc_addrs", "bcc_addrs", "attachment_names", "status"):
             if key in patch:
                 doc[key] = patch[key]
         doc["updated_at"] = utcnow()
@@ -1830,6 +1937,38 @@ class CsmRepo:
         upcoming.sort(key=lambda r: r["start_at"])
         return upcoming[0] if upcoming else None
 
+    def _audience_book(self, acct: dict, *, me: str, us_domains: set[str]) -> dict:
+        aid = acct.get("account_id") or acct.get("_id") or ""
+        us_emails: set[str] = set()
+        them_emails: set[str] = set()
+        for person in self.list_people(aid):
+            email = str(person.get("email") or "").strip().lower()
+            if not email or email == me:
+                continue
+            if person.get("kind") in {"account_team", "ps_team"}:
+                us_emails.add(email)
+            else:
+                them_emails.add(email)
+        slack_im = {
+            str(ch.get("channel_id") or "")
+            for ch in self.list_slack_channels(aid)
+            if ch.get("is_im") or ch.get("is_mpim")
+        }
+        teams_im = {
+            str(ch.get("channel_id") or "")
+            for ch in self.list_teams_channels(aid)
+            if ch.get("is_im") or str(ch.get("chat_type") or "").lower() in {"oneonone", "dm"}
+        }
+        return {
+            "me": me,
+            "us_emails": us_emails,
+            "them_emails": them_emails,
+            "us_domains": us_domains,
+            "them_domains": set(_norm_domains(acct.get("domains") or [])),
+            "slack_im": slack_im,
+            "teams_im": teams_im,
+        }
+
     def home_agenda(self, day: str, *, start: str | None = None, end: str | None = None, inbox_limit: int = 50) -> dict:
         def _day(value: str, fallback: str) -> str:
             raw = str(value or "")[:10]
@@ -1844,6 +1983,9 @@ class CsmRepo:
         meetings: list[dict] = []
         inbox: list[dict] = []
         project_filters: list[dict] = []
+        profile = self.operator_profile()
+        me = str(profile.get("email") or "").strip().lower()
+        us_domains = set(_norm_domains(profile.get("domains") or []))
         for acct in self.list_accounts():
             aid = acct.get("account_id") or acct.get("_id") or ""
             slim = {
@@ -1901,6 +2043,14 @@ class CsmRepo:
                         "account": slim,
                     }
                 )
+            book = self._audience_book(acct, me=me, us_domains=us_domains)
+            mail_kw = {
+                "me": book["me"],
+                "us_emails": book["us_emails"],
+                "them_emails": book["them_emails"],
+                "us_domains": book["us_domains"],
+                "them_domains": book["them_domains"],
+            }
             emails, _ = self.page_emails(aid, limit=200)
             for mail in emails:
                 op = mail.get("operator") or {}
@@ -1911,9 +2061,10 @@ class CsmRepo:
                 elif not op.get("unread"):
                     continue
                 mail_pid = str(mail.get("project_id") or "")
+                mail_kind = "task" if is_task else "email"
                 inbox.append(
                     {
-                        "kind": "task" if is_task else "email",
+                        "kind": mail_kind,
                         "at": str(mail.get("updated_at") or mail.get("sent_at") or ""),
                         "title": mail.get("subject") or "(no subject)",
                         "body": str(mail.get("snippet") or mail.get("body_text") or "")[:220],
@@ -1923,6 +2074,13 @@ class CsmRepo:
                         "project_id": mail_pid,
                         "project_name": proj_names.get(mail_pid) or "",
                         "account": slim,
+                        "audience": inbox_audience(
+                            kind=mail_kind,
+                            to_addrs=mail.get("to_addrs") or [],
+                            cc_addrs=mail.get("cc_addrs") or [],
+                            bcc_addrs=mail.get("bcc_addrs") or [],
+                            **mail_kw,
+                        ),
                         "ref": {"collection": "emails", "id": mail.get("_id") or "", "thread_id": mail.get("thread_id") or ""},
                     }
                 )
@@ -1931,6 +2089,7 @@ class CsmRepo:
                 if not (msg.get("operator") or {}).get("unread"):
                     continue
                 slack_pid = str(msg.get("project_id") or "")
+                slack_cid = str(msg.get("channel_id") or "")
                 inbox.append(
                     {
                         "kind": "slack",
@@ -1941,6 +2100,11 @@ class CsmRepo:
                         "project_id": slack_pid,
                         "project_name": proj_names.get(slack_pid) or "",
                         "account": slim,
+                        "audience": inbox_audience(
+                            kind="slack",
+                            channel_id=slack_cid,
+                            is_im=slack_cid in book["slack_im"],
+                        ),
                         "ref": {"collection": "slack_messages", "id": msg.get("_id") or ""},
                     }
                 )
@@ -1949,6 +2113,7 @@ class CsmRepo:
                 if not (msg.get("operator") or {}).get("unread"):
                     continue
                 teams_pid = str(msg.get("project_id") or "")
+                teams_cid = str(msg.get("channel_id") or "")
                 inbox.append(
                     {
                         "kind": "teams",
@@ -1959,6 +2124,11 @@ class CsmRepo:
                         "project_id": teams_pid,
                         "project_name": proj_names.get(teams_pid) or "",
                         "account": slim,
+                        "audience": inbox_audience(
+                            kind="teams",
+                            channel_id=teams_cid,
+                            is_im=teams_cid in book["teams_im"],
+                        ),
                         "ref": {"collection": "teams_messages", "id": msg.get("_id") or ""},
                     }
                 )

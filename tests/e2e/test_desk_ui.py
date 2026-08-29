@@ -18,6 +18,12 @@ def test_home_shows_version_and_opens_settings(page, live_server):
     assert "timesheet" not in body
     assert "sign in with google" in body
     assert page.locator("#pref-week-start").is_visible()
+    page.wait_for_selector("#op-timezone-picker .search-select-btn")
+    page.locator("#op-timezone-picker .search-select-btn").click()
+    page.wait_for_selector(".search-select-menu:not([hidden])")
+    page.locator(".search-select-menu .search").fill("chicago")
+    page.wait_for_selector(".search-select-opt")
+    page.keyboard.press("Escape")
     assert page.get_by_text("User Preferences").is_visible()
     assert page.locator("#btn-theme").is_visible()
 
@@ -33,6 +39,11 @@ def test_seed_loads_companies_on_home(page, live_server):
     assert page.get_by_role("button", name="Week").is_visible()
     assert page.get_by_role("button", name="Month").is_visible()
     assert page.locator(".agenda-item-lead").count() >= 1
+    page.wait_for_selector(".agenda-who")
+    assert page.locator(".agenda-who").count() >= 1
+    stamps = [t.strip() for t in page.locator(".agenda-who").all_inner_texts()]
+    assert stamps
+    assert set(stamps) <= {"Me", "Us", "Them", "All", "??", "n/a"}
     page.locator(".cal-event").first.click()
     page.wait_for_function("location.hash.indexOf('/id=') >= 0")
     page.wait_for_selector("#detail-box:not([hidden]) .sheet")
@@ -84,20 +95,50 @@ def test_seed_loads_companies_on_home(page, live_server):
     assert page.locator("#account-pane .kind-icon.is-slack").count() >= 1
     assert page.locator("#account-pane .kind-icon.is-teams").count() >= 1
     page.wait_for_function("location.hash.indexOf('/chat') >= 0")
+    page.locator("#account-head").get_by_role("button", name="Compose").click()
+    page.wait_for_selector("#compose-box:not([hidden]) .mail-composer")
+    assert page.get_by_role("button", name="AI Suggest").is_visible()
+    assert page.get_by_role("button", name="Save draft").is_visible()
+    assert page.get_by_role("button", name="Attach").is_visible()
+    page.wait_for_selector("#compose-tickets .tagify")
+    assert page.locator("#compose-tickets .tagify").count() == 1
+    page.locator("#compose-box .sheet-close").click()
     page.get_by_role("button", name="org chart").click()
     page.wait_for_selector(".org-card")
     assert page.locator(".org-card").count() >= 8
     page.locator("#account-tabs .tab", has_text="people").click()
+    page.wait_for_selector("#people-q")
+    assert page.locator("#people-q").is_visible()
     page.get_by_role("button", name="Add person").click()
-    page.wait_for_selector("#detail-box:not([hidden]) .sheet-person form.form-grid")
+    page.wait_for_selector("#detail-box:not([hidden]) .sheet-person form.settings-form")
     assert "Add person" in page.locator("#detail-box h2").inner_text()
     assert page.locator("#detail-box .sheet-person form label").count() >= 6
-    assert page.locator("#detail-box .sheet-person form input").count() >= 3
+    assert page.locator("#detail-box .sheet-person .search-select").count() == 2
+    page.wait_for_selector("#detail-box .sheet-person .tagify")
+    assert page.locator("#detail-box .sheet-person .tagify").count() >= 2
     assert page.get_by_role("button", name="Save").is_visible()
+    assert page.get_by_text("All projects (director / VP)").is_visible()
+    fn_box = page.locator("#person-functions .tagify")
+    fn_input = page.locator("#person-functions .tagify__input")
+    fn_input.click()
+    fn_input.press_sequentially("Op")
+    page.wait_for_selector(".tagify__dropdown__item")
+    page.locator(".tagify__dropdown__item").filter(has_text="Ops").first.click()
+    assert fn_box.locator(".tagify__tag").filter(has_text="Ops").count() >= 1
+    page.locator("#detail-box h2").click()
+    page.wait_for_selector(".tagify__dropdown", state="hidden")
+    proj_box = page.locator("#person-projects .tagify")
+    page.locator("#person-projects .tagify__input").click()
+    page.wait_for_selector(".tagify__dropdown__item")
+    first_proj = page.locator(".tagify__dropdown:visible .tagify__dropdown__item").first
+    proj_label = first_proj.inner_text().strip()
+    first_proj.click()
+    assert proj_label
+    assert proj_box.locator(".tagify__tag").filter(has_text=proj_label).count() >= 1
     page.locator("#detail-box .sheet-close").click()
     page.wait_for_selector("#account-pane .row.is-click")
     page.locator("#account-pane .row.is-click").first.click()
-    page.wait_for_selector("#detail-box:not([hidden]) .sheet-person form.form-grid")
+    page.wait_for_selector("#detail-box:not([hidden]) .sheet-person form.settings-form")
     assert "Edit person" in page.locator("#detail-box h2").inner_text()
     assert page.locator("#detail-box .sheet-person form input").first.input_value() != ""
     page.locator("#detail-box .sheet-close").click()
