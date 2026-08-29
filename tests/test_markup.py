@@ -43,6 +43,17 @@ def test_views_present():
     assert "op-timezone" in HTML
     assert "settings-page" in HTML
     assert "settings-form" in HTML
+    assert 'id="sso-portal"' in HTML
+    assert 'id="btn-sso-signin"' in HTML
+    assert 'id="sso-client-id"' in HTML
+    assert 'id="ai-provider"' in HTML
+    assert 'id="connector-picker"' in HTML
+    assert 'id="ai-state"' in HTML
+    assert 'id="connector-state"' in HTML
+    assert "picker-row" in css
+    assert "paintAiPicker" in js
+    assert "paintConnectorPicker" in js
+    assert "connectorStateOf" in js
     assert "help-page" in HTML
     assert "help-toc" not in HTML
     assert "settings-page" in css

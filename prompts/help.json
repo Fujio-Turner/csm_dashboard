@@ -121,12 +121,12 @@
         {
           "id": "ai-keys",
           "h": "AI and connectors",
-          "p": "Keys stay in data/secrets.json (mode 0600). Compose uses Grok when that key is present. Connector mode lives in config.json; Test checks health and auth."
+          "p": "Gmail and Calendar: save your profile email, then Sign in with Google. Your name/email only pick the account. Add http://localhost:8788/oauth2callback in Google Cloud if Google says redirect_uri_mismatch. Jira: site + API token. Slack: xoxp token. Teams: Connect Microsoft. Okta SSO still needs an OIDC app client ID — profile email is not enough."
         },
         {
           "id": "seed",
           "h": "Lab data",
-          "p": "Load seed data writes three books: ACME (navy), NWIN (forest), GLX (burgundy). Seed is idempotent. Reset wipes books and keeps your settings, including the world clock."
+          "p": "Load seed data writes three books: ACME (navy), NWIN (forest), GLX (burgundy). Each gets the sample logo, a full customer org chart plus account team, tickets/mail/chat, and a packed meeting day on Home (today) as well as 28 Aug 2026 and the 18 Aug ACME TAM session. Seed is idempotent. Reset wipes books and keeps your settings, including the world clock."
         }
       ]
     }

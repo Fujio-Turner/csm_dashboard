@@ -216,6 +216,152 @@
     "project_id": "proj:acme-scan"
   },
   {
+    "_id": "tkt:jira:ACME-33",
+    "type": "ticket",
+    "account_id": "acct:acme",
+    "source": "jira",
+    "key": "ACME-33",
+    "external_id": "33",
+    "summary": "Contractor SSO mapping",
+    "status": "open",
+    "status_raw": "Open",
+    "priority": "p2",
+    "priority_raw": "High",
+    "issue_type": "bug",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/ACME-33",
+    "project_key": "ACME",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-27T16:00:00Z",
+    "resolved_at": "",
+    "comment_count": 1,
+    "last_comment_at": "2026-08-27T16:10:00Z",
+    "comments": [
+      {
+        "at": "2026-08-27T16:10:00Z",
+        "author": "elena.ruiz@acme.com",
+        "text": "Need a date before QBR."
+      }
+    ],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:acme-sso"
+  },
+  {
+    "_id": "tkt:jira:ACME-34",
+    "type": "ticket",
+    "account_id": "acct:acme",
+    "source": "jira",
+    "key": "ACME-34",
+    "external_id": "34",
+    "summary": "DC3 spare battery SKU",
+    "status": "waiting",
+    "status_raw": "Waiting",
+    "priority": "p3",
+    "priority_raw": "Medium",
+    "issue_type": "task",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/ACME-34",
+    "project_key": "ACME",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-28T09:00:00Z",
+    "resolved_at": "",
+    "comment_count": 0,
+    "last_comment_at": "",
+    "comments": [],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:acme-scan"
+  },
+  {
+    "_id": "tkt:jira:ACME-36",
+    "type": "ticket",
+    "account_id": "acct:acme",
+    "source": "jira",
+    "key": "ACME-36",
+    "external_id": "36",
+    "summary": "Night-shift DBA VPN",
+    "status": "open",
+    "status_raw": "Open",
+    "priority": "p3",
+    "priority_raw": "Medium",
+    "issue_type": "task",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/ACME-36",
+    "project_key": "ACME",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-28T11:00:00Z",
+    "resolved_at": "",
+    "comment_count": 0,
+    "last_comment_at": "",
+    "comments": [],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:acme-sso"
+  },
+  {
+    "_id": "tkt:jira:ACME-37",
+    "type": "ticket",
+    "account_id": "acct:acme",
+    "source": "jira",
+    "key": "ACME-37",
+    "external_id": "37",
+    "summary": "QBR one-pager",
+    "status": "open",
+    "status_raw": "Open",
+    "priority": "p3",
+    "priority_raw": "Medium",
+    "issue_type": "task",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/ACME-37",
+    "project_key": "ACME",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-28T12:00:00Z",
+    "resolved_at": "",
+    "comment_count": 0,
+    "last_comment_at": "",
+    "comments": [],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:acme-scan"
+  },
+  {
     "_id": "tkt:jira:NWIN-4",
     "type": "ticket",
     "account_id": "acct:northwind",
@@ -428,8 +574,111 @@
       "jira": {
         "fetched_at": "2026-08-17T15:00:00Z"
       }
+    }
+  },
+  {
+    "_id": "tkt:jira:NWIN-22",
+    "type": "ticket",
+    "account_id": "acct:northwind",
+    "source": "jira",
+    "key": "NWIN-22",
+    "external_id": "22",
+    "summary": "Renewal commercial pack",
+    "status": "open",
+    "status_raw": "Open",
+    "priority": "p2",
+    "priority_raw": "High",
+    "issue_type": "bug",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/NWIN-22",
+    "project_key": "NWIN",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-28T11:00:00Z",
+    "resolved_at": "",
+    "comment_count": 0,
+    "last_comment_at": "",
+    "comments": [],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
     },
     "project_id": "proj:nwin-renew"
+  },
+  {
+    "_id": "tkt:jira:NWIN-24",
+    "type": "ticket",
+    "account_id": "acct:northwind",
+    "source": "jira",
+    "key": "NWIN-24",
+    "external_id": "24",
+    "summary": "Tacoma Wi-Fi drop",
+    "status": "open",
+    "status_raw": "Open",
+    "priority": "p3",
+    "priority_raw": "Medium",
+    "issue_type": "task",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/NWIN-24",
+    "project_key": "NWIN",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-28T10:00:00Z",
+    "resolved_at": "",
+    "comment_count": 0,
+    "last_comment_at": "",
+    "comments": [],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:nwin-renew"
+  },
+  {
+    "_id": "tkt:jira:NWIN-25",
+    "type": "ticket",
+    "account_id": "acct:northwind",
+    "source": "jira",
+    "key": "NWIN-25",
+    "external_id": "25",
+    "summary": "Helpdesk SLA miss",
+    "status": "waiting",
+    "status_raw": "Waiting",
+    "priority": "p3",
+    "priority_raw": "Medium",
+    "issue_type": "task",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/NWIN-25",
+    "project_key": "NWIN",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-27T12:00:00Z",
+    "resolved_at": "",
+    "comment_count": 0,
+    "last_comment_at": "",
+    "comments": [],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
   },
   {
     "_id": "tkt:jira:GLX-3",
@@ -592,6 +841,110 @@
     "created_at": "2026-08-10T12:00:00Z",
     "updated_at": "2026-08-11T12:00:00Z",
     "resolved_at": "2026-08-16T00:00:00Z",
+    "comment_count": 0,
+    "last_comment_at": "",
+    "comments": [],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "_id": "tkt:jira:GLX-12",
+    "type": "ticket",
+    "account_id": "acct:globex",
+    "source": "jira",
+    "key": "GLX-12",
+    "external_id": "12",
+    "summary": "Badge printer at plant 2",
+    "status": "open",
+    "status_raw": "Open",
+    "priority": "p3",
+    "priority_raw": "Medium",
+    "issue_type": "task",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/GLX-12",
+    "project_key": "GLX",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-28T10:00:00Z",
+    "resolved_at": "",
+    "comment_count": 0,
+    "last_comment_at": "",
+    "comments": [],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:glx-onboard"
+  },
+  {
+    "_id": "tkt:jira:GLX-14",
+    "type": "ticket",
+    "account_id": "acct:globex",
+    "source": "jira",
+    "key": "GLX-14",
+    "external_id": "14",
+    "summary": "OT network segment",
+    "status": "open",
+    "status_raw": "Open",
+    "priority": "p2",
+    "priority_raw": "High",
+    "issue_type": "bug",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/GLX-14",
+    "project_key": "GLX",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-28T09:30:00Z",
+    "resolved_at": "",
+    "comment_count": 0,
+    "last_comment_at": "",
+    "comments": [],
+    "operator": {
+      "triage": "",
+      "ignore": false
+    },
+    "sources": {
+      "jira": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:glx-onboard"
+  },
+  {
+    "_id": "tkt:jira:GLX-15",
+    "type": "ticket",
+    "account_id": "acct:globex",
+    "source": "jira",
+    "key": "GLX-15",
+    "external_id": "15",
+    "summary": "Plant 2 shipping labels",
+    "status": "waiting",
+    "status_raw": "Waiting",
+    "priority": "p3",
+    "priority_raw": "Medium",
+    "issue_type": "task",
+    "assignee_email": "tam@example.com",
+    "reporter_email": "pat@example.com",
+    "url": "https://example.atlassian.net/browse/GLX-15",
+    "project_key": "GLX",
+    "labels": [],
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-28T11:00:00Z",
+    "resolved_at": "",
     "comment_count": 0,
     "last_comment_at": "",
     "comments": [],

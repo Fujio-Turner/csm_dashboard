@@ -23,6 +23,11 @@
           "C0ACME1"
         ]
       },
+      "teams": {
+        "channel_ids": [
+          "19:acme-success"
+        ]
+      },
       "calendar": {
         "attendee_domains": [
           "acme.com",
@@ -31,18 +36,6 @@
       },
       "mail": {
         "labels": []
-      },
-      "teams": {
-        "channel_ids": [
-          "19:acme-success"
-        ],
-        "team_name": "ACME"
-      },
-      "salesforce": {
-        "account_ids": [
-          "001ACME0001"
-        ],
-        "org": "acme.my.salesforce.com"
       }
     },
     "health": {
@@ -118,6 +111,11 @@
           "C0NWIN1"
         ]
       },
+      "teams": {
+        "channel_ids": [
+          "19:nwin-success"
+        ]
+      },
       "calendar": {
         "attendee_domains": [
           "northwind.example"
@@ -125,18 +123,6 @@
       },
       "mail": {
         "labels": []
-      },
-      "teams": {
-        "channel_ids": [
-          "19:nwin-success"
-        ],
-        "team_name": "NWIN"
-      },
-      "salesforce": {
-        "account_ids": [
-          "001NWIN0001"
-        ],
-        "org": "example.my.salesforce.com"
       }
     },
     "health": {
@@ -159,12 +145,16 @@
     "team": {
       "account": [
         {
-          "person_id": "person:ae01",
+          "person_id": "person:nwin-ae",
           "role": "ae"
         },
         {
-          "person_id": "person:csm01",
+          "person_id": "person:nwin-csm",
           "role": "csm"
+        },
+        {
+          "person_id": "person:nwin-tam",
+          "role": "tam"
         }
       ],
       "ps": [
@@ -208,6 +198,11 @@
           "C0GLX1"
         ]
       },
+      "teams": {
+        "channel_ids": [
+          "19:glx-onboard"
+        ]
+      },
       "calendar": {
         "attendee_domains": [
           "globex.example"
@@ -215,18 +210,6 @@
       },
       "mail": {
         "labels": []
-      },
-      "teams": {
-        "channel_ids": [
-          "19:glx-onboard"
-        ],
-        "team_name": "GLX"
-      },
-      "salesforce": {
-        "account_ids": [
-          "001GLX0001"
-        ],
-        "org": "example.my.salesforce.com"
       }
     },
     "health": {
@@ -253,13 +236,17 @@
           "role": "ae"
         },
         {
-          "person_id": "person:csm01",
+          "person_id": "person:glx-csm",
           "role": "csm"
+        },
+        {
+          "person_id": "person:glx-tam",
+          "role": "tam"
         }
       ],
       "ps": [
         {
-          "person_id": "person:ps01",
+          "person_id": "person:glx-ps",
           "role": "ps_lead"
         }
       ]

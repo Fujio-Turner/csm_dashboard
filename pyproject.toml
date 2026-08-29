@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "csm-dashboard"
-version = "0.1.50"
+version = "0.1.63"
 description = "Local Customer Success Manager desk. Multi-account tickets, mail, Slack, calendar, and Grok drafts."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -21,6 +21,8 @@ dependencies = [
 dev = [
   "pytest>=8.0",
   "pytest-asyncio>=0.24",
+  "pytest-cov>=5,<8",
+  "pytest-playwright>=0.7,<1",
   "jsonschema>=4.23",
   "pyyaml>=6.0",
 ]
@@ -38,3 +40,14 @@ csm_dashboard = ["web/static/*", "web/templates/*"]
 testpaths = ["tests"]
 pythonpath = ["src"]
 asyncio_mode = "auto"
+markers = [
+  "e2e: live Chromium checks against a local desk server",
+]
+
+[tool.coverage.run]
+source = ["csm_dashboard"]
+omit = ["*/cblite.py", "*/__main__.py"]
+
+[tool.coverage.report]
+skip_covered = true
+show_missing = true

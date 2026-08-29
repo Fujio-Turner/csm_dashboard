@@ -1,7 +1,7 @@
 # CSM Dashboard roadmap
 
-> Living train map · last updated **2026-08-18**  
-> **Current baseline:** `0.1.32` · Apache License 2.0
+> Living train map · last updated **2026-08-28**  
+> **Current baseline:** `0.1.61` · Apache License 2.0
 
 This file answers **what ships when**. Design depth lives in [`DESIGN.md`](DESIGN.md).
 
@@ -22,7 +22,7 @@ The desk stays **one operator, one machine, Couchbase Lite JSON documents**. Big
 
 ---
 
-## 1. Shipped now (0.1.32)
+## 1. Shipped now (0.1.61)
 
 | Area | State |
 | --- | --- |
@@ -36,9 +36,10 @@ The desk stays **one operator, one machine, Couchbase Lite JSON documents**. Big
 | Compose | Context builder + Grok or template. Suggest reply exists. **Send = 409** |
 | Chat | Desk / account scoped. Fallback SSE without a key |
 | Settings / Help | Sectioned operator profile, companies, AI keys, connectors, lab seed |
-| Connectors | Protocol + stubs. Sync still reads `fixtures/seed/` |
+| Connectors | Live **Jira**, **Slack**, **Teams**, **Gmail**, **Google Calendar**. Gmail/Calendar use local `credentials.json` plus Sign in with Google. Seed is Lab; Sync no longer replays fixtures. |
+| Credentials | CBL `credentials` collection. Settings → AI keys + connector tokens. GET never returns secret values. |
 
-**Not shipped:** live OAuth, SMTP send, Jira/Zendesk write, App Services sync, EE vectors, transcript ingest, PDF/image chat, slash-in-chat, finished QBR/monthly reports.
+**Not shipped:** IMAP/Salesforce live pull, SMTP send, Jira/Zendesk write, Pydantic AI multi-agent desk, scratch TTL collection, App Services sync, EE vectors, transcript ingest, PDF/image chat, slash-in-chat, finished QBR/monthly reports.
 
 ---
 
@@ -51,6 +52,7 @@ The desk stays **one operator, one machine, Couchbase Lite JSON documents**. Big
 | **CBL JSON is the store** | App Services is **replication**. Confluence is a **wiki sidecar**. Zendesk / Jira stay connectors |
 | **First-party fields win** | Operator notes, task edits, and project tags survive connector refresh. Write the conflict rule **before** any pull |
 | **Community stays the default** | EE (vector index) is an explicit later train. Do not require EE to open the desk |
+| **Scratch is derived** | TTL summaries are disposable. They never overwrite tickets, mail, notes, or `operator.*`. Invalidate when the source `updated_at` moves |
 
 **Project context (how talk-about-a-project works):**
 
@@ -63,26 +65,35 @@ The desk stays **one operator, one machine, Couchbase Lite JSON documents**. Big
 
 ## 3. Next trains
 
-### 0.2 — live read connectors
+### 0.2 — read-only content aggregator
 
-**Locked order:** Jira token → IMAP → Slack read → **Zendesk** → Google / M365 OAuth.
+The desk is a **local inbox of other systems**. No outbound mail, no Jira comments, no Slack posts. Manage every connection on **Settings**. Tokens live in CBL `credentials` (`cred:ai:*`, `cred:connector:*`), not `data/secrets.json`. Mode (`stub` / `live` / `off`) lives on the CBL `settings` doc (overlays `config.json`).
+
+**Sign-in:** **Sign in with Okta/OIDC** (issuer URL + native client ID, loopback callback). That identity is then used to Connect Gmail / Microsoft / Slack. Connector mode is **live** or **disabled**. Jira and IMAP still use a pasted API token / app password.
+
+**AI:** multiple keys (Grok, OpenAI, Gemini) + a provider/model select. Compose, chat, and reports use the selected provider. Empty password fields keep the stored key.
+
+**Live reads, locked order:** Jira token → Slack read → Teams Graph → IMAP → **Zendesk** → Google / M365 mail.
 
 | Item | Notes |
 | --- | --- |
-| Jira Cloud REST | Token in `data/secrets.json`. Incremental `updated >= since`. Comments cap 10 × 2k |
+| Jira Cloud REST | **Shipped 0.1.57.** Token from Settings / `credentials`. Incremental `updated >= since`. Comments cap 10 × 2k |
+| Slack bot + user token | **Shipped 0.1.57.** Paste `xoxp-` or OAuth. `conversations.history`. Timeline still roots / pins / mentions |
+| Teams Graph | **Shipped 0.1.57.** Microsoft Connect (`Chat.Read`). Chats you belong to; channel messages if the token allows |
 | IMAP / app password | Deterministic `em:` / `thr:` ids already locked |
-| Slack bot + user token | `conversations.history`. Timeline still roots / pins / mentions |
 | **Zendesk** | Tickets + comments as another input on the book. Map org/domain → `account_id`. Same operator triage as Jira |
 | Unassigned inbox | Events with empty `account_id` after ambiguous routing |
 
-### 0.3 — drafts that persist
+### 0.3 — tasks as special self-emails
+
+Tasks are **emails back to yourself**, stored as `emails` with `operator.task=true` and subject `Tasks: {Company} : {name} {{kind}}`. The Agenda Tasks filter already treats those as special. This train makes them leave the laptop.
 
 | Item | Notes |
 | --- | --- |
-| **Suggested reply → Draft** | Suggest reply already exists. Save the result as a `drafts` doc (To / Subject / body), not only a toast. Operator edits, then send (0.2 confirm-before-send) |
-| **New email from chat / task** | Same draft collection. Chip + abbr on the draft so the wrong book cannot go out |
-| **More AI providers** | Keys already: Grok, OpenAI, Gemini. Finish provider test + model lists. Add Anthropic (and later others) the same way: key in secrets, `ai.provider`, no prompt logging |
-| Shared mailbox | Additive `emails.mailbox_id` — no schema break |
+| **Local create (already shipped)** | Agenda `+` / `POST /api/tasks` writes a self-email (`from=to=operator`). Inbox kind `task`. |
+| **Send to self** | After confirm, SMTP/IMAP path delivers that formatted message to the operator mailbox so it shows up in real mail *and* the desk. Still confirm-before-send. Never auto-send. |
+| **Suggested reply → Draft** | Save as a `drafts` doc (To / Subject / body), not only a toast. Operator edits, then send. |
+| **Shared mailbox** | Additive `emails.mailbox_id` — no schema break |
 
 ### 0.4 — chat operates the desk
 
@@ -95,6 +106,54 @@ Slash types already work on **account search**. This train wires the **same verb
 | **Create task (email)** | Chat creates the same self-email task as Agenda `+` (`Tasks: Company : name {kind}`, due, CC) |
 | **Analyze support tickets** | Summarize open / aging / P1s for the book or one key. Uses ticket slice, not the whole history |
 | **Review email chains** | Thread brief: ask, last customer line, open promise, suggested next draft |
+
+### 0.45 — Pydantic AI multi-agent + scratch TTL
+
+Chat and compose stay **one operator turn**. Under that turn, a Python **Pydantic AI** orchestrator (typed agents, `pydantic-ai` + a small specialist catalog — the “+”) fans out to the book’s live sources instead of stuffing Jira + mail + Slack + Teams into one prompt.
+
+This does **not** replace CBL. Agents **read** `CsmRepo` and existing connectors (`jira`, `google_mail`, `slack`, `teams`, calendar, Salesforce when live). They **write** either a chat answer, a `drafts` doc, or a scratch summary. Confirm-before-send still holds: nothing posts to mail / Slack / Teams / Jira until the operator hits send.
+
+**When it runs**
+
+| Trigger | What the orchestrator does |
+| --- | --- |
+| Desk / account chat (“What’s going on with ACME?”) | Pick specialists (tickets, mail, Slack, Teams, tasks, calendar). Merge into a short brief for this turn |
+| Reply to **email / Slack / Teams / task** | Same pack, scoped to that thread or task. Result is a `drafts` row (To / channel / body), not a send |
+| Ticket or project question | Ticket agent first; others only if the ask needs them |
+
+**Specialist catalog** (each is a Pydantic AI agent with a typed result, not a free-text blob)
+
+| Agent | Reads | Returns (typed, small) |
+| --- | --- | --- |
+| `ticket` | Jira connector + `tickets` | key, status, last comment, 1-paragraph summary |
+| `mail` | Gmail / IMAP + `emails` / `threads` | last customer line, open promise, thread id |
+| `slack` | Slack history + `slack_messages` | last roots / mentions in mapped channels |
+| `teams` | Graph chats + `teams_messages` | same shape as Slack |
+| `task` | self-email tasks | open tasks, due, CC |
+| `calendar` | Google / M365 cal | next meeting, attendees |
+| `reply` | the pack above | draft subject + body for the current channel |
+
+Fan-out is capped (a handful in parallel, timeout per child). The orchestrator may skip a specialist when the connector is `disabled` or not connected. Missing source ≠ failed turn.
+
+**Scratch collection (`scratch`) — same-day reuse**
+
+CBL Community has no Server-style document expiry. We store **`expires_at`** and purge.
+
+| Rule | Why |
+| --- | --- |
+| Collection `scratch`, never replicated | Disposable. Tokens never land here |
+| Doc id like `scratch:{kind}:{subject}:{day}` | Example: `scratch:ticket_summary:tkt:jira:ACME-12:2026-08-28` |
+| Default TTL **end of operator local day** (world-clock timezone), clamp 4h–24h | “I asked about ACME-12 this morning; this afternoon reuse it” |
+| Fields | `kind`, `subject`, `account_id`, `source_updated_at`, `expires_at`, `text` (cap ~2k), `model` |
+| **Reuse** if `now < expires_at` **and** source `updated_at` is unchanged | If Jira moved, recompute and replace the scratch doc |
+| **Compare** | Optional second field `prev_text` when a refresh happens the same day so chat can say what changed |
+| Sweeper | On chat/compose turn + idle tick: delete `expires_at < now`. No EE, no vector index |
+
+Example: first chat turn summarizes ACME-12 from Jira (comments still capped 10 × 2k). A later turn the same day about that key **does not** re-pull the issue unless `updated_at` changed. Mail/Slack specialists still run if the question needs them.
+
+**Prompt rule stays:** the model sees the **brief + this turn’s specialist results** (and any still-valid scratch docs). Never the whole book.
+
+**Not in this train:** auto-send, auto-Jira comment, a second chat UI, or a new HTTP API per source. New capability is a specialist agent on top of an existing connector.
 
 ### 0.5 — files and meeting transcripts
 
@@ -132,23 +191,24 @@ This is the “project got big” train. It can start on CE (brief + FTS). EE ve
 | **Conflict resolver first** | Write it before enabling pull. First-party `operator.*`, notes, project tags, world clock, and task emails win vs connector refresh. Two laptops editing a note need a documented rule |
 | **Channels / access** | One operator still. Channels per `account_id` so a book can be scoped later. Do not invent multi-tenant SaaS here |
 | **CBL Enterprise** | Optional build / flag. Add vector index binds in `cblite.py` **only** on EE. Use for project-slice retrieval, transcript chunks, and ticket/email similarity. CE build must still run (FTS fallback) |
-| **Secrets stay local** | API keys never replicate. `data/secrets.json` mode 0600 |
+| **Secrets stay local** | API keys live in CBL `credentials`. **Never replicate that collection.** Community Lite is not encrypted; FileVault is the disk story. GET endpoints return present/absent only. |
 
 ---
 
 ## 4. Suggested order (do not skip the resolver)
 
 ```text
-0.2 live reads (Jira → mail → Slack → Zendesk)
-0.3 drafts persist + more providers
+0.2 read-only aggregator (Settings credentials + Jira → mail → Slack → Zendesk)
+0.3 tasks as special self-emails (SMTP send-to-self after confirm)
 0.4 chat slash / invites / tasks / ticket+thread review
+0.45 Pydantic AI multi-agent + scratch TTL (fan-out reads; drafts still confirm)
 0.5 PDF, screenshots, transcript → proposed tasks
 0.6 weekly / monthly / QBR finished
 0.7 project_brief + optional Confluence
 0.8 App Services sync + EE vectors
 ```
 
-0.7 can start as soon as chat is useful. 0.8 can overlap 0.7 if you need two machines, but **the conflict resolver ships before the first pull**.
+0.45 needs live reads (0.2) so specialists have something to fetch. 0.7 can start as soon as chat is useful; scratch summaries are a stepping stone to `project_brief`, not a replacement. 0.8 can overlap 0.7 if you need two machines, but **the conflict resolver ships before the first pull**. Scratch is never replicated.
 
 ---
 

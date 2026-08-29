@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import json
 import logging
+import shutil
 from pathlib import Path
 
 from csm_dashboard.ingest.activities import emit_calendar_activity, emit_email_activity, emit_ticket_activity
-from csm_dashboard.storage.repo import CsmRepo
+from csm_dashboard.storage.repo import CsmRepo, utcnow
 
 log = logging.getLogger(__name__)
+
+SEED_DEMO_DAY = "2026-08-28"
 
 COLLECTION_FILES = (
     ("accounts.json", "accounts"),
@@ -38,11 +41,67 @@ def _rows(path: Path) -> list[dict]:
     return []
 
 
+def apply_seed_logos(repo: CsmRepo, seed_dir: str | Path) -> int:
+    src_dir = Path(seed_dir) / "logos"
+    if not src_dir.is_dir():
+        return 0
+    dest = repo.logo_dir()
+    dest.mkdir(parents=True, exist_ok=True)
+    applied = 0
+    for path in sorted(src_dir.iterdir()):
+        suffix = path.suffix.lower()
+        if suffix not in {".png", ".jpg", ".jpeg", ".webp"}:
+            continue
+        dest_path = dest / path.name
+        shutil.copy2(path, dest_path)
+        stem = path.stem
+        account_id = stem if stem.startswith("acct:") else "acct:" + stem.removeprefix("acct-")
+        doc = repo.get_account(account_id)
+        if not doc:
+            continue
+        mime = "image/jpeg" if suffix in {".jpg", ".jpeg"} else "image/webp" if suffix == ".webp" else "image/png"
+        repo._logos[account_id] = (path.read_bytes(), mime)
+        doc["has_logo"] = True
+        doc["logo_mime"] = mime
+        doc["logo_updated_at"] = doc.get("updated_at") or ""
+        repo.store.save("accounts", doc["_id"], {**doc, "type": "account"})
+        applied += 1
+        log.info("csm.seed.logo account_id=%s", account_id)
+    return applied
+
+
+def apply_seed_today_meetings(repo: CsmRepo, seed_dir: str | Path) -> int:
+    """Copy the packed demo-day calendar onto today so Lab seed fills Home agenda."""
+    today = utcnow()[:10]
+    if today == SEED_DEMO_DAY:
+        return 0
+    cloned = 0
+    for row in _rows(Path(seed_dir) / "calendar_events.json"):
+        start = str(row.get("start_at") or "")
+        if start[:10] != SEED_DEMO_DAY:
+            continue
+        new = dict(row)
+        ext = str(row.get("external_id") or f"evt-{cloned}")
+        new["external_id"] = ext if ext.endswith("-today") else f"{ext}-today"
+        new["start_at"] = today + start[10:]
+        end = str(row.get("end_at") or "")
+        if len(end) >= 10:
+            new["end_at"] = today + end[10:]
+        saved = repo.upsert_calendar(new)
+        emit_calendar_activity(repo, saved)
+        cloned += 1
+    if cloned:
+        log.info("csm.seed.today_meetings day=%s cloned=%s", today, cloned)
+    return cloned
+
+
 def apply_seed(repo: CsmRepo, seed_dir: str | Path) -> dict[str, int]:
     root = Path(seed_dir)
     for filename, collection in COLLECTION_FILES:
         for row in _rows(root / filename):
             _upsert(repo, collection, row)
+    apply_seed_logos(repo, root)
+    apply_seed_today_meetings(repo, root)
     for acct in repo.list_accounts():
         aid = acct.get("account_id") or acct.get("_id")
         if aid:

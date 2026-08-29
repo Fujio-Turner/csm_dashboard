@@ -12,18 +12,6 @@
     "created_at": "2026-08-12T00:00:00Z"
   },
   {
-    "_id": "note:acme-12-call",
-    "type": "note",
-    "account_id": "acct:acme",
-    "ref": {
-      "collection": "activities",
-      "id": "act:36fbeb4c6e329da6"
-    },
-    "body": "Call Pat after the next firmware drop.",
-    "author": "you",
-    "created_at": "2026-08-17T10:00:00Z"
-  },
-  {
     "_id": "note:acme-dc3",
     "type": "note",
     "account_id": "acct:acme",
@@ -31,7 +19,31 @@
       "collection": "accounts",
       "id": "acct:acme"
     },
-    "body": "DC3 is the only site on the new OS image.",
+    "body": "DC3 is the only site on the new OS image. Bob Hale is plant ops on the floor.",
+    "author": "you",
+    "created_at": "2026-08-12T00:00:00Z"
+  },
+  {
+    "_id": "note:acme-org",
+    "type": "note",
+    "account_id": "acct:acme",
+    "ref": {
+      "collection": "accounts",
+      "id": "acct:acme"
+    },
+    "body": "Dana Cole is CEO. Pat owns Ops; Mei owns IT; Taylor is CFO; Amira is People.",
+    "author": "you",
+    "created_at": "2026-08-12T00:00:00Z"
+  },
+  {
+    "_id": "note:acme-fw-act",
+    "type": "note",
+    "account_id": "acct:acme",
+    "ref": {
+      "collection": "activities",
+      "id": "act:36fbeb4c6e329da6"
+    },
+    "body": "Firmware drop slipped a week.",
     "author": "you",
     "created_at": "2026-08-12T00:00:00Z"
   },
@@ -43,7 +55,7 @@
       "collection": "accounts",
       "id": "acct:northwind"
     },
-    "body": "Kim has gone dark since the outage. Rob is the economic buyer.",
+    "body": "Kim has gone dark since the outage. Rob is the economic buyer. Helen wants a ten-minute exec brief.",
     "author": "you",
     "created_at": "2026-08-12T00:00:00Z"
   },
@@ -56,6 +68,18 @@
       "id": "acct:northwind"
     },
     "body": "Renewal 2026-09-05. Two P1s open.",
+    "author": "you",
+    "created_at": "2026-08-12T00:00:00Z"
+  },
+  {
+    "_id": "note:nwin-org",
+    "type": "note",
+    "account_id": "acct:northwind",
+    "ref": {
+      "collection": "accounts",
+      "id": "acct:northwind"
+    },
+    "body": "Helen Cho is CEO. Kim owns IT; Rob is CFO; Marco owns supply chain.",
     "author": "you",
     "created_at": "2026-08-12T00:00:00Z"
   },
@@ -80,6 +104,18 @@
       "id": "acct:globex"
     },
     "body": "Badge list arrived 2026-08-13.",
+    "author": "you",
+    "created_at": "2026-08-12T00:00:00Z"
+  },
+  {
+    "_id": "note:glx-org",
+    "type": "note",
+    "account_id": "acct:globex",
+    "ref": {
+      "collection": "accounts",
+      "id": "acct:globex"
+    },
+    "body": "Eleanor Voss is CEO. Victor is COO. Ava runs Plant 1; Sofia runs Plant 2; Nadia is plant IT; Greg is CFO.",
     "author": "you",
     "created_at": "2026-08-12T00:00:00Z"
   }

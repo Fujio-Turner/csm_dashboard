@@ -32,15 +32,18 @@
     "actions_max": 15,
     "renewal_max": 20
   },
+  "sso": {
+    "org_url": ""
+  },
   "connectors": {
-    "smtp_imap": { "mode": "stub" },
-    "google_mail": { "mode": "stub" },
-    "microsoft365": { "mode": "stub" },
-    "jira": { "mode": "stub" },
-    "slack": { "mode": "stub" },
-    "teams": { "mode": "stub" },
-    "salesforce": { "mode": "stub" },
-    "google_cal": { "mode": "stub" },
-    "m365_cal": { "mode": "stub" }
+    "smtp_imap": { "mode": "disabled" },
+    "google_mail": { "mode": "disabled" },
+    "microsoft365": { "mode": "disabled" },
+    "jira": { "mode": "disabled" },
+    "slack": { "mode": "disabled" },
+    "teams": { "mode": "disabled" },
+    "salesforce": { "mode": "disabled" },
+    "google_cal": { "mode": "disabled" },
+    "m365_cal": { "mode": "disabled" }
   }
 }

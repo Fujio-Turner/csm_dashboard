@@ -19,6 +19,7 @@ services:
     volumes:
       - ./data:/data
       - ./config.json:/app/config.json:ro
+      - ./__local/credentials.json:/app/credentials.json:ro
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8788/healthz')"]
       interval: 15s

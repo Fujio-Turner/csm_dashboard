@@ -4,7 +4,7 @@ PIP := $(VENV)/bin/pip
 PY := $(VENV)/bin/python
 PYTEST := $(VENV)/bin/pytest
 
-.PHONY: venv install run ci test check-js check-schema lint docker-build docker-up
+.PHONY: venv install run ci ci-full test test-e2e playwright-install check-js check-schema lint docker-build docker-up mcp-playwright
 
 venv:
 	$(PYTHON) -m venv $(VENV)
@@ -17,7 +17,13 @@ run:
 	$(PY) -m csm_dashboard
 
 test:
-	$(PYTEST) -q
+	$(PYTEST) -q --ignore=tests/e2e
+
+playwright-install:
+	$(PY) -m playwright install chromium
+
+test-e2e: playwright-install
+	$(PYTEST) -q tests/e2e -m e2e
 
 check-js:
 	node --check src/csm_dashboard/web/static/app.js
@@ -32,8 +38,13 @@ lint:
 
 ci: lint check-js test
 
+ci-full: ci test-e2e
+
 docker-build:
 	docker compose build
 
 docker-up:
 	docker compose up --build
+
+mcp-playwright:
+	npx -y @playwright/mcp@latest --version

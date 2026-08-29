@@ -12,8 +12,7 @@
     },
     "source_ref": "jira:ticket:ACME-12:created:2026-08-17T09:00:00Z",
     "actor": "jira",
-    "body": "",
-    "project_id": "proj:acme-scan"
+    "body": ""
   },
   {
     "_id": "act:67a495db00dcf6cc",
@@ -28,8 +27,7 @@
     },
     "source_ref": "jira:ticket:ACME-18:created:2026-08-16T11:00:00Z",
     "actor": "jira",
-    "body": "",
-    "project_id": "proj:acme-sso"
+    "body": ""
   },
   {
     "_id": "act:806aa56a64dfc350",
@@ -44,8 +42,7 @@
     },
     "source_ref": "jira:ticket:ACME-21:created:2026-08-14T10:00:00Z",
     "actor": "jira",
-    "body": "",
-    "project_id": "proj:acme-scan"
+    "body": ""
   },
   {
     "_id": "act:5f0dc70e3aa17d52",
@@ -60,8 +57,7 @@
     },
     "source_ref": "jira:ticket:ACME-9:updated:2026-08-12T10:00:00Z",
     "actor": "jira",
-    "body": "",
-    "project_id": "proj:acme-scan"
+    "body": ""
   },
   {
     "_id": "act:8e4f5eff77aa2556",
@@ -76,8 +72,7 @@
     },
     "source_ref": "jira:ticket:ACME-30:created:2026-08-15T10:00:00Z",
     "actor": "jira",
-    "body": "",
-    "project_id": "proj:acme-scan"
+    "body": ""
   },
   {
     "_id": "act:d07bb3b2167aff7a",
@@ -92,8 +87,67 @@
     },
     "source_ref": "jira:ticket:ACME-31:created:2026-08-17T07:00:00Z",
     "actor": "jira",
-    "body": "",
-    "project_id": "proj:acme-scan"
+    "body": ""
+  },
+  {
+    "_id": "act:5269bb9df0ac8a7b",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "ticket_updated",
+    "at": "2026-08-27T16:00:00Z",
+    "title": "ACME-33 Open",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:ACME-33"
+    },
+    "source_ref": "jira:ticket:ACME-33:created:2026-08-27T16:00:00Z",
+    "actor": "jira",
+    "body": ""
+  },
+  {
+    "_id": "act:38f8191a5453d5ed",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "ticket_updated",
+    "at": "2026-08-28T09:00:00Z",
+    "title": "ACME-34 Waiting",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:ACME-34"
+    },
+    "source_ref": "jira:ticket:ACME-34:created:2026-08-28T09:00:00Z",
+    "actor": "jira",
+    "body": ""
+  },
+  {
+    "_id": "act:a775b7154a0a82ce",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "ticket_updated",
+    "at": "2026-08-28T11:00:00Z",
+    "title": "ACME-36 Open",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:ACME-36"
+    },
+    "source_ref": "jira:ticket:ACME-36:created:2026-08-28T11:00:00Z",
+    "actor": "jira",
+    "body": ""
+  },
+  {
+    "_id": "act:220f4bf69c98f11b",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "ticket_updated",
+    "at": "2026-08-28T12:00:00Z",
+    "title": "ACME-37 Open",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:ACME-37"
+    },
+    "source_ref": "jira:ticket:ACME-37:created:2026-08-28T12:00:00Z",
+    "actor": "jira",
+    "body": ""
   },
   {
     "_id": "act:a5bb54fe418a6fd5",
@@ -108,8 +162,7 @@
     },
     "source_ref": "jira:ticket:NWIN-4:created:2026-08-15T18:00:00Z",
     "actor": "jira",
-    "body": "",
-    "project_id": "proj:nwin-renew"
+    "body": ""
   },
   {
     "_id": "act:19695a2ab559c901",
@@ -124,8 +177,7 @@
     },
     "source_ref": "jira:ticket:NWIN-7:created:2026-08-16T12:00:00Z",
     "actor": "jira",
-    "body": "",
-    "project_id": "proj:nwin-renew"
+    "body": ""
   },
   {
     "_id": "act:e4984964ed8b1c49",
@@ -140,8 +192,7 @@
     },
     "source_ref": "jira:ticket:NWIN-11:created:2026-08-08T12:00:00Z",
     "actor": "jira",
-    "body": "",
-    "project_id": "proj:nwin-renew"
+    "body": ""
   },
   {
     "_id": "act:48b6655b90378502",
@@ -156,8 +207,7 @@
     },
     "source_ref": "jira:ticket:NWIN-12:created:2026-08-14T12:00:00Z",
     "actor": "jira",
-    "body": "",
-    "project_id": "proj:nwin-renew"
+    "body": ""
   },
   {
     "_id": "act:3d344d8e49601ed4",
@@ -172,8 +222,7 @@
     },
     "source_ref": "jira:ticket:NWIN-19:created:2026-08-13T12:00:00Z",
     "actor": "jira",
-    "body": "",
-    "project_id": "proj:nwin-renew"
+    "body": ""
   },
   {
     "_id": "act:fa9491dc8b02cae8",
@@ -188,8 +237,52 @@
     },
     "source_ref": "jira:ticket:NWIN-2:created:2026-08-01T12:00:00Z",
     "actor": "jira",
-    "body": "",
-    "project_id": "proj:nwin-renew"
+    "body": ""
+  },
+  {
+    "_id": "act:9ae82084455f7268",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "ticket_updated",
+    "at": "2026-08-28T11:00:00Z",
+    "title": "NWIN-22 Open",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:NWIN-22"
+    },
+    "source_ref": "jira:ticket:NWIN-22:created:2026-08-28T11:00:00Z",
+    "actor": "jira",
+    "body": ""
+  },
+  {
+    "_id": "act:862c90171f23d3fb",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "ticket_updated",
+    "at": "2026-08-28T10:00:00Z",
+    "title": "NWIN-24 Open",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:NWIN-24"
+    },
+    "source_ref": "jira:ticket:NWIN-24:created:2026-08-28T10:00:00Z",
+    "actor": "jira",
+    "body": ""
+  },
+  {
+    "_id": "act:759478881e43310b",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "ticket_updated",
+    "at": "2026-08-27T12:00:00Z",
+    "title": "NWIN-25 Waiting",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:NWIN-25"
+    },
+    "source_ref": "jira:ticket:NWIN-25:created:2026-08-27T12:00:00Z",
+    "actor": "jira",
+    "body": ""
   },
   {
     "_id": "act:0131f5aeb9603553",
@@ -204,8 +297,7 @@
     },
     "source_ref": "jira:ticket:GLX-3:updated:2026-08-12T12:00:00Z",
     "actor": "jira",
-    "body": "",
-    "project_id": "proj:glx-onboard"
+    "body": ""
   },
   {
     "_id": "act:a04aa4cc7f9f6621",
@@ -220,8 +312,7 @@
     },
     "source_ref": "jira:ticket:GLX-5:created:2026-08-16T12:00:00Z",
     "actor": "jira",
-    "body": "",
-    "project_id": "proj:glx-onboard"
+    "body": ""
   },
   {
     "_id": "act:c8e78833cc87c570",
@@ -236,8 +327,7 @@
     },
     "source_ref": "jira:ticket:GLX-6:created:2026-08-17T12:00:00Z",
     "actor": "jira",
-    "body": "",
-    "project_id": "proj:glx-onboard"
+    "body": ""
   },
   {
     "_id": "act:8ff9372846c034c3",
@@ -252,8 +342,7 @@
     },
     "source_ref": "jira:ticket:GLX-8:created:2026-08-17T13:00:00Z",
     "actor": "jira",
-    "body": "",
-    "project_id": "proj:glx-onboard"
+    "body": ""
   },
   {
     "_id": "act:0ac17c394fb98974",
@@ -268,8 +357,52 @@
     },
     "source_ref": "jira:ticket:GLX-9:updated:2026-08-11T12:00:00Z",
     "actor": "jira",
-    "body": "",
-    "project_id": "proj:glx-onboard"
+    "body": ""
+  },
+  {
+    "_id": "act:387844815df19b40",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "ticket_updated",
+    "at": "2026-08-28T10:00:00Z",
+    "title": "GLX-12 Open",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:GLX-12"
+    },
+    "source_ref": "jira:ticket:GLX-12:created:2026-08-28T10:00:00Z",
+    "actor": "jira",
+    "body": ""
+  },
+  {
+    "_id": "act:5bf625bbcb546930",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "ticket_updated",
+    "at": "2026-08-28T09:30:00Z",
+    "title": "GLX-14 Open",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:GLX-14"
+    },
+    "source_ref": "jira:ticket:GLX-14:created:2026-08-28T09:30:00Z",
+    "actor": "jira",
+    "body": ""
+  },
+  {
+    "_id": "act:a0c7be1943abd5ec",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "ticket_updated",
+    "at": "2026-08-28T11:00:00Z",
+    "title": "GLX-15 Waiting",
+    "ref": {
+      "collection": "tickets",
+      "id": "tkt:jira:GLX-15"
+    },
+    "source_ref": "jira:ticket:GLX-15:created:2026-08-28T11:00:00Z",
+    "actor": "jira",
+    "body": ""
   },
   {
     "_id": "act:0009897e715bef76",
@@ -284,8 +417,7 @@
     },
     "source_ref": "mail:<acme-root@acme.com>",
     "actor": "pat.nguyen@acme.com",
-    "body": "",
-    "project_id": "proj:acme-scan"
+    "body": ""
   },
   {
     "_id": "act:7f72c851a7ba9c5e",
@@ -300,8 +432,7 @@
     },
     "source_ref": "mail:<acme-2@example.com>",
     "actor": "jordan@example.com",
-    "body": "",
-    "project_id": "proj:acme-scan"
+    "body": ""
   },
   {
     "_id": "act:6c02c84405508f85",
@@ -316,8 +447,7 @@
     },
     "source_ref": "mail:<acme-3@acme.com>",
     "actor": "pat.nguyen@acme.com",
-    "body": "",
-    "project_id": "proj:acme-scan"
+    "body": ""
   },
   {
     "_id": "act:1762bd4ec83d9a98",
@@ -332,8 +462,7 @@
     },
     "source_ref": "mail:<acme-4@example.com>",
     "actor": "jordan@example.com",
-    "body": "",
-    "project_id": "proj:acme-scan"
+    "body": ""
   },
   {
     "_id": "act:430bbc06fe7de9a7",
@@ -348,8 +477,22 @@
     },
     "source_ref": "mail:<acme-5@acme.com>",
     "actor": "pat.nguyen@acme.com",
-    "body": "",
-    "project_id": "proj:acme-scan"
+    "body": ""
+  },
+  {
+    "_id": "act:dd486ab26b16d83d",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "email_in",
+    "at": "2026-08-28T13:10:00Z",
+    "title": "Re: ACME-12 workaround",
+    "ref": {
+      "collection": "emails",
+      "id": "em:54095fe0a2e3e1c10771"
+    },
+    "source_ref": "mail:<acme-6@acme.com>",
+    "actor": "sam.ortiz@acme.com",
+    "body": ""
   },
   {
     "_id": "act:8acff2ddbfcdbe4f",
@@ -364,8 +507,67 @@
     },
     "source_ref": "mail:<acme-sso@acme.com>",
     "actor": "sam.ortiz@acme.com",
-    "body": "",
-    "project_id": "proj:acme-sso"
+    "body": ""
+  },
+  {
+    "_id": "act:9d0eb9613f4bb801",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "email_in",
+    "at": "2026-08-28T14:05:00Z",
+    "title": "QBR numbers for Friday",
+    "ref": {
+      "collection": "emails",
+      "id": "em:8e887f33b5e76a4d6a86"
+    },
+    "source_ref": "mail:<acme-qbr@acme.com>",
+    "actor": "taylor.brooks@acme.com",
+    "body": ""
+  },
+  {
+    "_id": "act:0687ed4b4252cdfd",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "email_out",
+    "at": "2026-08-16T19:00:00Z",
+    "title": "DC3 scanner pin for ACME-12",
+    "ref": {
+      "collection": "emails",
+      "id": "em:60c4f5c85fcd2c0bbaeb"
+    },
+    "source_ref": "mail:<acme-bob-1@example.com>",
+    "actor": "jordan@example.com",
+    "body": ""
+  },
+  {
+    "_id": "act:0bfc4de70c5890f6",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "email_in",
+    "at": "2026-08-17T07:15:00Z",
+    "title": "Re: DC3 scanner pin for ACME-12",
+    "ref": {
+      "collection": "emails",
+      "id": "em:e15bb000c091a8ef4a01"
+    },
+    "source_ref": "mail:<acme-bob-2@acme.com>",
+    "actor": "bob.hale@acme.com",
+    "body": ""
+  },
+  {
+    "_id": "act:897c5b1fa5ca205f",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "email_in",
+    "at": "2026-08-28T12:40:00Z",
+    "title": "One-pager before 3pm",
+    "ref": {
+      "collection": "emails",
+      "id": "em:63cda479c19f31819ca5"
+    },
+    "source_ref": "mail:<acme-dana@acme.com>",
+    "actor": "dana.cole@acme.com",
+    "body": ""
   },
   {
     "_id": "act:da56d8d4d32e9f54",
@@ -380,8 +582,7 @@
     },
     "source_ref": "mail:<nwin-root@northwind.example>",
     "actor": "kim.hale@northwind.example",
-    "body": "",
-    "project_id": "proj:nwin-renew"
+    "body": ""
   },
   {
     "_id": "act:1e64a7ad158b299c",
@@ -396,8 +597,7 @@
     },
     "source_ref": "mail:<nwin-2@example.com>",
     "actor": "jordan@example.com",
-    "body": "",
-    "project_id": "proj:nwin-renew"
+    "body": ""
   },
   {
     "_id": "act:4c01935eb8b162c5",
@@ -412,8 +612,7 @@
     },
     "source_ref": "mail:<nwin-3@northwind.example>",
     "actor": "kim.hale@northwind.example",
-    "body": "",
-    "project_id": "proj:nwin-renew"
+    "body": ""
   },
   {
     "_id": "act:0249565d40f0272a",
@@ -428,8 +627,37 @@
     },
     "source_ref": "mail:<nwin-4@northwind.example>",
     "actor": "rob.singh@northwind.example",
-    "body": "",
-    "project_id": "proj:nwin-renew"
+    "body": ""
+  },
+  {
+    "_id": "act:d949f78c7dfef8a1",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "email_in",
+    "at": "2026-08-28T15:20:00Z",
+    "title": "Re: Friday auth outage",
+    "ref": {
+      "collection": "emails",
+      "id": "em:d0bd67558aec3d29fa7a"
+    },
+    "source_ref": "mail:<nwin-5@northwind.example>",
+    "actor": "rob.singh@northwind.example",
+    "body": ""
+  },
+  {
+    "_id": "act:3e5d0bfbf9d705e4",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "email_in",
+    "at": "2026-08-28T16:05:00Z",
+    "title": "Exec brief agenda",
+    "ref": {
+      "collection": "emails",
+      "id": "em:46731a248644b2b350c5"
+    },
+    "source_ref": "mail:<nwin-6@northwind.example>",
+    "actor": "helen.cho@northwind.example",
+    "body": ""
   },
   {
     "_id": "act:4a616c1f9792416b",
@@ -444,8 +672,7 @@
     },
     "source_ref": "mail:<glx-root@globex.example>",
     "actor": "ava.chen@globex.example",
-    "body": "",
-    "project_id": "proj:glx-onboard"
+    "body": ""
   },
   {
     "_id": "act:609a5370baa6b088",
@@ -460,8 +687,7 @@
     },
     "source_ref": "mail:<glx-2@example.com>",
     "actor": "jordan@example.com",
-    "body": "",
-    "project_id": "proj:glx-onboard"
+    "body": ""
   },
   {
     "_id": "act:b65d033e7f883f7f",
@@ -476,8 +702,7 @@
     },
     "source_ref": "mail:<glx-3@globex.example>",
     "actor": "ava.chen@globex.example",
-    "body": "",
-    "project_id": "proj:glx-onboard"
+    "body": ""
   },
   {
     "_id": "act:40a9cde592639d7e",
@@ -492,11 +717,55 @@
     },
     "source_ref": "mail:<glx-4@example.com>",
     "actor": "jordan@example.com",
-    "body": "",
-    "project_id": "proj:glx-onboard"
+    "body": ""
   },
   {
-    "_id": "act:30d53ed391dd2836",
+    "_id": "act:f12caf204172a905",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "email_in",
+    "at": "2026-08-28T16:40:00Z",
+    "title": "Re: Kickoff recap",
+    "ref": {
+      "collection": "emails",
+      "id": "em:10a8bd8b94a9b1bacf40"
+    },
+    "source_ref": "mail:<glx-5@globex.example>",
+    "actor": "sofia.berg@globex.example",
+    "body": ""
+  },
+  {
+    "_id": "act:a0f167db1d6fb01b",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "email_in",
+    "at": "2026-08-28T17:10:00Z",
+    "title": "Onboarding review",
+    "ref": {
+      "collection": "emails",
+      "id": "em:86b8cb5355f292d82587"
+    },
+    "source_ref": "mail:<glx-6@globex.example>",
+    "actor": "eleanor.voss@globex.example",
+    "body": ""
+  },
+  {
+    "_id": "act:1f75d36d308edb80",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "meeting",
+    "at": "2026-08-03T16:00:00Z",
+    "title": "ACME weekly",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-acme-old"
+    },
+    "source_ref": "cal:stub:evt-acme-old",
+    "actor": "calendar",
+    "body": ""
+  },
+  {
+    "_id": "act:cb9f40682785ca75",
     "type": "activity",
     "account_id": "acct:acme",
     "kind": "meeting",
@@ -504,9 +773,9 @@
     "title": "ACME QBR",
     "ref": {
       "collection": "calendar_events",
-      "id": "cal:stub:evt-acme-qbr"
+      "id": "cal:stub:evt-acme-qbr-prep"
     },
-    "source_ref": "cal:stub:evt-acme-qbr",
+    "source_ref": "cal:stub:evt-acme-qbr-prep",
     "actor": "calendar",
     "body": ""
   },
@@ -526,21 +795,6 @@
     "body": ""
   },
   {
-    "_id": "act:1f75d36d308edb80",
-    "type": "activity",
-    "account_id": "acct:acme",
-    "kind": "meeting",
-    "at": "2026-08-03T16:00:00Z",
-    "title": "ACME weekly",
-    "ref": {
-      "collection": "calendar_events",
-      "id": "cal:stub:evt-acme-old"
-    },
-    "source_ref": "cal:stub:evt-acme-old",
-    "actor": "calendar",
-    "body": ""
-  },
-  {
     "_id": "act:1c1ca2fa07d3a1e9",
     "type": "activity",
     "account_id": "acct:acme",
@@ -553,8 +807,7 @@
     },
     "source_ref": "cal:stub:evt-acme-ps",
     "actor": "calendar",
-    "body": "",
-    "project_id": "proj:acme-scan"
+    "body": ""
   },
   {
     "_id": "act:687c1a2285190a02",
@@ -569,8 +822,7 @@
     },
     "source_ref": "cal:stub:evt-nwin-old",
     "actor": "calendar",
-    "body": "",
-    "project_id": "proj:nwin-renew"
+    "body": ""
   },
   {
     "_id": "act:9bb91d17c5f128ab",
@@ -585,8 +837,7 @@
     },
     "source_ref": "cal:stub:evt-nwin-missed",
     "actor": "calendar",
-    "body": "",
-    "project_id": "proj:nwin-renew"
+    "body": ""
   },
   {
     "_id": "act:4ef5ca6b05a5a38c",
@@ -601,8 +852,7 @@
     },
     "source_ref": "cal:stub:evt-nwin-renew",
     "actor": "calendar",
-    "body": "",
-    "project_id": "proj:nwin-renew"
+    "body": ""
   },
   {
     "_id": "act:28e8471531d26b54",
@@ -617,8 +867,7 @@
     },
     "source_ref": "cal:stub:evt-glx-kick",
     "actor": "calendar",
-    "body": "",
-    "project_id": "proj:glx-onboard"
+    "body": ""
   },
   {
     "_id": "act:e81af5673625f102",
@@ -633,8 +882,7 @@
     },
     "source_ref": "cal:stub:evt-glx-plant",
     "actor": "calendar",
-    "body": "",
-    "project_id": "proj:glx-onboard"
+    "body": ""
   },
   {
     "_id": "act:b2930c4f9f4a75ba",
@@ -649,88 +897,1327 @@
     },
     "source_ref": "cal:stub:evt-glx-next",
     "actor": "calendar",
-    "body": "",
-    "project_id": "proj:glx-onboard"
+    "body": ""
   },
   {
-    "_id": "act:3719342639adba01",
+    "_id": "act:2fe29e9baf71f952",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "meeting",
+    "at": "2026-08-28T13:00:00Z",
+    "title": "GLX Plant 1 standup",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-glx-p1"
+    },
+    "source_ref": "cal:stub:evt-glx-p1",
+    "actor": "calendar",
+    "body": ""
+  },
+  {
+    "_id": "act:08e383ece2d4a9f5",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "meeting",
+    "at": "2026-08-28T13:30:00Z",
+    "title": "ACME DC1 check-in",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-acme-dc1"
+    },
+    "source_ref": "cal:stub:evt-acme-dc1",
+    "actor": "calendar",
+    "body": ""
+  },
+  {
+    "_id": "act:39400b3f6b014219",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "meeting",
+    "at": "2026-08-28T14:30:00Z",
+    "title": "GLX Plant 2 badge printer",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-glx-print"
+    },
+    "source_ref": "cal:stub:evt-glx-print",
+    "actor": "calendar",
+    "body": ""
+  },
+  {
+    "_id": "act:20cbb777e6aba06f",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "meeting",
+    "at": "2026-08-28T15:00:00Z",
+    "title": "ACME standup",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-acme-stand"
+    },
+    "source_ref": "cal:stub:evt-acme-stand",
+    "actor": "calendar",
+    "body": ""
+  },
+  {
+    "_id": "act:e6b52826f2d1b818",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "meeting",
+    "at": "2026-08-28T15:30:00Z",
+    "title": "NWIN renewal commercial",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-nwin-am"
+    },
+    "source_ref": "cal:stub:evt-nwin-am",
+    "actor": "calendar",
+    "body": ""
+  },
+  {
+    "_id": "act:65bd70fa935c1458",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "meeting",
+    "at": "2026-08-28T16:00:00Z",
+    "title": "ACME DC3 firmware war room",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-acme-dc3"
+    },
+    "source_ref": "cal:stub:evt-acme-dc3",
+    "actor": "calendar",
+    "body": ""
+  },
+  {
+    "_id": "act:4714672ca0409c8b",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "meeting",
+    "at": "2026-08-28T16:30:00Z",
+    "title": "GLX VPN allowlist with Nadia",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-glx-vpn"
+    },
+    "source_ref": "cal:stub:evt-glx-vpn",
+    "actor": "calendar",
+    "body": ""
+  },
+  {
+    "_id": "act:2c258faf76023bdc",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "meeting",
+    "at": "2026-08-28T17:00:00Z",
+    "title": "ACME SSO 8-hour timeout review",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-acme-sso"
+    },
+    "source_ref": "cal:stub:evt-acme-sso",
+    "actor": "calendar",
+    "body": ""
+  },
+  {
+    "_id": "act:1140afda978aed2e",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "meeting",
+    "at": "2026-08-28T17:30:00Z",
+    "title": "NWIN contractor SSO patch",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-nwin-sso"
+    },
+    "source_ref": "cal:stub:evt-nwin-sso",
+    "actor": "calendar",
+    "body": ""
+  },
+  {
+    "_id": "act:36f52e1557c1e22f",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "meeting",
+    "at": "2026-08-28T18:00:00Z",
+    "title": "ACME finance QBR prep",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-acme-fin"
+    },
+    "source_ref": "cal:stub:evt-acme-fin",
+    "actor": "calendar",
+    "body": ""
+  },
+  {
+    "_id": "act:25f0ce0a08099814",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "meeting",
+    "at": "2026-08-28T18:30:00Z",
+    "title": "GLX Victor onboarding review",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-glx-coo"
+    },
+    "source_ref": "cal:stub:evt-glx-coo",
+    "actor": "calendar",
+    "body": ""
+  },
+  {
+    "_id": "act:fc89563f6a2ed513",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "meeting",
+    "at": "2026-08-28T19:00:00Z",
+    "title": "ACME QBR numbers",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-acme-qbrn"
+    },
+    "source_ref": "cal:stub:evt-acme-qbrn",
+    "actor": "calendar",
+    "body": ""
+  },
+  {
+    "_id": "act:976704cf56d9ccb9",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "meeting",
+    "at": "2026-08-28T19:30:00Z",
+    "title": "NWIN FP&A renewal model",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-nwin-fpa"
+    },
+    "source_ref": "cal:stub:evt-nwin-fpa",
+    "actor": "calendar",
+    "body": ""
+  },
+  {
+    "_id": "act:415ca711e8705c5a",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "meeting",
+    "at": "2026-08-28T20:00:00Z",
+    "title": "NWIN Tacoma ops check-in",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-nwin-ops"
+    },
+    "source_ref": "cal:stub:evt-nwin-ops",
+    "actor": "calendar",
+    "body": ""
+  },
+  {
+    "_id": "act:bd2a58eb7cea250d",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "meeting",
+    "at": "2026-08-28T20:30:00Z",
+    "title": "GLX Plant 2 walkthrough",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-glx-p2w"
+    },
+    "source_ref": "cal:stub:evt-glx-p2w",
+    "actor": "calendar",
+    "body": ""
+  },
+  {
+    "_id": "act:9de94bc2dd5e46cc",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "meeting",
+    "at": "2026-08-28T21:00:00Z",
+    "title": "ACME DC2 training slot",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-acme-train"
+    },
+    "source_ref": "cal:stub:evt-acme-train",
+    "actor": "calendar",
+    "body": ""
+  },
+  {
+    "_id": "act:8aa599ad5fcdc2d3",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "meeting",
+    "at": "2026-08-28T21:30:00Z",
+    "title": "GLX Eleanor exec brief",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-glx-ceo"
+    },
+    "source_ref": "cal:stub:evt-glx-ceo",
+    "actor": "calendar",
+    "body": ""
+  },
+  {
+    "_id": "act:2dfaead9188afa54",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "meeting",
+    "at": "2026-08-28T22:00:00Z",
+    "title": "NWIN Helen exec brief",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-nwin-exec"
+    },
+    "source_ref": "cal:stub:evt-nwin-exec",
+    "actor": "calendar",
+    "body": ""
+  },
+  {
+    "_id": "act:878a5fa80b84a79f",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "meeting",
+    "at": "2026-08-28T22:30:00Z",
+    "title": "ACME Dana one-pager",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-acme-dana"
+    },
+    "source_ref": "cal:stub:evt-acme-dana",
+    "actor": "calendar",
+    "body": ""
+  },
+  {
+    "_id": "act:304c80250a94fec6",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "meeting",
+    "at": "2026-08-28T23:00:00Z",
+    "title": "NWIN commercial follow-up",
+    "ref": {
+      "collection": "calendar_events",
+      "id": "cal:stub:evt-nwin-wrap"
+    },
+    "source_ref": "cal:stub:evt-nwin-wrap",
+    "actor": "calendar",
+    "body": ""
+  },
+  {
+    "_id": "act:9f3c20b99a437fc0",
     "type": "activity",
     "account_id": "acct:acme",
     "kind": "slack",
-    "at": "2026-08-17T13:20:00Z",
+    "at": "2026-08-28T12:00:00Z",
     "title": "Scanner died again in DC3",
     "ref": {
       "collection": "slack_messages",
-      "id": "slm:C0ACME1:1723900000_000100"
+      "id": "slm:C0ACME1:1787918400_000100"
     },
-    "source_ref": "slack:C0ACME1:1723900000.000100",
+    "source_ref": "slack:C0ACME1:1787918400.000100",
     "actor": "pat.nguyen",
-    "body": "",
-    "project_id": "proj:acme-scan"
+    "body": ""
   },
   {
-    "_id": "act:8575c4b45c367837",
+    "_id": "act:012d0be69620f1b3",
     "type": "activity",
     "account_id": "acct:acme",
     "kind": "slack",
-    "at": "2026-08-17T13:35:00Z",
+    "at": "2026-08-28T12:00:01Z",
     "title": "TAM is looking at the logs",
     "ref": {
       "collection": "slack_messages",
-      "id": "slm:C0ACME1:1723900001_000100"
+      "id": "slm:C0ACME1:1787918401_000100"
     },
-    "source_ref": "slack:C0ACME1:1723900001.000100",
+    "source_ref": "slack:C0ACME1:1787918401.000100",
     "actor": "jordan",
-    "body": "",
-    "project_id": "proj:acme-scan"
+    "body": ""
   },
   {
-    "_id": "act:e23b14c42202790f",
+    "_id": "act:f9bd83b29c84e858",
     "type": "activity",
     "account_id": "acct:acme",
     "kind": "slack",
-    "at": "2026-08-16T15:10:00Z",
+    "at": "2026-08-28T12:00:02Z",
+    "title": "OS 14 image went out last night",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0ACME1:1787918402_000100"
+    },
+    "source_ref": "slack:C0ACME1:1787918402.000100",
+    "actor": "pat.nguyen",
+    "body": ""
+  },
+  {
+    "_id": "act:3ad0422e5c157ca8",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "slack",
+    "at": "2026-08-28T12:00:03Z",
     "title": "Can we get a date for the pin?",
     "ref": {
       "collection": "slack_messages",
-      "id": "slm:C0ACME1:1723900003_000100"
+      "id": "slm:C0ACME1:1787918403_000100"
     },
-    "source_ref": "slack:C0ACME1:1723900003.000100",
+    "source_ref": "slack:C0ACME1:1787918403.000100",
     "actor": "jordan",
-    "body": "",
-    "project_id": "proj:acme-scan"
+    "body": ""
   },
   {
-    "_id": "act:77f85e137174febe",
+    "_id": "act:4e4829bdce762b1b",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "slack",
+    "at": "2026-08-28T12:00:04Z",
+    "title": "DC1 is fine, DC3 is the problem",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0ACME1:1787918404_000100"
+    },
+    "source_ref": "slack:C0ACME1:1787918404.000100",
+    "actor": "pat.nguyen",
+    "body": ""
+  },
+  {
+    "_id": "act:adf60bbc13189775",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "slack",
+    "at": "2026-08-28T12:00:05Z",
+    "title": "QBR is on the calendar",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0ACME1:1787918405_000100"
+    },
+    "source_ref": "slack:C0ACME1:1787918405.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:18118da363d5c29d",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "slack",
+    "at": "2026-08-28T12:00:06Z",
+    "title": "Pat prefers email before Slack",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0ACME1:1787918406_000100"
+    },
+    "source_ref": "slack:C0ACME1:1787918406.000100",
+    "actor": "pat.nguyen",
+    "body": ""
+  },
+  {
+    "_id": "act:53760fcb2a39d8e9",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "slack",
+    "at": "2026-08-28T12:00:07Z",
+    "title": "Firmware build tagged 14.2-rc2",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0ACME1:1787918407_000100"
+    },
+    "source_ref": "slack:C0ACME1:1787918407.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:9e5339365b12f2a4",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "slack",
+    "at": "2026-08-28T12:00:08Z",
+    "title": "Need a war room if it fails again",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0ACME1:1787918408_000100"
+    },
+    "source_ref": "slack:C0ACME1:1787918408.000100",
+    "actor": "pat.nguyen",
+    "body": ""
+  },
+  {
+    "_id": "act:ef783c3f735f8067",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "slack",
+    "at": "2026-08-28T12:00:09Z",
+    "title": "Ack, watching the channel",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0ACME1:1787918409_000100"
+    },
+    "source_ref": "slack:C0ACME1:1787918409.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:ce100a5226648ae5",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "slack",
+    "at": "2026-08-28T12:00:10Z",
+    "title": "Dana wants a one-pager before 3pm",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0ACME1:1787918410_000100"
+    },
+    "source_ref": "slack:C0ACME1:1787918410.000100",
+    "actor": "pat.nguyen",
+    "body": ""
+  },
+  {
+    "_id": "act:c6ab77a8c8d45377",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "slack",
+    "at": "2026-08-28T12:00:11Z",
+    "title": "Raj says SSO logs look clean after 8h",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0ACME1:1787918411_000100"
+    },
+    "source_ref": "slack:C0ACME1:1787918411.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:8bcc7d526fcd39dd",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "slack",
+    "at": "2026-08-28T12:00:12Z",
+    "title": "Grace needs ARR confirmed for QBR",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0ACME1:1787918412_000100"
+    },
+    "source_ref": "slack:C0ACME1:1787918412.000100",
+    "actor": "pat.nguyen",
+    "body": ""
+  },
+  {
+    "_id": "act:8cf157b2f2844c9d",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "slack",
+    "at": "2026-08-28T12:00:13Z",
+    "title": "Priya can take the DC2 training slot",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0ACME1:1787918413_000100"
+    },
+    "source_ref": "slack:C0ACME1:1787918413.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:10eb1f4a7859948e",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "slack",
+    "at": "2026-08-28T12:00:14Z",
+    "title": "Standup in 10 \u2014 bring the DC3 log",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0ACME1:1787918414_000100"
+    },
+    "source_ref": "slack:C0ACME1:1787918414.000100",
+    "actor": "pat.nguyen",
+    "body": ""
+  },
+  {
+    "_id": "act:603fea9008465be1",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "slack",
+    "at": "2026-08-28T12:00:15Z",
+    "title": "Bob is on the floor with the spare batteries",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0ACME1:1787918415_000100"
+    },
+    "source_ref": "slack:C0ACME1:1787918415.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:19d0117476e7691e",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "slack",
+    "at": "2026-08-28T12:00:16Z",
+    "title": "Mei wants contractor mapping before QBR",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0ACME1:1787918416_000100"
+    },
+    "source_ref": "slack:C0ACME1:1787918416.000100",
+    "actor": "pat.nguyen",
+    "body": ""
+  },
+  {
+    "_id": "act:a2110e37227a1684",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "slack",
+    "at": "2026-08-28T12:00:17Z",
+    "title": "Safety walk at DC3 is clear",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0ACME1:1787918417_000100"
+    },
+    "source_ref": "slack:C0ACME1:1787918417.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:95a52dbf8c3d017b",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "slack",
+    "at": "2026-08-28T12:01:40Z",
+    "title": "Anyone seen Kim?",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0NWIN1:1787918500_000100"
+    },
+    "source_ref": "slack:C0NWIN1:1787918500.000100",
+    "actor": "kim.hale",
+    "body": ""
+  },
+  {
+    "_id": "act:a80cc81fa9dbc88b",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "slack",
+    "at": "2026-08-28T12:01:41Z",
+    "title": "She is dark since the outage",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0NWIN1:1787918501_000100"
+    },
+    "source_ref": "slack:C0NWIN1:1787918501.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:4f67c88353461ee7",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "slack",
+    "at": "2026-08-28T12:01:42Z",
+    "title": "Renewal is 19 days out",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0NWIN1:1787918502_000100"
+    },
+    "source_ref": "slack:C0NWIN1:1787918502.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:4e0f49f34b4442e8",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "slack",
+    "at": "2026-08-28T12:01:43Z",
+    "title": "Rob wants numbers",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0NWIN1:1787918503_000100"
+    },
+    "source_ref": "slack:C0NWIN1:1787918503.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:ef963a6a3e50fa61",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "slack",
+    "at": "2026-08-28T12:01:44Z",
+    "title": "I pinged twice",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0NWIN1:1787918504_000100"
+    },
+    "source_ref": "slack:C0NWIN1:1787918504.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:0a66f156dd95185f",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "slack",
+    "at": "2026-08-28T12:01:45Z",
+    "title": "Need exec sponsor",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0NWIN1:1787918505_000100"
+    },
+    "source_ref": "slack:C0NWIN1:1787918505.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:d03c254e18893d71",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "slack",
+    "at": "2026-08-28T12:01:46Z",
+    "title": "P1 still open",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0NWIN1:1787918506_000100"
+    },
+    "source_ref": "slack:C0NWIN1:1787918506.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:c455186ffd43b866",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "slack",
+    "at": "2026-08-28T12:01:47Z",
+    "title": "Call recap?",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0NWIN1:1787918507_000100"
+    },
+    "source_ref": "slack:C0NWIN1:1787918507.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:54719a5b361dc8aa",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "slack",
+    "at": "2026-08-28T12:01:48Z",
+    "title": "Helen asked for a commercial option",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0NWIN1:1787918508_000100"
+    },
+    "source_ref": "slack:C0NWIN1:1787918508.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:ad8e245de7ae8e2d",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "slack",
+    "at": "2026-08-28T12:01:49Z",
+    "title": "Devin has a contractor SSO patch",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0NWIN1:1787918509_000100"
+    },
+    "source_ref": "slack:C0NWIN1:1787918509.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:e3706b9dc6d84685",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "slack",
+    "at": "2026-08-28T12:01:50Z",
+    "title": "Nina can join the 11:00",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0NWIN1:1787918510_000100"
+    },
+    "source_ref": "slack:C0NWIN1:1787918510.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:1965a38ba1086ba3",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "slack",
+    "at": "2026-08-28T12:01:51Z",
+    "title": "Marco says Tacoma is quiet",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0NWIN1:1787918511_000100"
+    },
+    "source_ref": "slack:C0NWIN1:1787918511.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:15aabe1470027f7f",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "slack",
+    "at": "2026-08-28T12:01:52Z",
+    "title": "Owen has a renewal model draft",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0NWIN1:1787918512_000100"
+    },
+    "source_ref": "slack:C0NWIN1:1787918512.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:3b28802ab1754300",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "slack",
+    "at": "2026-08-28T12:01:53Z",
+    "title": "Pedro opened a network ticket",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0NWIN1:1787918513_000100"
+    },
+    "source_ref": "slack:C0NWIN1:1787918513.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:9b99cc2bef1758b8",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "slack",
+    "at": "2026-08-28T12:01:54Z",
+    "title": "Seth wants sales ops on the exec brief",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0NWIN1:1787918514_000100"
+    },
+    "source_ref": "slack:C0NWIN1:1787918514.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:885f60fab5b94925",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "slack",
+    "at": "2026-08-28T12:03:20Z",
+    "title": "Kickoff went well",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0GLX1:1787918600_000100"
+    },
+    "source_ref": "slack:C0GLX1:1787918600.000100",
+    "actor": "ava.chen",
+    "body": ""
+  },
+  {
+    "_id": "act:80bf84e088edaa72",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "slack",
+    "at": "2026-08-28T12:03:21Z",
+    "title": "Badge list incoming",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0GLX1:1787918601_000100"
+    },
+    "source_ref": "slack:C0GLX1:1787918601.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:692c19225d46ca17",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "slack",
+    "at": "2026-08-28T12:03:22Z",
+    "title": "Plant 2 wants training",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0GLX1:1787918602_000100"
+    },
+    "source_ref": "slack:C0GLX1:1787918602.000100",
+    "actor": "ava.chen",
+    "body": ""
+  },
+  {
+    "_id": "act:86742b872ede53f7",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "slack",
+    "at": "2026-08-28T12:03:23Z",
+    "title": "VPN ticket opened",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0GLX1:1787918603_000100"
+    },
+    "source_ref": "slack:C0GLX1:1787918603.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:5fd923c4dea36ef4",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "slack",
+    "at": "2026-08-28T12:03:24Z",
+    "title": "See you Thursday",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0GLX1:1787918604_000100"
+    },
+    "source_ref": "slack:C0GLX1:1787918604.000100",
+    "actor": "ava.chen",
+    "body": ""
+  },
+  {
+    "_id": "act:b455befc21109b2f",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "slack",
+    "at": "2026-08-28T12:03:25Z",
+    "title": "Notes in the drive",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0GLX1:1787918605_000100"
+    },
+    "source_ref": "slack:C0GLX1:1787918605.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:0ab4ec6bcb20a36b",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "slack",
+    "at": "2026-08-28T12:03:26Z",
+    "title": "No blockers",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0GLX1:1787918606_000100"
+    },
+    "source_ref": "slack:C0GLX1:1787918606.000100",
+    "actor": "ava.chen",
+    "body": ""
+  },
+  {
+    "_id": "act:f7183e27f6104c77",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "slack",
+    "at": "2026-08-28T12:03:27Z",
+    "title": "Nice start",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0GLX1:1787918607_000100"
+    },
+    "source_ref": "slack:C0GLX1:1787918607.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:86bf6efb740148fc",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "slack",
+    "at": "2026-08-28T12:03:28Z",
+    "title": "Sofia needs a spare printer",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0GLX1:1787918608_000100"
+    },
+    "source_ref": "slack:C0GLX1:1787918608.000100",
+    "actor": "ava.chen",
+    "body": ""
+  },
+  {
+    "_id": "act:24ab0460c0036afd",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "slack",
+    "at": "2026-08-28T12:03:29Z",
+    "title": "Ben can cover the 2pm walk",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0GLX1:1787918609_000100"
+    },
+    "source_ref": "slack:C0GLX1:1787918609.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:d3d5dc21d92904ca",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "slack",
+    "at": "2026-08-28T12:03:30Z",
+    "title": "Nadia opened GLX-12",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0GLX1:1787918610_000100"
+    },
+    "source_ref": "slack:C0GLX1:1787918610.000100",
+    "actor": "ava.chen",
+    "body": ""
+  },
+  {
+    "_id": "act:946606d3b6670d2c",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "slack",
+    "at": "2026-08-28T12:03:31Z",
+    "title": "Victor sitting in on standup",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0GLX1:1787918611_000100"
+    },
+    "source_ref": "slack:C0GLX1:1787918611.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:45ff5a5facefd667",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "slack",
+    "at": "2026-08-28T12:03:32Z",
+    "title": "Eleanor wants Plant 2 first",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0GLX1:1787918612_000100"
+    },
+    "source_ref": "slack:C0GLX1:1787918612.000100",
+    "actor": "ava.chen",
+    "body": ""
+  },
+  {
+    "_id": "act:e5923ba6e9ba4077",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "slack",
+    "at": "2026-08-28T12:03:33Z",
+    "title": "Moira is on OT allowlist",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0GLX1:1787918613_000100"
+    },
+    "source_ref": "slack:C0GLX1:1787918613.000100",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:1dd23b14367420e9",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "slack",
+    "at": "2026-08-28T12:03:34Z",
+    "title": "Ivy asked for onboarding cost",
+    "ref": {
+      "collection": "slack_messages",
+      "id": "slm:C0GLX1:1787918614_000100"
+    },
+    "source_ref": "slack:C0GLX1:1787918614.000100",
+    "actor": "ava.chen",
+    "body": ""
+  },
+  {
+    "_id": "act:09a0284893c1e826",
     "type": "activity",
     "account_id": "acct:acme",
     "kind": "teams",
-    "at": "2026-08-17T14:05:00Z",
+    "at": "2026-08-28T12:13:20Z",
     "title": "Tried the pin on DC3 \u2014 still dying.",
     "ref": {
       "collection": "teams_messages",
-      "id": "tmm:19:acme-success:1723908000_000000"
+      "id": "tmm:19:acme-success:1787919200_000000"
     },
-    "source_ref": "teams:19:acme-success:1723908000.000000",
+    "source_ref": "teams:19:acme-success:1787919200.000000",
     "actor": "bob.hale",
-    "body": "",
-    "project_id": "proj:acme-scan"
+    "body": ""
   },
   {
-    "_id": "act:57879768fdf59445",
+    "_id": "act:22b1d6046adb03cf",
     "type": "activity",
     "account_id": "acct:acme",
     "kind": "teams",
-    "at": "2026-08-17T14:12:00Z",
+    "at": "2026-08-28T12:13:21Z",
     "title": "Thanks Bob. Logging on ACME-12.",
     "ref": {
       "collection": "teams_messages",
-      "id": "tmm:19:acme-success:1723908000_000001"
+      "id": "tmm:19:acme-success:1787919201_000000"
     },
-    "source_ref": "teams:19:acme-success:1723908000.000001",
+    "source_ref": "teams:19:acme-success:1787919201.000000",
     "actor": "jordan",
-    "body": "",
-    "project_id": "proj:acme-scan"
+    "body": ""
+  },
+  {
+    "_id": "act:01331c086bfa8c04",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "teams",
+    "at": "2026-08-28T12:13:22Z",
+    "title": "QBR deck needs the firmware date.",
+    "ref": {
+      "collection": "teams_messages",
+      "id": "tmm:19:acme-success:1787919202_000000"
+    },
+    "source_ref": "teams:19:acme-success:1787919202.000000",
+    "actor": "pat.nguyen",
+    "body": ""
+  },
+  {
+    "_id": "act:fb28babb8d95e9b7",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "teams",
+    "at": "2026-08-28T12:13:23Z",
+    "title": "TAM on the 15:00 working session.",
+    "ref": {
+      "collection": "teams_messages",
+      "id": "tmm:19:acme-success:1787919203_000000"
+    },
+    "source_ref": "teams:19:acme-success:1787919203.000000",
+    "actor": "chris",
+    "body": ""
+  },
+  {
+    "_id": "act:a0e8458869aff438",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "teams",
+    "at": "2026-08-28T12:13:24Z",
+    "title": "DC3 log is in the channel.",
+    "ref": {
+      "collection": "teams_messages",
+      "id": "tmm:19:acme-success:1787919204_000000"
+    },
+    "source_ref": "teams:19:acme-success:1787919204.000000",
+    "actor": "sam.ortiz",
+    "body": ""
+  },
+  {
+    "_id": "act:2491f56b538de320",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "teams",
+    "at": "2026-08-28T12:13:25Z",
+    "title": "Bringing it to standup.",
+    "ref": {
+      "collection": "teams_messages",
+      "id": "tmm:19:acme-success:1787919205_000000"
+    },
+    "source_ref": "teams:19:acme-success:1787919205.000000",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:91bd547c89a714c0",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "teams",
+    "at": "2026-08-28T12:13:26Z",
+    "title": "One-pager by 3pm please.",
+    "ref": {
+      "collection": "teams_messages",
+      "id": "tmm:19:acme-success:1787919206_000000"
+    },
+    "source_ref": "teams:19:acme-success:1787919206.000000",
+    "actor": "dana.cole",
+    "body": ""
+  },
+  {
+    "_id": "act:56775420fcd25f88",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "teams",
+    "at": "2026-08-28T12:13:27Z",
+    "title": "SSO mapping for contractors is still open.",
+    "ref": {
+      "collection": "teams_messages",
+      "id": "tmm:19:acme-success:1787919207_000000"
+    },
+    "source_ref": "teams:19:acme-success:1787919207.000000",
+    "actor": "mei.wong",
+    "body": ""
+  },
+  {
+    "_id": "act:64be09d9d9c39a39",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "teams",
+    "at": "2026-08-28T12:14:10Z",
+    "title": "I am out \u2014 Rob has the numbers.",
+    "ref": {
+      "collection": "teams_messages",
+      "id": "tmm:19:nwin-success:1787919250_000000"
+    },
+    "source_ref": "teams:19:nwin-success:1787919250.000000",
+    "actor": "kim.hale",
+    "body": ""
+  },
+  {
+    "_id": "act:d816dcaaa497c48b",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "teams",
+    "at": "2026-08-28T12:14:11Z",
+    "title": "Rob, joining the 11:00 renewal.",
+    "ref": {
+      "collection": "teams_messages",
+      "id": "tmm:19:nwin-success:1787919251_000000"
+    },
+    "source_ref": "teams:19:nwin-success:1787919251.000000",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:e113f74d09e180fb",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "teams",
+    "at": "2026-08-28T12:14:12Z",
+    "title": "Need a commercial option today.",
+    "ref": {
+      "collection": "teams_messages",
+      "id": "tmm:19:nwin-success:1787919252_000000"
+    },
+    "source_ref": "teams:19:nwin-success:1787919252.000000",
+    "actor": "rob.singh",
+    "body": ""
+  },
+  {
+    "_id": "act:495ac148e24f22cc",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "teams",
+    "at": "2026-08-28T12:14:13Z",
+    "title": "Contractor SSO patch is in test.",
+    "ref": {
+      "collection": "teams_messages",
+      "id": "tmm:19:nwin-success:1787919253_000000"
+    },
+    "source_ref": "teams:19:nwin-success:1787919253.000000",
+    "actor": "jules.hart",
+    "body": ""
+  },
+  {
+    "_id": "act:c182229c77a9d636",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "teams",
+    "at": "2026-08-28T12:14:14Z",
+    "title": "Ten minutes. Commercial first.",
+    "ref": {
+      "collection": "teams_messages",
+      "id": "tmm:19:nwin-success:1787919254_000000"
+    },
+    "source_ref": "teams:19:nwin-success:1787919254.000000",
+    "actor": "helen.cho",
+    "body": ""
+  },
+  {
+    "_id": "act:3f9d189da420e762",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "teams",
+    "at": "2026-08-28T12:14:15Z",
+    "title": "Tacoma is quiet this week.",
+    "ref": {
+      "collection": "teams_messages",
+      "id": "tmm:19:nwin-success:1787919255_000000"
+    },
+    "source_ref": "teams:19:nwin-success:1787919255.000000",
+    "actor": "marco.rossi",
+    "body": ""
+  },
+  {
+    "_id": "act:ae2547fdc441a340",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "teams",
+    "at": "2026-08-28T12:14:40Z",
+    "title": "Plant 1 is green. Plant 2 printer is down.",
+    "ref": {
+      "collection": "teams_messages",
+      "id": "tmm:19:glx-onboard:1787919280_000000"
+    },
+    "source_ref": "teams:19:glx-onboard:1787919280.000000",
+    "actor": "ava.chen",
+    "body": ""
+  },
+  {
+    "_id": "act:776313f60e7931d5",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "teams",
+    "at": "2026-08-28T12:14:41Z",
+    "title": "PS bringing a spare this afternoon.",
+    "ref": {
+      "collection": "teams_messages",
+      "id": "tmm:19:glx-onboard:1787919281_000000"
+    },
+    "source_ref": "teams:19:glx-onboard:1787919281.000000",
+    "actor": "jordan",
+    "body": ""
+  },
+  {
+    "_id": "act:646dc82d92a637b5",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "teams",
+    "at": "2026-08-28T12:14:42Z",
+    "title": "Thanks \u2014 badge line is blocked.",
+    "ref": {
+      "collection": "teams_messages",
+      "id": "tmm:19:glx-onboard:1787919282_000000"
+    },
+    "source_ref": "teams:19:glx-onboard:1787919282.000000",
+    "actor": "sofia.berg",
+    "body": ""
+  },
+  {
+    "_id": "act:2fc2356a8478ccb7",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "teams",
+    "at": "2026-08-28T12:14:43Z",
+    "title": "I will sit in on the 16:00 standup.",
+    "ref": {
+      "collection": "teams_messages",
+      "id": "tmm:19:glx-onboard:1787919283_000000"
+    },
+    "source_ref": "teams:19:glx-onboard:1787919283.000000",
+    "actor": "victor.lang",
+    "body": ""
+  },
+  {
+    "_id": "act:54eb1d1ea518007f",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "teams",
+    "at": "2026-08-28T12:14:44Z",
+    "title": "Keep Plant 2 first on the review.",
+    "ref": {
+      "collection": "teams_messages",
+      "id": "tmm:19:glx-onboard:1787919284_000000"
+    },
+    "source_ref": "teams:19:glx-onboard:1787919284.000000",
+    "actor": "eleanor.voss",
+    "body": ""
+  },
+  {
+    "_id": "act:48a1c35d7b532c56",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "teams",
+    "at": "2026-08-28T12:14:45Z",
+    "title": "VPN allowlist is in GLX-8.",
+    "ref": {
+      "collection": "teams_messages",
+      "id": "tmm:19:glx-onboard:1787919285_000000"
+    },
+    "source_ref": "teams:19:glx-onboard:1787919285.000000",
+    "actor": "nadia.ali",
+    "body": ""
   },
   {
     "_id": "act:2395b9230a96fd6b",
@@ -749,115 +2236,173 @@
     "project_id": "proj:acme-scan"
   },
   {
-    "_id": "act:4641eff0e21c8845",
+    "_id": "act:3b1dbe4e0fdc836a",
     "type": "activity",
     "account_id": "acct:acme",
     "kind": "salesforce",
-    "at": "2026-08-15T12:00:00Z",
+    "at": "2026-08-16T18:00:00Z",
     "title": "Warehouse scanners add-on \u00b7 proposal",
     "ref": {
       "collection": "salesforce_opportunities",
       "id": "sfo:006ACME0002"
     },
-    "source_ref": "sfdc:opp:006ACME0002:proposal:2026-08-15T12:00:00Z",
+    "source_ref": "sfdc:opp:006ACME0002:proposal:2026-08-16T18:00:00Z",
     "actor": "salesforce",
     "body": "",
     "project_id": "proj:acme-scan"
   },
   {
-    "_id": "act:91c1a06794143182",
-    "type": "activity",
-    "account_id": "acct:acme",
-    "kind": "salesforce",
-    "at": "2026-08-17T09:10:00Z",
-    "title": "Case 00081234 \u00b7 Handheld scanners brick on OS 14",
-    "ref": {
-      "collection": "salesforce_cases",
-      "id": "sfc:00081234"
-    },
-    "source_ref": "sfdc:case:00081234:working:2026-08-17T09:10:00Z",
-    "actor": "salesforce",
-    "body": "",
-    "project_id": "proj:acme-scan"
-  },
-  {
-    "_id": "act:ca52a7fa9d27c49d",
-    "type": "activity",
-    "account_id": "acct:acme",
-    "kind": "salesforce",
-    "at": "2026-08-16T11:20:00Z",
-    "title": "Case 00081290 \u00b7 SSO session timeout after 8 hours",
-    "ref": {
-      "collection": "salesforce_cases",
-      "id": "sfc:00081290"
-    },
-    "source_ref": "sfdc:case:00081290:new:2026-08-16T11:20:00Z",
-    "actor": "salesforce",
-    "body": "",
-    "project_id": "proj:acme-sso"
-  },
-  {
-    "_id": "act:dc37ecbec0e89b73",
+    "_id": "act:4ee6c391de3d659c",
     "type": "activity",
     "account_id": "acct:northwind",
     "kind": "salesforce",
-    "at": "2026-08-14T09:00:00Z",
-    "title": "Northwind Renewal \u2014 at risk \u00b7 qualification",
+    "at": "2026-08-16T18:00:00Z",
+    "title": "Northwind renewal \u00b7 proposal",
     "ref": {
       "collection": "salesforce_opportunities",
       "id": "sfo:006NWIN0001"
     },
-    "source_ref": "sfdc:opp:006NWIN0001:qualification:2026-08-14T09:00:00Z",
+    "source_ref": "sfdc:opp:006NWIN0001:proposal:2026-08-16T18:00:00Z",
     "actor": "salesforce",
     "body": "",
     "project_id": "proj:nwin-renew"
   },
   {
-    "_id": "act:513662aefef6f5f7",
+    "_id": "act:7d18720fe38b1869",
     "type": "activity",
     "account_id": "acct:northwind",
     "kind": "salesforce",
-    "at": "2026-08-15T08:00:00Z",
-    "title": "Case 00070111 \u00b7 Auth outage \u2014 champion dark",
+    "at": "2026-08-16T18:00:00Z",
+    "title": "Identity add-on \u00b7 discovery",
     "ref": {
-      "collection": "salesforce_cases",
-      "id": "sfc:00070111"
+      "collection": "salesforce_opportunities",
+      "id": "sfo:006NWIN0002"
     },
-    "source_ref": "sfdc:case:00070111:escalated:2026-08-15T08:00:00Z",
+    "source_ref": "sfdc:opp:006NWIN0002:discovery:2026-08-16T18:00:00Z",
     "actor": "salesforce",
     "body": "",
     "project_id": "proj:nwin-renew"
   },
   {
-    "_id": "act:95647d2b5b0be573",
+    "_id": "act:3a9af5dd7545f930",
     "type": "activity",
     "account_id": "acct:globex",
     "kind": "salesforce",
-    "at": "2026-08-13T16:00:00Z",
-    "title": "Plant 2 expansion \u00b7 prospecting",
+    "at": "2026-08-16T18:00:00Z",
+    "title": "Globex plant 2 expansion \u00b7 discovery",
     "ref": {
       "collection": "salesforce_opportunities",
       "id": "sfo:006GLX0001"
     },
-    "source_ref": "sfdc:opp:006GLX0001:prospecting:2026-08-13T16:00:00Z",
+    "source_ref": "sfdc:opp:006GLX0001:discovery:2026-08-16T18:00:00Z",
     "actor": "salesforce",
     "body": "",
     "project_id": "proj:glx-onboard"
   },
   {
-    "_id": "act:5eea1d37cc88395c",
+    "_id": "act:4a1ea9b9db7dd384",
     "type": "activity",
     "account_id": "acct:globex",
     "kind": "salesforce",
-    "at": "2026-08-13T14:00:00Z",
-    "title": "Case 00030008 \u00b7 VPN allowlist for plant 2",
+    "at": "2026-08-16T18:00:00Z",
+    "title": "Globex plant 1 renewal \u00b7 qualification",
     "ref": {
-      "collection": "salesforce_cases",
-      "id": "sfc:00030008"
+      "collection": "salesforce_opportunities",
+      "id": "sfo:006GLX0002"
     },
-    "source_ref": "sfdc:case:00030008:waiting:2026-08-13T14:00:00Z",
+    "source_ref": "sfdc:opp:006GLX0002:qualification:2026-08-16T18:00:00Z",
     "actor": "salesforce",
     "body": "",
     "project_id": "proj:glx-onboard"
+  },
+  {
+    "_id": "act:21a310eea73d50b1",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "salesforce",
+    "at": "2026-08-17T09:00:00Z",
+    "title": "00001234 DC3 scanner brick",
+    "ref": {
+      "collection": "salesforce_cases",
+      "id": "sfc:500ACME12"
+    },
+    "source_ref": "sfdc:case:00001234:working:2026-08-17T09:00:00Z",
+    "actor": "salesforce",
+    "body": ""
+  },
+  {
+    "_id": "act:abd180368d03a1d8",
+    "type": "activity",
+    "account_id": "acct:acme",
+    "kind": "salesforce",
+    "at": "2026-08-16T11:00:00Z",
+    "title": "00001290 Night-shift SSO timeout",
+    "ref": {
+      "collection": "salesforce_cases",
+      "id": "sfc:500ACME18"
+    },
+    "source_ref": "sfdc:case:00001290:escalated:2026-08-16T11:00:00Z",
+    "actor": "salesforce",
+    "body": ""
+  },
+  {
+    "_id": "act:c911b88477ece849",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "salesforce",
+    "at": "2026-08-15T18:00:00Z",
+    "title": "00002004 Friday auth outage",
+    "ref": {
+      "collection": "salesforce_cases",
+      "id": "sfc:500NWIN4"
+    },
+    "source_ref": "sfdc:case:00002004:escalated:2026-08-15T18:00:00Z",
+    "actor": "salesforce",
+    "body": ""
+  },
+  {
+    "_id": "act:2b73ce3a5c738f32",
+    "type": "activity",
+    "account_id": "acct:northwind",
+    "kind": "salesforce",
+    "at": "2026-08-16T12:00:00Z",
+    "title": "00002011 Invoice currency",
+    "ref": {
+      "collection": "salesforce_cases",
+      "id": "sfc:500NWIN7"
+    },
+    "source_ref": "sfdc:case:00002011:working:2026-08-16T12:00:00Z",
+    "actor": "salesforce",
+    "body": ""
+  },
+  {
+    "_id": "act:6143341874d3b773",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "salesforce",
+    "at": "2026-08-28T10:00:00Z",
+    "title": "00003012 Plant 2 badge printer",
+    "ref": {
+      "collection": "salesforce_cases",
+      "id": "sfc:500GLX12"
+    },
+    "source_ref": "sfdc:case:00003012:working:2026-08-28T10:00:00Z",
+    "actor": "salesforce",
+    "body": ""
+  },
+  {
+    "_id": "act:bbe2124dc7254950",
+    "type": "activity",
+    "account_id": "acct:globex",
+    "kind": "salesforce",
+    "at": "2026-08-17T13:00:00Z",
+    "title": "00003008 VPN allowlist",
+    "ref": {
+      "collection": "salesforce_cases",
+      "id": "sfc:500GLX8"
+    },
+    "source_ref": "sfdc:case:00003008:waiting:2026-08-17T13:00:00Z",
+    "actor": "salesforce",
+    "body": ""
   }
 ]

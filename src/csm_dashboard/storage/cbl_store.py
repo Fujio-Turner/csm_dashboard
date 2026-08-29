@@ -29,6 +29,7 @@ COLLECTIONS = (
     "chats",
     "sync_jobs",
     "settings",
+    "credentials",
     "activities",
     "notes",
 )
@@ -93,6 +94,7 @@ INDEXES = (
     ("activities", "idx_act_acct_at", "account_id, at"),
     ("activities", "idx_act_source_ref", "source_ref"),
     ("notes", "idx_note_account", "account_id"),
+    ("credentials", "idx_cred_kind", "kind"),
 )
 
 FTS_INDEXES = (

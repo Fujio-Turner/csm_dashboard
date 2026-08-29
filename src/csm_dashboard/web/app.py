@@ -7,13 +7,13 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, Response, StreamingResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from csm_dashboard import __version__
 from csm_dashboard.chat.desk_answer import answer_desk
-from csm_dashboard.chat.grok import GrokClient
 from csm_dashboard.chat.mentions import resolve_account
+from csm_dashboard.chat.providers import provider_spec, resolve_ai_client, selected_provider
 from csm_dashboard.compose.context import build_compose_context
 from csm_dashboard.compose.grok import (
     assist_task_with_grok,
@@ -22,11 +22,23 @@ from csm_dashboard.compose.grok import (
     fallback_reply,
     fallback_task_assist,
 )
-from csm_dashboard.config import ROOT, Settings, fixtures_dir, load_secrets, load_settings, save_secrets
+from csm_dashboard.config import ROOT, Settings, fixtures_dir, load_settings
+from csm_dashboard.connectors import oauth as oauth_flow
 from csm_dashboard.connectors.registry import PULL_CONNECTORS, connector_mode, get_connector, list_connectors
+from csm_dashboard.credentials import (
+    AI_KEY_ALIASES,
+    AI_PROVIDERS,
+    VENDOR_CLIENT_FIELDS,
+    VENDOR_CONNECTORS,
+    connector_auth,
+    connector_cred_name,
+    connector_fields,
+    normalize_ai_provider,
+)
 from csm_dashboard.ingest.route import route_event
 from csm_dashboard.prompts import help_public, prompt_system
 from csm_dashboard.seed.load import apply_seed, apply_sync_event
+from csm_dashboard.sso import public_sso
 from csm_dashboard.storage.errors import CouchbaseLiteNotAvailable
 from csm_dashboard.storage.repo import TASK_KINDS, CsmRepo, utcnow
 
@@ -80,12 +92,57 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
     def repo_obj() -> CsmRepo:
         return app.state.repo
 
+    def apply_key_body(body: dict) -> list[str]:
+        repo = repo_obj()
+        updated: list[str] = []
+        for key, value in (body or {}).items():
+            if key in {"ai", "connectors"}:
+                continue
+            alias = AI_KEY_ALIASES.get(str(key))
+            if not alias:
+                continue
+            repo.put_credential_secret("ai", alias, {"api_key": "" if value is None else value})
+            updated.append(f"ai.{alias}")
+        nested_ai = (body or {}).get("ai")
+        if isinstance(nested_ai, dict):
+            for name, value in nested_ai.items():
+                provider = normalize_ai_provider(name)
+                if provider not in AI_PROVIDERS:
+                    continue
+                fields = value if isinstance(value, dict) else {"api_key": value}
+                repo.put_credential_secret("ai", provider, fields)
+                updated.append(f"ai.{provider}")
+        nested_conn = (body or {}).get("connectors")
+        if isinstance(nested_conn, dict):
+            for name, fields in nested_conn.items():
+                if not isinstance(fields, dict):
+                    continue
+                key = str(name)
+                if key == "okta":
+                    target, allowed = "okta", set(connector_fields("okta"))
+                elif key in VENDOR_CONNECTORS:
+                    target, allowed = key, set(VENDOR_CLIENT_FIELDS.get(key) or ("client_id", "client_secret"))
+                elif key in PULL_CONNECTORS:
+                    target, allowed = connector_cred_name(key), set(connector_fields(key))
+                else:
+                    continue
+                clean = {k: v for k, v in fields.items() if k in allowed}
+                repo.put_credential_secret("connector", target, clean)
+                updated.append(f"connector.{target}")
+        return updated
+
+    def ai_client():
+        return resolve_ai_client(repo_obj(), _settings())
+
     @app.get("/", response_class=HTMLResponse)
     def index():
         global _INDEX_HTML
         if _INDEX_HTML is None:
             _INDEX_HTML = (HERE / "templates" / "index.html").read_text(encoding="utf-8")
-        return HTMLResponse(_INDEX_HTML.replace("{{ version }}", __version__))
+        return HTMLResponse(
+            _INDEX_HTML.replace("{{ version }}", __version__),
+            headers={"Cache-Control": "no-store"},
+        )
 
     @app.get("/healthz")
     def healthz():
@@ -98,10 +155,17 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
 
     @app.get("/api/status")
     def get_status():
+        from csm_dashboard.connectors.google_secrets import hydrate_google
+
         settings = _settings()
-        secrets = load_secrets()
         repo = repo_obj()
+        google_file = hydrate_google(repo)
         doc = repo.get_settings() or {}
+        creds = repo.list_credentials_public()
+        provider = selected_provider(doc)
+        spec = provider_spec(provider)
+        grok_on = bool(creds["ai"]["grok"]["present"] or settings.has_xai_key)
+        ai = doc.get("ai") or {}
         return {
             "version": __version__,
             "host": settings.host,
@@ -109,15 +173,39 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
             "tagline": settings.tagline,
             "operator": repo.operator_profile(doc),
             "world_clock": repo.world_clock(doc),
-            "models": settings.model_list(),
-            "default_model": settings.xai_default_model,
-            "ai": (doc.get("ai") or {"provider": "grok", "model": settings.xai_default_model}),
-            "keys": {
-                "xai": bool(settings.has_xai_key or secrets.get("xai_api_key")),
-                "openai": bool(secrets.get("openai_api_key")),
-                "gemini": bool(secrets.get("gemini_api_key")),
+            "models": spec["models"],
+            "default_model": spec["default_model"],
+            "ai": {
+                "provider": provider,
+                "model": str(ai.get("model") or spec["default_model"]),
             },
-            "connectors": list_connectors(),
+            "keys": {
+                "grok": grok_on,
+                "xai": grok_on,
+                "openai": bool(creds["ai"]["openai"]["present"]),
+                "gemini": bool(creds["ai"]["gemini"]["present"]),
+            },
+            "credentials": creds,
+            "connectors": list_connectors(doc, creds.get("connectors"), repo),
+            "sso": {
+                **public_sso(
+                    doc,
+                    operator_email=str((repo.operator_profile(doc) or {}).get("email") or ""),
+                    identity=repo.get_credential_secret("connector", "okta"),
+                    okta_redirect=oauth_flow.redirect_uri("okta"),
+                ),
+                "clients": {
+                    "google": bool(repo.get_credential_secret("connector", "google").get("client_id")),
+                    "google_secret": bool(repo.get_credential_secret("connector", "google").get("client_secret")),
+                    "microsoft": bool(repo.get_credential_secret("connector", "microsoft").get("client_id")),
+                    "slack": bool(repo.get_credential_secret("connector", "slack").get("client_id")),
+                },
+                "google_redirect": oauth_flow.redirect_uri("google"),
+                "google_file": bool(google_file.get("found")),
+                "google_file_label": google_file.get("label") or "",
+                "microsoft_redirect": oauth_flow.redirect_uri("microsoft"),
+                "slack_redirect": oauth_flow.redirect_uri("slack"),
+            },
         }
 
     @app.get("/api/help")
@@ -142,36 +230,38 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
     @app.get("/api/settings")
     def get_settings():
         doc = repo_obj().get_settings() or {}
+        repo = repo_obj()
+        op = repo.operator_profile(doc)
         return {
             **doc,
-            "operator": repo_obj().operator_profile(doc),
-            "world_clock": repo_obj().world_clock(doc),
+            "operator": op,
+            "world_clock": repo.world_clock(doc),
             "ai": doc.get("ai") or {"provider": "grok", "model": _settings().xai_default_model},
+            "sso": public_sso(
+                doc,
+                operator_email=str((op or {}).get("email") or ""),
+                identity=repo.get_credential_secret("connector", "okta"),
+                okta_redirect=oauth_flow.redirect_uri("okta"),
+            ),
         }
 
     @app.put("/api/settings/keys")
     def put_keys(body: dict):
-        allowed = {
-            k: v
-            for k, v in body.items()
-            if k in {"xai_api_key", "openai_api_key", "gemini_api_key"} and v
-        }
-        save_secrets(allowed)
-        log.info("csm.settings.keys_updated fields=%s", ",".join(allowed.keys()))
-        return {"ok": True, "fields": list(allowed.keys())}
+        fields = apply_key_body(body or {})
+        log.info("csm.settings.keys_updated fields=%s", ",".join(fields))
+        return {"ok": True, "fields": fields, "credentials": repo_obj().list_credentials_public()}
+
+    @app.get("/api/settings/keys")
+    def get_keys():
+        return repo_obj().list_credentials_public()
 
     @app.post("/api/settings/providers/test")
     def test_provider(body: dict):
-        provider = str(body.get("provider") or "grok").strip().lower()
-        secrets = load_secrets()
-        settings = _settings()
-        key_map = {
-            "grok": settings.xai_api_key or secrets.get("xai_api_key"),
-            "xai": settings.xai_api_key or secrets.get("xai_api_key"),
-            "openai": secrets.get("openai_api_key"),
-            "gemini": secrets.get("gemini_api_key"),
-        }
-        key = key_map.get(provider) or ""
+        provider = normalize_ai_provider(str((body or {}).get("provider") or "grok"))
+        repo = repo_obj()
+        key = repo.ai_api_key(provider)
+        if not key and provider == "grok":
+            key = _settings().xai_api_key
         if not key:
             log.info("csm.settings.provider_test provider=%s result=missing_key", provider)
             return {"ok": False, "provider": provider, "message": "No API key saved"}
@@ -502,12 +592,12 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         result = "fallback"
         model = ""
         draft_body = fallback_reply(acct, thread, last)
-        if settings.has_xai_key:
+        client = ai_client()
+        if client:
             try:
-                client = GrokClient(settings.xai_api_key, settings.xai_base_url, settings.model_list())
                 drafted, model = compose_with_grok(client, ctx, settings)
                 draft_body = {**draft_body, **drafted}
-                result = "grok"
+                result = selected_provider(repo_obj().get_settings())
             except Exception as exc:
                 log.warning("csm.draft.suggest_reply result=fallback err=%s", exc)
         to_addrs = draft_body.get("to") or []
@@ -599,11 +689,11 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
             body=hint["body"],
             people=people,
         )
-        if settings.has_xai_key:
+        client = ai_client()
+        if client:
             try:
-                client = GrokClient(settings.xai_api_key, settings.xai_base_url, settings.model_list())
                 drafted, _model = assist_task_with_grok(client, hint, settings)
-                result = "grok"
+                result = selected_provider(repo_obj().get_settings())
             except Exception as exc:
                 log.warning("csm.task.assist result=fallback err=%s", exc)
         allowed = {p.get("email", "").lower() for p in people_slice}
@@ -842,11 +932,11 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         result = "fallback"
         model = ""
         draft_body = fallback_draft(acct, ctx)
-        if settings.has_xai_key:
+        client = ai_client()
+        if client:
             try:
-                client = GrokClient(settings.xai_api_key, settings.xai_base_url, settings.model_list())
                 draft_body, model = compose_with_grok(client, ctx, settings)
-                result = "grok"
+                result = selected_provider(repo_obj().get_settings())
             except Exception as exc:
                 log.warning("csm.draft.compose result=fallback err=%s", exc)
         to_addrs = draft_body.get("to") or []
@@ -921,9 +1011,9 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
             f"Overdue actions: {(acct.get('stats') or {}).get('overdue_actions')}\n"
         )
         model = ""
-        if settings.has_xai_key:
+        client = ai_client()
+        if client:
             try:
-                client = GrokClient(settings.xai_api_key, settings.xai_base_url, settings.model_list())
                 data, model = client.complete_json(
                     [
                         {"role": "system", "content": prompt_system("weekly_report")},
@@ -974,7 +1064,8 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         local_reply = answer_desk(repo_obj(), message, acct)
 
         def sse():
-            if not settings.has_xai_key or account_id == "desk" or not acct:
+            client = ai_client()
+            if not client or account_id == "desk" or not acct:
                 reply = local_reply
                 for i in range(0, len(reply), 40):
                     chunk = reply[i : i + 40]
@@ -984,7 +1075,6 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
                 log.info("csm.chat.turn result=fallback account_id=%s", account_id)
                 yield f"event: done\ndata: {json.dumps({'result': 'fallback', 'chat_id': chat_id, 'account_id': account_id})}\n\n"
                 return
-            client = GrokClient(settings.xai_api_key, settings.xai_base_url, settings.model_list())
             sys = [
                 {"role": "system", "content": prompt_system("desk_chat")},
                 {"role": "system", "content": "Local brief:\n" + local_reply},
@@ -1030,22 +1120,105 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         )
         return doc
 
+    @app.get("/api/oauth/{vendor}/start")
+    def oauth_start(vendor: str):
+        try:
+            repo = repo_obj()
+            if vendor == "google":
+                from csm_dashboard.connectors.google_secrets import hydrate_google
+
+                hydrate_google(repo)
+            okta = repo.get_credential_secret("connector", "okta")
+            hint = str(okta.get("email") or (repo.operator_profile() or {}).get("email") or "")
+            org = str(okta.get("org_url") or (repo.get_settings() or {}).get("sso", {}).get("org_url") or "")
+            url = oauth_flow.start_url(vendor, repo, login_hint=hint, org_url=org)
+        except KeyError:
+            raise HTTPException(404, "unknown_oauth_vendor") from None
+        except ValueError as exc:
+            code = str(exc)
+            log.info("csm.oauth.start vendor=%s result=%s", vendor, code)
+            if code == "oauth_client_id_missing":
+                names = {
+                    "google": "local credentials.json (or paste Google client ID on Sign in)",
+                    "microsoft": "Microsoft client ID on Settings → Sign in",
+                    "slack": "Slack client ID on Settings → Sign in",
+                    "okta": "SSO client ID on Settings → Sign in",
+                    "salesforce": "Salesforce consumer key on the Salesforce connector",
+                }
+                message = "Missing " + names.get(vendor, "OAuth client ID") + ". Save it, then Connect again."
+            else:
+                message = code.replace("_", " ")
+            return HTMLResponse(oauth_flow.callback_html(ok=False, message=message), status_code=400)
+        log.info("csm.oauth.start vendor=%s", vendor)
+        return RedirectResponse(url, status_code=302)
+
+    @app.get("/api/oauth/{vendor}/callback")
+    def oauth_callback(vendor: str, request: Request):
+        params = request.query_params
+        if params.get("error"):
+            log.info("csm.oauth.callback vendor=%s result=denied", vendor)
+            return HTMLResponse(
+                oauth_flow.callback_html(ok=False, message="The provider denied access."),
+                status_code=400,
+            )
+        try:
+            oauth_flow.finish(vendor, params.get("code") or "", params.get("state") or "", repo_obj())
+        except KeyError:
+            raise HTTPException(404, "unknown_oauth_vendor") from None
+        except ValueError as exc:
+            log.info("csm.oauth.callback vendor=%s result=invalid", vendor)
+            return HTMLResponse(
+                oauth_flow.callback_html(ok=False, message=str(exc).replace("_", " ")),
+                status_code=400,
+            )
+        except Exception:
+            log.exception("csm.oauth.callback vendor=%s result=error", vendor)
+            return HTMLResponse(
+                oauth_flow.callback_html(
+                    ok=False,
+                    message="Could not finish sign-in. Check the OAuth client ID and redirect URI.",
+                ),
+                status_code=502,
+            )
+        log.info("csm.oauth.callback vendor=%s result=ok", vendor)
+        return HTMLResponse(oauth_flow.callback_html(ok=True, message="You can close this tab and return to Settings."))
+
+    @app.get("/oauth2callback")
+    def google_oauth2_callback(request: Request):
+        return oauth_callback("google", request)
+
+    @app.post("/api/oauth/{vendor}/disconnect")
+    def oauth_disconnect(vendor: str):
+        try:
+            oauth_flow.disconnect(vendor, repo_obj())
+        except KeyError:
+            raise HTTPException(404, "unknown_oauth_vendor") from None
+        return {"ok": True, "vendor": vendor}
+
     @app.get("/api/connectors")
     def api_list_connectors():
-        return {"items": list_connectors()}
+        repo = repo_obj()
+        creds = repo.list_credentials_public()
+        return {"items": list_connectors(repo.get_settings(), creds.get("connectors"), repo)}
 
     @app.get("/api/connectors/{name}/health")
     def connector_health(name: str):
         if name not in PULL_CONNECTORS:
             raise HTTPException(404, "unknown connector")
-        return get_connector(name).health()
+        return get_connector(name, repo_obj()).health()
 
     @app.post("/api/connectors/{name}/test")
     def connector_test(name: str):
         if name not in PULL_CONNECTORS:
             raise HTTPException(404, "unknown connector")
-        health = get_connector(name).health()
-        health["auth"] = "oauth" if name in {"google_mail", "microsoft365", "google_cal", "m365_cal", "slack", "teams", "salesforce"} else "password"
+        repo = repo_obj()
+        conn = get_connector(name, repo)
+        probe = getattr(conn, "probe", None)
+        health = probe() if callable(probe) else conn.health()
+        health["auth"] = connector_auth(name)
+        if callable(probe) and health.get("ok"):
+            repo.save_settings({"connectors": {name: {"mode": "live"}}})
+            health["mode"] = "live"
         log.info("csm.connector.test name=%s ok=%s", name, health.get("ok"))
         return health
 
@@ -1053,9 +1226,9 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
     def run_sync(name: str, body: dict | None = None):
         if name not in PULL_CONNECTORS:
             raise HTTPException(404, "unknown connector")
-        mode = connector_mode(name)
-        if mode == "off":
-            raise HTTPException(404, "connector_off")
+        mode = connector_mode(name, repo_obj().get_settings())
+        if mode != "live":
+            raise HTTPException(409, "connector_disabled")
         body = body or {}
         account_id = body.get("account_id")
         account = repo_obj().get_account(account_id) if account_id else None
@@ -1064,7 +1237,7 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         )
         log.info("csm.sync.started connector=%s", name)
         try:
-            events = get_connector(name).pull(body.get("since"), account)
+            events = get_connector(name, repo_obj()).pull(body.get("since"), account)
             accounts = repo_obj().list_accounts(include_hidden=True)
             upserted = 0
             ours = repo_obj().operator_domains()

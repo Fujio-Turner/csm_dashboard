@@ -163,8 +163,10 @@
                 <label>Email <input id="op-email" type="email" autocomplete="email" placeholder="bob@abc.com"></label>
                 <label>Timezone <select id="op-timezone"></select></label>
               </div>
+              <p class="muted">Your email is a login hint so Google can pick the right account. It is not a password, and it is not the Google app client.</p>
               <div class="settings-actions">
-                <button class="btn btn-primary" type="button" id="btn-save-operator">Save profile</button>
+                <button class="btn" type="button" id="btn-save-operator">Save profile</button>
+                <button class="btn btn-primary" type="button" id="btn-google-signin">Sign in with Google</button>
               </div>
             </article>
           </section>
@@ -184,54 +186,72 @@
             <header class="settings-section-head">
               <div>
                 <h2>Integrations</h2>
-                <p class="muted">Keys stay in <code>data/secrets.json</code> (mode 0600). Connector mode lives in <code>config.json</code>.</p>
+                <p class="muted">Keys and connector tokens live in the local Couchbase Lite <code>credentials</code> collection. The API never returns the secret values. Community Lite is not encrypted on disk — FileVault (or equivalent) is the disk story. Do not turn on App Services replication for this collection.</p>
               </div>
             </header>
+            <article class="card" id="card-sso">
+              <header class="card-head">
+                <div>
+                  <h3>Sign in</h3>
+                  <p class="muted">Gmail and Calendar: click Sign in with Google (uses local credentials.json plus your profile email as a hint). Okta SSO is separate and still needs an OIDC app client ID — your name and email are not enough for Okta.</p>
+                </div>
+              </header>
+              <p id="sso-identity" class="picker-tally muted"></p>
+              <div class="settings-form">
+                <label>Issuer URL <input id="sso-portal" placeholder="https://your-company.okta.com" autocomplete="off"></label>
+                <label>SSO client ID <input id="sso-client-id" autocomplete="off"></label>
+                <label>Google client ID <input id="sso-google-id" placeholder="….apps.googleusercontent.com" autocomplete="off"></label>
+                <label>Google client secret <input id="sso-google-secret" type="password" autocomplete="off"></label>
+                <label>Microsoft client ID <input id="sso-ms-id" autocomplete="off"></label>
+                <label>Slack client ID <input id="sso-slack-id" autocomplete="off"></label>
+              </div>
+              <label class="settings-span sso-redirect">Redirect URI
+                <div class="redir-row">
+                  <input id="sso-redirect" type="text" readonly>
+                  <button class="btn" type="button" id="btn-copy-sso-redirect">Copy</button>
+                </div>
+              </label>
+              <div class="settings-actions">
+                <button class="btn" type="button" id="btn-sso-signout">Sign out</button>
+                <button class="btn" type="button" id="btn-save-sso">Save</button>
+                <button class="btn btn-primary" type="button" id="btn-sso-signin">Sign in</button>
+              </div>
+            </article>
             <div class="settings-split">
               <article class="card">
                 <header class="card-head">
                   <div>
                     <h3>AI</h3>
-                    <p class="muted">Compose uses Grok when that key is present.</p>
+                    <p class="muted">One provider at a time. Compose, chat, and reports use the selected key. Leave the key blank to keep what is stored.</p>
                   </div>
                 </header>
-                <div class="settings-form">
-                  <label>Provider
-                    <select id="ai-provider">
-                      <option value="grok">xAI / Grok</option>
-                      <option value="openai">OpenAI</option>
-                      <option value="gemini">Google Gemini</option>
-                    </select>
-                  </label>
-                  <label>Model <input id="ai-model" placeholder="grok-4.6"></label>
+                <div class="picker-row">
+                  <label>Provider <select id="ai-provider"></select></label>
+                  <span id="ai-state" class="pill inactive">inactive</span>
                 </div>
-                <div class="key-stack">
-                  <div class="key-row">
-                    <div class="key-head"><span>xAI / Grok</span><span class="pill" id="key-xai">absent</span></div>
-                    <label>xAI API key <input id="xai-key" type="password" autocomplete="off"></label>
-                  </div>
-                  <div class="key-row">
-                    <div class="key-head"><span>OpenAI</span><span class="pill" id="key-openai">absent</span></div>
-                    <label>OpenAI API key <input id="openai-key" type="password" autocomplete="off"></label>
-                  </div>
-                  <div class="key-row">
-                    <div class="key-head"><span>Gemini</span><span class="pill" id="key-gemini">absent</span></div>
-                    <label>Gemini API key <input id="gemini-key" type="password" autocomplete="off"></label>
-                  </div>
+                <p class="picker-tally muted" id="ai-tally"></p>
+                <div class="settings-form" id="ai-detail">
+                  <label>Model <input id="ai-model" placeholder="grok-4.6"></label>
+                  <label>API key <input id="ai-key" type="password" autocomplete="off"></label>
                 </div>
                 <div class="settings-actions">
-                  <button class="btn" type="button" id="btn-test-ai">Test provider</button>
-                  <button class="btn btn-primary" type="button" id="btn-save-key">Save keys</button>
+                  <button class="btn" type="button" id="btn-test-ai">Test</button>
+                  <button class="btn btn-primary" type="button" id="btn-save-key">Save</button>
                 </div>
               </article>
               <article class="card">
                 <header class="card-head">
                   <div>
                     <h3>Connectors</h3>
-                    <p class="muted">Test checks health and shows the auth method.</p>
+                    <p class="muted">Jira: site + email + API token. Slack: paste an xoxp user token (or Connect a Slack app). Teams: Connect Microsoft. Set live, then Test and Sync. Map Jira keys and Slack/Teams channel ids on each company.</p>
                   </div>
                 </header>
-                <div id="connector-list"></div>
+                <div class="picker-row">
+                  <label>Connector <select id="connector-picker"></select></label>
+                  <span id="connector-state" class="pill inactive">inactive</span>
+                </div>
+                <p class="picker-tally muted" id="connector-tally"></p>
+                <div id="connector-detail"></div>
               </article>
             </div>
           </section>
@@ -239,7 +259,7 @@
             <header class="settings-section-head">
               <div>
                 <h2>Lab</h2>
-                <p class="muted">Three demo books: ACME navy, NWIN forest, GLX burgundy. Seed is idempotent. Reset keeps your profile and world clock.</p>
+                <p class="muted">Three demo books: ACME navy, NWIN forest, GLX burgundy — sample logos, full customer org charts, and a packed meeting day on Home. Seed is idempotent. Reset keeps your profile and world clock.</p>
               </div>
             </header>
             <article class="card">

@@ -77,7 +77,13 @@ paths:
       operationId: putKeys
       responses:
         "200":
-          description: keys written to secrets.json
+          description: keys written to CBL credentials collection (values never echoed)
+    get:
+      tags: [settings]
+      operationId: getKeys
+      responses:
+        "200":
+          description: present/absent flags only, no secret values
   /api/settings/seed:
     post:
       tags: [settings]
@@ -995,6 +1001,50 @@ paths:
           description: patched
         "404":
           description: not found
+  /api/oauth/{vendor}/start:
+    get:
+      tags: [sync]
+      operationId: startOauth
+      parameters:
+        - in: path
+          name: vendor
+          required: true
+          schema: { type: string }
+      responses:
+        "302":
+          description: redirect to the provider SSO page
+        "400":
+          description: OAuth client ID missing
+        "404":
+          description: unknown vendor
+  /api/oauth/{vendor}/callback:
+    get:
+      tags: [sync]
+      operationId: oauthCallback
+      parameters:
+        - in: path
+          name: vendor
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: connected; tokens stored, not shown
+        "400":
+          description: denied or invalid state
+  /api/oauth/{vendor}/disconnect:
+    post:
+      tags: [sync]
+      operationId: disconnectOauth
+      parameters:
+        - in: path
+          name: vendor
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: tokens cleared
+        "404":
+          description: unknown vendor
   /api/connectors:
     get:
       tags: [sync]

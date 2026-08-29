@@ -330,6 +330,25 @@ class CsmRepo:
                 op_merged = {**(current.get("operator") or {}), **op_merged, "timezones": wc["timezones"]}
                 op_merged["timezone"] = _norm_timezone(str(op_merged.get("timezone") or ""))
                 incoming["operator"] = op_merged
+        if isinstance(incoming.get("connectors"), dict):
+            from csm_dashboard.connectors.registry import normalize_mode
+
+            cur_conn = dict(current.get("connectors") or {})
+            for name, row in incoming["connectors"].items():
+                key = str(name or "").strip()
+                if not key:
+                    continue
+                if not isinstance(row, dict):
+                    continue
+                merged_row = {**(cur_conn.get(key) or {}), **row}
+                if "mode" in merged_row:
+                    merged_row["mode"] = normalize_mode(str(merged_row.get("mode")))
+                cur_conn[key] = merged_row
+            incoming["connectors"] = cur_conn
+        if isinstance(incoming.get("ai"), dict):
+            incoming["ai"] = {**(current.get("ai") or {}), **incoming["ai"]}
+        if isinstance(incoming.get("sso"), dict):
+            incoming["sso"] = {**(current.get("sso") or {}), **incoming["sso"]}
         merged = {**current, **incoming, "type": "settings"}
         self.store.save("settings", "settings", merged)
         saved = self.store.get("settings", "settings") or merged
@@ -341,6 +360,69 @@ class CsmRepo:
                 bool(clock.get("hour24")),
             )
         return _attach(saved, "settings") or saved
+
+    def credential_doc_id(self, kind: str, name: str) -> str:
+        from csm_dashboard.credentials import credential_id
+
+        return credential_id(kind, name)
+
+    def get_credential_secret(self, kind: str, name: str) -> dict:
+        """Internal. Never put this dict on an HTTP response."""
+        doc = self.store.get("credentials", self.credential_doc_id(kind, name)) or {}
+        secret = doc.get("secret")
+        return dict(secret) if isinstance(secret, dict) else {}
+
+    def put_credential_secret(self, kind: str, name: str, fields: dict) -> dict:
+        from csm_dashboard.credentials import merge_secret, public_view
+
+        doc_id = self.credential_doc_id(kind, name)
+        existing = self.store.get("credentials", doc_id) or {}
+        secret = merge_secret(existing.get("secret") if isinstance(existing.get("secret"), dict) else {}, fields)
+        if not secret:
+            if existing:
+                self.store.purge("credentials", doc_id)
+            log.info("csm.credential.cleared kind=%s name=%s", kind, name)
+            return public_view(kind=kind, name=name, secret={}, field_names=tuple(fields.keys()))
+        doc = {
+            "type": "credential",
+            "kind": kind,
+            "name": name,
+            "secret": secret,
+            "updated_at": utcnow(),
+        }
+        self.store.save("credentials", doc_id, doc)
+        log.info("csm.credential.saved kind=%s name=%s fields=%s", kind, name, ",".join(sorted(secret.keys())))
+        return public_view(kind=kind, name=name, secret=secret, field_names=tuple(secret.keys()))
+
+    def ai_api_key(self, provider: str) -> str:
+        from csm_dashboard.credentials import normalize_ai_provider
+
+        name = normalize_ai_provider(provider)
+        secret = self.get_credential_secret("ai", name)
+        return str(secret.get("api_key") or "").strip()
+
+    def list_credentials_public(self) -> dict:
+        from csm_dashboard.connectors.registry import PULL_CONNECTORS
+        from csm_dashboard.credentials import AI_PROVIDERS, connector_cred_name, connector_ui_fields, public_view
+
+        ai = {}
+        for name in AI_PROVIDERS:
+            ai[name] = public_view(
+                kind="ai",
+                name=name,
+                secret=self.get_credential_secret("ai", name),
+                field_names=("api_key",),
+            )
+        connectors = {}
+        for name in PULL_CONNECTORS:
+            fields = connector_ui_fields(name)
+            connectors[name] = public_view(
+                kind="connector",
+                name=name,
+                secret=self.get_credential_secret("connector", connector_cred_name(name)),
+                field_names=fields,
+            )
+        return {"ai": ai, "connectors": connectors}
 
     def world_clock(self, doc: dict | None = None) -> dict:
         doc = doc if doc is not None else (self.get_settings() or {})
@@ -1801,14 +1883,21 @@ class CsmRepo:
 
     def reset_store(self) -> None:
         settings = self.get_settings()
+        creds = list(self.store.query_all("credentials"))
         for name in COLLECTIONS:
-            if name == "settings":
+            if name in {"settings", "credentials"}:
                 continue
             for row in list(self.store.query_all(name)):
                 rid = row.get("_id")
                 if rid:
                     self.store.purge(name, rid)
         self.store.save("settings", "settings", settings)
+        for row in creds:
+            rid = row.get("_id")
+            if not rid:
+                continue
+            clean = {k: v for k, v in row.items() if k != "_id"}
+            self.store.save("credentials", rid, clean)
 
     def seed_from_dir(self, seed_dir) -> dict[str, int]:
         from csm_dashboard.seed.load import apply_seed
