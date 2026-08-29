@@ -3765,7 +3765,8 @@
 
   function threadRow(item) {
     var row = rowEl((item.message_count || 0) + " msgs", item.subject || "", (item.last_at || "").replace("T", " ").slice(0, 16));
-    row.classList.add("is-click");
+    row.classList.add("is-click", "has-avatar");
+    row.insertBefore(avatarEl(item.subject || "Mail"), row.firstChild);
     if (item._id) row.setAttribute("data-doc-id", item._id);
     row.addEventListener("click", function () {
       if (!item._id) return;
@@ -4423,7 +4424,8 @@
     var right = item.email || "";
     if (item.location) right = (right ? right + " · " : "") + item.location;
     var row = rowEl(item.role || item.kind || "", mid, right);
-    row.classList.add("is-click");
+    row.classList.add("is-click", "has-avatar");
+    row.insertBefore(avatarEl(item.name || item.email || "?"), row.firstChild);
     var extra = document.createElement("div");
     extra.className = "row-meta";
     if (item.owns_all_projects) {
@@ -4444,7 +4446,8 @@
       chip.textContent = fn;
       extra.appendChild(chip);
     });
-    if (extra.firstChild && row.children[1]) row.children[1].appendChild(extra);
+    var titleCol = row.querySelector(".row-title");
+    if (extra.firstChild && titleCol && titleCol.parentNode) titleCol.parentNode.appendChild(extra);
     if (acct) {
       row.addEventListener("click", function (ev) {
         ev.preventDefault();
@@ -4552,6 +4555,39 @@
     return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
   }
 
+  var AVATAR_TONES = [
+    ["#ecebfe", "#5c5fd4"],
+    ["#ffe8d6", "#c65d12"],
+    ["#d8f5ed", "#178066"],
+    ["#dceefc", "#1573ab"],
+    ["#fde2ea", "#b81d5a"],
+    ["#fff1cc", "#9a6b00"],
+    ["#e7e4ff", "#6d3ccf"],
+  ];
+
+  function avatarTone(seed) {
+    var s = String(seed || "");
+    var n = 0;
+    var i;
+    for (i = 0; i < s.length; i++) n += s.charCodeAt(i) * (i + 3);
+    return AVATAR_TONES[n % AVATAR_TONES.length];
+  }
+
+  function paintAvatar(el, seed) {
+    var tone = avatarTone(seed);
+    el.style.background = tone[0];
+    el.style.color = tone[1];
+    return el;
+  }
+
+  function avatarEl(name) {
+    var el = document.createElement("span");
+    el.className = "avatar";
+    el.setAttribute("aria-hidden", "true");
+    el.textContent = initials(name);
+    return paintAvatar(el, name);
+  }
+
   function fillOrgChart(pane, acct) {
     fillOrgSubs(pane, acct, "orgchart");
     return api(peopleUrl(acct)).then(function (data) {
@@ -4617,6 +4653,7 @@
     av.className = "org-avatar";
     av.setAttribute("aria-hidden", "true");
     av.textContent = initials(person.name);
+    paintAvatar(av, person.name || person._id || "");
     var text = document.createElement("div");
     var name = document.createElement("div");
     name.className = "org-name";
@@ -4953,35 +4990,182 @@
 
   function closeHelpItem(el) {
     if (!el) return;
-    el.classList.remove("is-open");
-    var b = el.querySelector(".help-q");
-    var a = el.querySelector(".help-a");
-    var ic = el.querySelector(".help-q-icon");
-    if (b) b.setAttribute("aria-expanded", "false");
-    if (a) a.hidden = true;
-    if (ic) ic.textContent = "+";
+    el.classList.remove("is-jump", "is-open");
   }
 
   function openHelpItem(el) {
     if (!el) return;
-    el.classList.add("is-open");
-    var b = el.querySelector(".help-q");
-    var a = el.querySelector(".help-a");
-    var ic = el.querySelector(".help-q-icon");
-    if (b) b.setAttribute("aria-expanded", "true");
-    if (a) a.hidden = false;
-    if (ic) ic.textContent = "−";
+    el.classList.add("is-jump", "is-open");
+  }
+
+  function helpBlob() {
+    var parts = [];
+    var i;
+    for (i = 0; i < arguments.length; i++) parts.push(String(arguments[i] || ""));
+    return parts.join(" ").toLowerCase();
+  }
+
+  function helpTextOf(item) {
+    var bits = [item && item.h, item && item.p];
+    ((item && item.blocks) || []).forEach(function (b) {
+      if (!b) return;
+      if (b.h3) bits.push(b.h3);
+      if (b.p) bits.push(b.p);
+      if (b.ul) bits.push((b.ul || []).join(" "));
+    });
+    return bits.join(" ");
+  }
+
+  function appendHelpAnswer(ans, item) {
+    var blocks = (item && item.blocks) || [];
+    if (!blocks.length) {
+      if (item && item.p) {
+        var only = document.createElement("p");
+        only.textContent = item.p;
+        ans.appendChild(only);
+      }
+      return;
+    }
+    blocks.forEach(function (b) {
+      if (!b) return;
+      if (b.h3) {
+        var sub = document.createElement("h3");
+        sub.className = "help-sub";
+        sub.textContent = b.h3;
+        ans.appendChild(sub);
+      }
+      if (b.p) {
+        var p = document.createElement("p");
+        p.textContent = b.p;
+        ans.appendChild(p);
+      }
+      if (b.ul && b.ul.length) {
+        var ul = document.createElement("ul");
+        ul.className = "help-ul";
+        b.ul.forEach(function (line) {
+          var li = document.createElement("li");
+          li.textContent = line;
+          ul.appendChild(li);
+        });
+        ans.appendChild(ul);
+      }
+    });
+  }
+
+  function filterHelp(raw) {
+    var box = $("help-body");
+    var emptyEl = $("help-empty");
+    var chips = $("help-chips");
+    if (!box) return;
+    var q = String(raw || "").toLowerCase().trim();
+    var any = false;
+    box.querySelectorAll(".help-group").forEach(function (sec) {
+      var titleHit = !q || (sec.getAttribute("data-title") || "").indexOf(q) >= 0;
+      var shown = 0;
+      sec.querySelectorAll(".help-item").forEach(function (item) {
+        var hit = !q || titleHit || (item.getAttribute("data-search") || "").indexOf(q) >= 0;
+        item.hidden = !!q && !hit;
+        if (hit) shown += 1;
+      });
+      var vis = !q || shown > 0;
+      sec.hidden = !vis;
+      if (vis) any = true;
+      var countEl = sec.querySelector(".help-count");
+      if (countEl) countEl.textContent = String(shown);
+      var chip = chips ? chips.querySelector('[data-help-group="' + (sec.id || "").replace("help-", "") + '"]') : null;
+      if (chip) chip.hidden = !vis;
+    });
+    if (emptyEl) emptyEl.hidden = any;
   }
 
   function applyHelpTopic(topic) {
     var box = $("help-body");
     if (!box) return;
-    box.querySelectorAll(".help-item.is-open").forEach(closeHelpItem);
+    box.querySelectorAll(".help-item.is-jump, .help-item.is-open").forEach(closeHelpItem);
     var jump = topic ? $("help-" + topic) : null;
-    if (jump) {
-      openHelpItem(jump);
-      jump.scrollIntoView({ block: "start", behavior: "smooth" });
+    if (!jump) return;
+    var search = $("help-search");
+    if (search && search.value) {
+      search.value = "";
+      filterHelp("");
     }
+    if (jump.classList.contains("help-group")) {
+      jump.scrollIntoView({ block: "start", behavior: "smooth" });
+      var first = jump.querySelector(".help-item");
+      if (first) openHelpItem(first);
+      return;
+    }
+    openHelpItem(jump);
+    jump.scrollIntoView({ block: "start", behavior: "smooth" });
+  }
+
+  function bindHelpSearch() {
+    var search = $("help-search");
+    if (!search || search.getAttribute("data-bound") === "1") return;
+    search.setAttribute("data-bound", "1");
+    search.addEventListener("input", function () {
+      filterHelp(search.value);
+    });
+  }
+
+  function paintHelp(data) {
+    var box = $("help-body");
+    var chips = $("help-chips");
+    if (!box) return;
+    empty(box);
+    if (chips) empty(chips);
+    (data.groups || []).forEach(function (g) {
+      var gid = g.id || "";
+      var items = g.items || [];
+      var sec = document.createElement("section");
+      sec.className = "help-group";
+      sec.id = "help-" + gid;
+      var groupSearch = [g.title];
+      var h = document.createElement("h2");
+      var title = document.createElement("span");
+      title.textContent = g.title || "";
+      var count = document.createElement("span");
+      count.className = "help-count";
+      count.textContent = String(items.length);
+      h.appendChild(title);
+      h.appendChild(count);
+      sec.appendChild(h);
+      if (chips) {
+        var chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "tab";
+        chip.setAttribute("data-help-group", gid);
+        chip.textContent = g.title || "";
+        chip.addEventListener("click", function () {
+          location.hash = "#help/" + gid;
+        });
+        chips.appendChild(chip);
+      }
+      items.forEach(function (item) {
+        var wrap = document.createElement("div");
+        wrap.className = "help-item";
+        wrap.id = "help-" + (item.id || "");
+        wrap.setAttribute("data-search", helpBlob(g.title, helpTextOf(item)));
+        groupSearch.push(helpTextOf(item));
+        var q = document.createElement("h3");
+        q.className = "help-q";
+        var qText = document.createElement("span");
+        qText.className = "help-q-text";
+        qText.textContent = item.h || "";
+        q.appendChild(qText);
+        var ans = document.createElement("div");
+        ans.className = "help-a";
+        appendHelpAnswer(ans, item);
+        wrap.appendChild(q);
+        wrap.appendChild(ans);
+        sec.appendChild(wrap);
+      });
+      sec.setAttribute("data-title", helpBlob(g.title));
+      sec.setAttribute("data-search", helpBlob.apply(null, groupSearch));
+      box.appendChild(sec);
+    });
+    bindHelpSearch();
+    filterHelp(($("help-search") && $("help-search").value) || "");
   }
 
   function loadHelp(topic) {
@@ -4991,52 +5175,7 @@
       return;
     }
     api("/api/help").then(function (data) {
-      if (!box) box = $("help-body");
-      if (!box) return;
-      empty(box);
-      (data.groups || []).forEach(function (g) {
-        var gid = g.id || "";
-        var sec = document.createElement("section");
-        sec.className = "help-group";
-        sec.id = "help-" + gid;
-        var h = document.createElement("h2");
-        h.textContent = g.title || "";
-        sec.appendChild(h);
-        (g.items || []).forEach(function (item) {
-          var wrap = document.createElement("div");
-          wrap.className = "help-item";
-          wrap.id = "help-" + (item.id || "");
-          var btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = "help-q";
-          btn.setAttribute("aria-expanded", "false");
-          var q = document.createElement("span");
-          q.className = "help-q-text";
-          q.textContent = item.h || "";
-          var icon = document.createElement("span");
-          icon.className = "help-q-icon";
-          icon.setAttribute("aria-hidden", "true");
-          icon.textContent = "+";
-          btn.appendChild(q);
-          btn.appendChild(icon);
-          var ans = document.createElement("div");
-          ans.className = "help-a";
-          ans.hidden = true;
-          var p = document.createElement("p");
-          p.textContent = item.p || "";
-          ans.appendChild(p);
-          btn.addEventListener("click", function () {
-            var wasOpen = wrap.classList.contains("is-open");
-            box.querySelectorAll(".help-item.is-open").forEach(closeHelpItem);
-            if (!wasOpen) openHelpItem(wrap);
-          });
-          wrap.appendChild(btn);
-          wrap.appendChild(ans);
-          if (topic && (topic === item.id || topic === gid)) openHelpItem(wrap);
-          sec.appendChild(wrap);
-        });
-        box.appendChild(sec);
-      });
+      paintHelp(data);
       helpReady = true;
       applyHelpTopic(topic);
     });

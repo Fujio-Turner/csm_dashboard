@@ -69,7 +69,7 @@ See [`certs/README.md`](certs/README.md).
 | Doc | What it is |
 | --- | --- |
 | [docs/DESIGN.md](docs/DESIGN.md) | How the desk is built |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | Living train map (shipped 0.1.92, then 0.2–0.8) |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | Living train map (shipped 0.1.96, then 0.2–0.8) |
 | [guides/OPENAPI.md](guides/OPENAPI.md) | Adding HTTP APIs |
 | [guides/HTML_CSS.md](guides/HTML_CSS.md) | Desk UI rules |
 | [guides/SCHEMA.md](guides/SCHEMA.md) | JSON Schema conventions |

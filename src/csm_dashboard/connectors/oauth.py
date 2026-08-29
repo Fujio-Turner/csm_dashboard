@@ -462,10 +462,10 @@ def callback_html(*, ok: bool, message: str) -> str:
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>{html.escape(title)}</title>
 <style>
-body {{ font-family: Source Sans 3, Segoe UI, sans-serif; background: #eef2f6; color: #1c2430; margin: 0; display: grid; min-height: 100vh; place-items: center; }}
-main {{ background: #fff; padding: 1.5rem 1.75rem; border-radius: 16px; width: min(28rem, calc(100% - 2rem)); }}
+body {{ font-family: Quicksand, Segoe UI, sans-serif; background: #f9fafd; color: #031b4e; margin: 0; display: grid; min-height: 100vh; place-items: center; }}
+main {{ background: #fff; padding: 1.5rem 1.75rem; border-radius: 0.75rem; width: min(28rem, calc(100% - 2rem)); box-shadow: 0 0.75rem 1.5rem -0.25px rgba(150, 166, 181, 0.1); }}
 h1 {{ font-size: 1.15rem; margin: 0 0 0.4rem; }}
-p {{ margin: 0; color: #667085; }}
+p {{ margin: 0; color: #7987a1; }}
 </style></head><body><main>
 <h1>{html.escape(title)}</h1>
 <p>{body}</p>

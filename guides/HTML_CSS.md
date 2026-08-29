@@ -44,15 +44,19 @@ Use the `:root` variables in `app.css`. Do not introduce a second palette.
 | `--panel` | Sidebar, toolbar, cards |
 | `--ink` / `--muted` | Text |
 | `--line` | Borders |
-| `--accent` / `--navy` | Primary actions / headings |
+| `--accent` / `--navy` | Primary actions (periwinkle) / headings |
+| `--secondary` / `--info` | Orange / sky accents |
 | `--good` / `--mid` / `--low` | Health colors |
+| `--input-border` / `--radius` / `--radius-sm` | Fields and rounding |
 | `--now` | Agenda / timeline Now line and Now button |
 | `--cal-bg` / `--cal-line` | Agenda calendar track |
 | `--sidebar` / `--sidebar-mini` | Nav width |
 
 Appearance: `html[data-theme="day"|"night"]` from User Preferences (`auto` follows `prefers-color-scheme`). Sidebar sun/moon is `#btn-theme`. Operator timezone is `#op-timezone-picker` (search-select), not a native `<select>` of every IANA zone.
 
-Font: **Source Sans 3** (Google Fonts). CDN allow-list: that font, plus **Tagify** for people emails (To / Cc / Bcc) and every multi-value field (project tags, person Projects / Functions, compose tickets). No Leaflet, ECharts, or a second email-composer kit — the desk’s `.mail-composer` is the shared prompt.
+Font: **Quicksand** 400–700 (Google Fonts). CDN allow-list: that font, plus **Tagify** for people emails (To / Cc / Bcc) and every multi-value field (project tags, person Projects / Functions, compose tickets). No Leaflet, ECharts, or a second email-composer kit — the desk’s `.mail-composer` is the shared prompt.
+
+Chrome: pale page (`--page`), white cards with a soft dual shadow, periwinkle primary buttons and selected tabs, slate sidebar icons, a left inset bar on the active nav item. People and mail list rows lead with a pastel initials `.avatar`. Desk chat uses a solid-primary bubble for the operator and a muted bubble for the assistant. Agenda inbox rows are a single card with divider rows (who-stamps stay on the far right).
 
 ## Components (reuse these)
 
@@ -70,7 +74,8 @@ Font: **Source Sans 3** (Google Fonts). CDN allow-list: that font, plus **Tagify
 | Multi chips | `mountTagifyMulti` / `.tag-multi` — **many** values (arrays). Each pick is a Tagify badge. |
 | Agenda calendar | `.agenda-cal` Day / Week / Month. `.cal-now` now-line. 24h track, default scroll ~7 AM |
 | Meeting card | company logo left (`.acct-logo`), duration minutes right, subject on the card |
-| Inbox row | `.agenda-item-lead` type icon (`.kind-icon.is-lg`) + company logo. Far right: `.agenda-who` stamp — **Me** (blue `--accent`) / **Us** (purple) / **Them** (`--mid`) / **All** (`--good`) / **??** / **n/a** (`--muted`) |
+| Inbox row | `.agenda-item-lead` type icon (`.kind-icon.is-lg`) + company logo. Divider rows inside one card. Far right: `.agenda-who` stamp — **Me** (`--accent`) / **Us** (purple) / **Them** (`--mid`) / **All** (`--good`) / **??** / **n/a** (`--muted`) |
+| Initials avatar | `.avatar` (people + mail lists) / `.org-avatar` (org chart). Pastel pair from the name. |
 | Account timeline | `.timeline-shell` with `.timeline-range` (Past 7/30 · Next 7/30). Horizontal range labels: `writing-mode: vertical-rl`. Vertical: oldest at the bottom. `ul.timeline` cards. Now line `.tl-now`. **Now** button `.timeline-now-btn`. Layout: `.timeline-orient` |
 | Timeline thumb | `span.tl-emoji` (Unicode emoji, operator-requested) |
 | slack / teams tab | `data-tab="chat"`. Rows `.row.is-chat` with `.kind-icon.is-slack` / `.is-teams`. Hash aliases: `slack`, `teams` |
@@ -78,6 +83,7 @@ Font: **Source Sans 3** (Google Fonts). CDN allow-list: that font, plus **Tagify
 | Org chart | `.org-chart` `width: max-content`; pane `overflow-x: auto`. Center with `scrollLeft` |
 | Activity lightbox | `#detail-box` + `.sheet` — close `×` top-right. Notes live at the bottom. |
 | Timeline note badge | `img.tl-sticky` → `/static/sticky-note.png` |
+| Help | `#help-search` centered, half the page wide. Group **tiles** in `.help-body` (2-col cards). Questions are **How do I…**. Answers use `.help-sub` headings and `.help-ul` bullets (`blocks` in `prompts/help.json`). `#help/{id}` highlights the item. |
 
 ## Search, select, Tagify
 

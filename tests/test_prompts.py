@@ -13,4 +13,23 @@ def test_prompts_load():
     help_doc = help_public()
     assert help_doc["groups"]
     ids = {g["id"] for g in help_doc["groups"]}
-    assert {"start", "home", "chat", "clock", "setup"} <= ids
+    assert {"start", "home", "chat", "clock", "setup", "find"} <= ids
+    how = [
+        item["h"]
+        for g in help_doc["groups"]
+        for item in g.get("items") or []
+    ]
+    assert any("project owner" in h.lower() for h in how)
+    assert any("highest priority" in h.lower() for h in how)
+    blocked = [
+        item
+        for g in help_doc["groups"]
+        for item in g.get("items") or []
+        if item.get("blocks")
+    ]
+    assert blocked
+    assert any(
+        block.get("ul")
+        for item in blocked
+        for block in item["blocks"]
+    )

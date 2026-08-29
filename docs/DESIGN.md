@@ -6,7 +6,7 @@
 | **Author** | Fujio Turner |
 | **Date** | 2026-08-17 |
 | **Status** | Draft |
-| **Version (product)** | 0.1.0 first-ship lock · **living desk is 0.1.92** — see [`ROADMAP.md`](ROADMAP.md) |
+| **Version (product)** | 0.1.0 first-ship lock · **living desk is 0.1.96** — see [`ROADMAP.md`](ROADMAP.md) |
 | **License** | Apache License, Version 2.0 (Copyright 2026 Fujio Turner; contact mail@fuj.io) |
 | **Repo (locked)** | `/Users/fujioturner/Documents/git_folders/fujio-turner/csm_dashboard` |
 | **Not** | A Salesforce / Gainsight replacement. Local single-operator desk. |
@@ -19,9 +19,9 @@ Customer Success Managers live in five tabs — Jira, Gmail / Outlook, Slack, Ca
 
 **csm_dashboard** is a laptop product: one operator, one process, one Couchbase Lite Community 4.0.3 file. Stack: Python 3.11+, FastAPI, vanilla IIFE JS, ctypes `libcblite`, Grok at `https://api.x.ai/v1`, Apache License 2.0. Official Couchbase Lite has no Python SDK — the ctypes wrapper lives in this repo (`src/csm_dashboard/storage/cblite.py`). Do not add Enterprise vector-index binds (Community pin).
 
-v0.1 shipped a working desk on **seed fixtures + connector stubs**. **Living product (0.1.92):** live Jira / Slack / Teams / Gmail / Calendar, SMTP send after confirm, Agenda Day/Week/Month, timeline Now, slack / teams tab, Tagify chips on multi-value fields, inbox **Me / Us / Them / All / ?? / n/a** stamps, and store paging (`COUNT` + `LIMIT`, slim list DTOs). IMAP / Zendesk / Pydantic AI still sit on [`ROADMAP.md`](ROADMAP.md). This file remains the original v0.1 design lock — where it says send is `409 send_disabled_v0_1`, the desk now uses `send_not_configured` when SMTP is off and delivers when SMTP is live. See **Living desk overlay** below for what landed after the lock.
+v0.1 shipped a working desk on **seed fixtures + connector stubs**. **Living product (0.1.94):** live Jira / Slack / Teams / Gmail / Calendar, SMTP send after confirm, Agenda Day/Week/Month, timeline Now, slack / teams tab, Tagify chips on multi-value fields, inbox **Me / Us / Them / All / ?? / n/a** stamps, store paging (`COUNT` + `LIMIT`, slim list DTOs), a soft periwinkle desk chrome (Quicksand, pastel avatars, bubble chat), and Help as searchable group tiles. IMAP / Zendesk / Pydantic AI still sit on [`ROADMAP.md`](ROADMAP.md). This file remains the original v0.1 design lock — where it says send is `409 send_disabled_v0_1`, the desk now uses `send_not_configured` when SMTP is off and delivers when SMTP is live. See **Living desk overlay** below for what landed after the lock.
 
-### Living desk overlay (0.1.92)
+### Living desk overlay (0.1.94)
 
 The sections below stay the v0.1 lock. These are the post-lock facts agents should follow:
 
@@ -35,7 +35,9 @@ The sections below stay the v0.1 lock. These are the post-lock facts agents shou
 | **Slim lists** | `GET /api/emails` omits `body_text`. `GET /api/tickets` omits `comments`. Thread `?include=messages` and `GET` by id still return the full doc. Inbox/home agenda use snippets only. |
 | **Cached rollups** | `accounts.stats` and `accounts.input_counts` are caches (`refreshed_at`), never SoT. Seed uses `begin_bulk` / `end_bulk`. Live ingest calls `_touch_rollup` (COUNT + stats) when the account exists. |
 | **`/api/status`** | 5 s in-process memo; invalidate on settings/keys writes. |
-| **CDN** | Source Sans 3 + Tagify `@yaireo/tagify@4.32.2`. Still no Leaflet, ECharts, or a second email-composer kit. |
+| **CDN** | Quicksand + Tagify `@yaireo/tagify@4.32.2`. Still no Leaflet, ECharts, or a second email-composer kit. |
+| **Desk chrome** | Pale page, white floating cards, periwinkle `--accent` `#7d80f5`, selected tabs match the primary, people/mail rows use initials avatars, desk chat is bubble-shaped. Night keeps the same primary. |
+| **Help** | `#help-search` filters. Groups are 2-col tiles. Questions are How-do-I with `.help-sub` headings and bullets (`blocks` in `prompts/help.json`). `#help/{id}` highlights. |
 
 Files: `storage/paging.py`, `tests/test_paging.py`, `tests/test_inbox_audience.py`.
 
@@ -1334,7 +1336,7 @@ Reuse sales_ops tokens **philosophy**, own `:root` palette (do not copy ice-desk
   --ink: #1c2430;
   --muted: #667085;
   --line: #e4e8ee;
-  --accent: #1d4ed8;
+  --accent: #7d80f5;
   --navy: #0f2744;
   --good: #15803d;
   --mid: #b45309;
@@ -1344,9 +1346,9 @@ Reuse sales_ops tokens **philosophy**, own `:root` palette (do not copy ice-desk
 }
 ```
 
-Font: Source Sans 3. No emojis. Heroicons-style 24×24 stroke SVG. Buttons on edges (`toolbar-actions { margin-left: auto }`). Lightbox actions stay in the panel.
+Font: Quicksand. No emojis. Heroicons-style 24×24 stroke SVG. Buttons on edges (`toolbar-actions { margin-left: auto }`). Lightbox actions stay in the panel.
 
-CDN allow-list: Source Sans 3 + **Tagify** (`@yaireo/tagify@4.32.2`) for To/Cc/Bcc and every multi-value field. **No Leaflet, no ECharts, no second email-composer kit.** Do not add a UI kit.
+CDN allow-list: Quicksand + **Tagify** (`@yaireo/tagify@4.32.2`) for To/Cc/Bcc and every multi-value field. **No Leaflet, no ECharts, no second email-composer kit.** Do not add a UI kit.
 
 Version: sidebar `<small id="app-version">` filled by `refreshStatus()` from `/api/status` (index.html may stamp `{{ version }}` once at serve like sales_ops, but JS must not hard-code a second number). Cache-bust `app.css?v=` / `app.js?v=` with the same served version.
 

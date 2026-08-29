@@ -147,6 +147,23 @@ def test_seed_loads_companies_on_home(page, live_server):
 def test_help_and_connector_picker(page, live_server):
     page.goto(f"{live_server}/#help", wait_until="domcontentloaded")
     page.wait_for_selector("#view-help, .help-page, [data-view='help']")
+    page.wait_for_selector("#help-search")
+    page.wait_for_selector(".help-group")
+    assert page.get_by_text("Start here").first.is_visible()
+    assert page.get_by_text("I want to…").first.is_visible()
+    assert page.get_by_text("How do I find the project owner?").is_visible()
+    what = page.locator("#help-what")
+    assert what.is_visible()
+    assert "customer" in what.inner_text().lower()
+    assert page.locator("#help-project-owner .help-ul li").count() >= 3
+    page.locator("#help-search").fill("timezone")
+    page.wait_for_function(
+        """() => {
+          const items = [...document.querySelectorAll('.help-item')].filter((el) => !el.hidden);
+          return items.length >= 1 && items.length < document.querySelectorAll('.help-item').length;
+        }"""
+    )
+    assert page.locator("#help-empty").is_hidden()
     page.click('[data-nav="settings"]')
     page.wait_for_selector("#connector-picker")
     page.wait_for_function("document.querySelectorAll('#connector-picker option').length > 3")

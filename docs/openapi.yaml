@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: CSM Dashboard API
-  version: 0.1.92
+  version: 0.1.96
   description: Local Customer Success Manager desk. Hand-maintained source of truth.
 servers:
   - url: http://127.0.0.1:8788
