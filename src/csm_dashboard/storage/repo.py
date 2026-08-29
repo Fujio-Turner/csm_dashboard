@@ -13,6 +13,7 @@ from csm_dashboard.ingest.identity import activity_doc_id, email_doc_id, thread_
 
 from .cbl_store import COLLECTIONS
 from .memory import MemoryStore
+from .paging import omit_fields, row_matches, sort_rows
 
 log = logging.getLogger(__name__)
 
@@ -453,11 +454,70 @@ def _logo_stem(account_id: str) -> str:
     return re.sub(r"[^a-z0-9-]+", "-", str(account_id or "").lower()).strip("-") or "acct"
 
 
+EMAIL_LIST_OMIT = ("body_text", "body_html", "references", "in_reply_to")
+TICKET_LIST_OMIT = ("comments",)
+EMAIL_SLIM_FIELDS = (
+    "account_id",
+    "type",
+    "subject",
+    "snippet",
+    "from_addr",
+    "sent_at",
+    "updated_at",
+    "thread_id",
+    "operator",
+    "project_id",
+    "direction",
+    "to_addrs",
+    "cc_addrs",
+    "bcc_addrs",
+)
+TICKET_SLIM_FIELDS = (
+    "account_id",
+    "type",
+    "key",
+    "summary",
+    "status",
+    "priority",
+    "updated_at",
+    "project_id",
+    "operator",
+)
+CHAT_SLIM_FIELDS = (
+    "account_id",
+    "type",
+    "channel_id",
+    "ts",
+    "user",
+    "user_name",
+    "text",
+    "operator",
+    "project_id",
+    "permalink",
+)
+CAL_SLIM_FIELDS = (
+    "account_id",
+    "type",
+    "title",
+    "start_at",
+    "end_at",
+    "location",
+    "status",
+    "response",
+    "attendees",
+    "operator",
+    "project_id",
+    "external_id",
+    "provider",
+)
+
+
 class CsmRepo:
     def __init__(self, store: Store) -> None:
         self.store = store
         self.store.ensure_collections(list(COLLECTIONS))
         self._logos: dict[str, tuple[bytes, str]] = {}
+        self._bulk = False
 
     def close(self) -> None:
         self.store.close()
@@ -470,6 +530,69 @@ class CsmRepo:
         if callable(fn):
             return fn(collection, account_id)
         return [r for r in self.store.query_all(collection) if r.get("account_id") == account_id]
+
+    def begin_bulk(self) -> None:
+        self._bulk = True
+
+    def end_bulk(self) -> None:
+        self._bulk = False
+        for acct in self.list_accounts():
+            aid = acct.get("account_id") or acct.get("_id") or ""
+            if aid:
+                self.refresh_input_counts(aid)
+                self.refresh_account_stats(aid)
+
+    def _count(self, collection: str, account_id: str, filters: dict | None = None) -> int:
+        fn = getattr(self.store, "count_account", None)
+        if callable(fn):
+            return int(fn(collection, account_id, filters=filters) or 0)
+        return sum(1 for row in self._account_rows(collection, account_id) if row_matches(row, filters))
+
+    def _page(
+        self,
+        collection: str,
+        account_id: str,
+        *,
+        order: str = "updated_at",
+        desc: bool = True,
+        limit: int = 50,
+        offset: int = 0,
+        filters: dict | None = None,
+        omit: tuple[str, ...] | None = None,
+        fields: tuple[str, ...] | None = None,
+    ) -> tuple[list[dict], int]:
+        fn = getattr(self.store, "page_account", None)
+        if callable(fn):
+            rows, total = fn(
+                collection,
+                account_id,
+                order=order,
+                desc=desc,
+                limit=limit,
+                offset=offset,
+                filters=filters,
+                omit=omit,
+                fields=fields,
+            )
+            return rows, total
+        rows = [r for r in self._account_rows(collection, account_id) if row_matches(r, filters)]
+        sort_rows(rows, order, desc=desc)
+        total = len(rows)
+        sliced = rows[offset : offset + limit] if limit else rows[offset:]
+        if fields:
+            keep = set(fields) | {"_id"}
+            sliced = [{k: v for k, v in row.items() if k in keep} for row in sliced]
+        elif omit:
+            sliced = [omit_fields(row, omit) for row in sliced]
+        return sliced, total
+
+    def _touch_rollup(self, account_id: str, *keys: str) -> None:
+        if self._bulk or not account_id:
+            return
+        if not self.store.get("accounts", account_id):
+            return
+        self.refresh_input_counts(account_id)
+        self.refresh_account_stats(account_id)
 
     # -- settings ----------------------------------------------------------
 
@@ -1020,6 +1143,7 @@ class CsmRepo:
         else:
             doc.setdefault("operator", {"triage": "", "ignore": False})
         self.store.save("tickets", tid, doc)
+        self._touch_rollup(str(doc.get("account_id") or ""))
         return _attach(doc, tid) or doc
 
     def get_ticket(self, ticket_id: str) -> dict | None:
@@ -1049,23 +1173,45 @@ class CsmRepo:
         limit: int = 50,
         offset: int = 0,
     ) -> tuple[list[dict], int]:
-        rows = self._account_rows("tickets", account_id)
+        filters: dict = {"eq": {}}
         if status:
-            rows = [r for r in rows if r.get("status") == status]
+            filters["eq"]["status"] = status
         if priority:
-            rows = [r for r in rows if r.get("priority") == priority]
+            filters["eq"]["priority"] = priority
         if project_id:
-            rows = [r for r in rows if str(r.get("project_id") or "") == project_id]
+            filters["eq"]["project_id"] = project_id
+        if not filters["eq"]:
+            filters.pop("eq")
         if q:
+            rows, _ = self._page(
+                "tickets",
+                account_id,
+                order="updated_at",
+                desc=True,
+                limit=500,
+                offset=0,
+                filters=filters or None,
+                omit=TICKET_LIST_OMIT,
+                fields=TICKET_SLIM_FIELDS,
+            )
             needle = q.lower()
             rows = [
                 r
                 for r in rows
                 if needle in str(r.get("key") or "").lower() or needle in str(r.get("summary") or "").lower()
             ]
-        rows.sort(key=lambda r: str(r.get("updated_at") or ""), reverse=True)
-        total = len(rows)
-        return rows[offset : offset + limit], total
+            return rows[offset : offset + limit], len(rows)
+        return self._page(
+            "tickets",
+            account_id,
+            order="updated_at",
+            desc=True,
+            limit=limit,
+            offset=offset,
+            filters=filters or None,
+            omit=TICKET_LIST_OMIT,
+            fields=TICKET_SLIM_FIELDS,
+        )
 
     # -- mail --------------------------------------------------------------
 
@@ -1113,6 +1259,8 @@ class CsmRepo:
             thread["message_count"] = int(thread.get("message_count") or 0) + 1
         thread["type"] = "thread"
         self.store.save("threads", thread_id, thread)
+        aid = str(doc.get("account_id") or "")
+        self._touch_rollup(aid)
         return _attach(doc, eid) or doc
 
     def save_task(self, body: dict, *, email_id: str | None = None) -> dict:
@@ -1187,6 +1335,7 @@ class CsmRepo:
         op["unread"] = True
         thread["operator"] = op
         self.store.save("threads", thread_id, thread)
+        self._touch_rollup(aid)
         return self.task_public(eid) or _attach(doc, eid) or doc
 
     def task_public(self, email_id: str) -> dict | None:
@@ -1223,12 +1372,41 @@ class CsmRepo:
         self.store.save("emails", email_id, doc)
         return _attach(doc, email_id) or doc
 
-    def page_emails(self, account_id: str, *, thread_id: str | None = None, limit: int = 50, offset: int = 0):
-        rows = self._account_rows("emails", account_id)
+    def page_emails(
+        self,
+        account_id: str,
+        *,
+        thread_id: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+        slim: bool = True,
+        unread: bool | None = None,
+        tasks: bool = False,
+        desc: bool | None = None,
+    ):
+        filters: dict = {"eq": {}}
         if thread_id:
-            rows = [r for r in rows if r.get("thread_id") == thread_id]
-        rows.sort(key=lambda r: str(r.get("sent_at") or ""))
-        return rows[offset : offset + limit], len(rows)
+            filters["eq"]["thread_id"] = thread_id
+        if not filters["eq"]:
+            filters.pop("eq")
+        if unread:
+            filters["truthy"] = ["operator.unread"]
+        if tasks:
+            filters["or_truthy"] = [["operator.unread", "operator.task"]]
+            filters["not_true"] = ["operator.ignore"]
+        omit = EMAIL_LIST_OMIT if slim else None
+        fields = EMAIL_SLIM_FIELDS if slim else None
+        return self._page(
+            "emails",
+            account_id,
+            order="sent_at",
+            desc=bool(desc) if desc is not None else False,
+            limit=limit,
+            offset=offset,
+            filters=filters or None,
+            omit=omit,
+            fields=fields,
+        )
 
     def upsert_thread(self, doc: dict, *, doc_id: str | None = None) -> dict:
         tid = doc_id or str(doc.get("_id") or thread_doc_id(doc))
@@ -1257,10 +1435,17 @@ class CsmRepo:
         self.store.save("threads", thread_id, doc)
         return _attach(doc, thread_id) or doc
 
-    def page_threads(self, account_id: str, *, limit: int = 50, offset: int = 0):
-        rows = self._account_rows("threads", account_id)
-        rows.sort(key=lambda r: str(r.get("last_at") or ""), reverse=True)
-        return rows[offset : offset + limit], len(rows)
+    def page_threads(self, account_id: str, *, limit: int = 50, offset: int = 0, unread: bool | None = None):
+        filters = {"truthy": ["operator.unread"]} if unread else None
+        return self._page(
+            "threads",
+            account_id,
+            order="last_at",
+            desc=True,
+            limit=limit,
+            offset=offset,
+            filters=filters,
+        )
 
     # -- slack / calendar --------------------------------------------------
 
@@ -1306,6 +1491,7 @@ class CsmRepo:
                         "actor": merged.get("user_name") or "slack",
                     }
                 )
+        self._touch_rollup(str(merged.get("account_id") or ""))
         return _attach(merged, doc_id) or merged
 
     def get_slack_message(self, message_id: str) -> dict | None:
@@ -1322,14 +1508,39 @@ class CsmRepo:
         self.store.save("slack_messages", message_id, doc)
         return _attach(doc, message_id) or doc
 
-    def page_slack(self, account_id: str, *, channel_id: str | None = None, limit: int = 50, before_ts: str | None = None):
-        rows = self._account_rows("slack_messages", account_id)
+    def page_slack(
+        self,
+        account_id: str,
+        *,
+        channel_id: str | None = None,
+        limit: int = 50,
+        before_ts: str | None = None,
+        unread: bool | None = None,
+        slim: bool = True,
+    ):
+        filters: dict = {"eq": {}, "lt": {}}
         if channel_id:
-            rows = [r for r in rows if r.get("channel_id") == channel_id]
+            filters["eq"]["channel_id"] = channel_id
         if before_ts:
-            rows = [r for r in rows if str(r.get("ts") or "") < before_ts]
-        rows.sort(key=lambda r: str(r.get("ts") or ""))
-        return rows[-limit:], len(rows)
+            filters["lt"]["ts"] = before_ts
+        if not filters["eq"]:
+            filters.pop("eq")
+        if not filters["lt"]:
+            filters.pop("lt")
+        if unread:
+            filters["truthy"] = ["operator.unread"]
+        rows, total = self._page(
+            "slack_messages",
+            account_id,
+            order="ts",
+            desc=True,
+            limit=limit,
+            offset=0,
+            filters=filters or None,
+            fields=CHAT_SLIM_FIELDS if slim else None,
+        )
+        rows.reverse()
+        return rows, total
 
     def list_slack_channels(self, account_id: str) -> list[dict]:
         return self._account_rows("slack_channels", account_id)
@@ -1376,6 +1587,7 @@ class CsmRepo:
                         "actor": merged.get("user_name") or "teams",
                     }
                 )
+        self._touch_rollup(str(merged.get("account_id") or ""))
         return _attach(merged, doc_id) or merged
 
     def get_teams_message(self, message_id: str) -> dict | None:
@@ -1392,14 +1604,39 @@ class CsmRepo:
         self.store.save("teams_messages", message_id, doc)
         return _attach(doc, message_id) or doc
 
-    def page_teams(self, account_id: str, *, channel_id: str | None = None, limit: int = 50, before_ts: str | None = None):
-        rows = self._account_rows("teams_messages", account_id)
+    def page_teams(
+        self,
+        account_id: str,
+        *,
+        channel_id: str | None = None,
+        limit: int = 50,
+        before_ts: str | None = None,
+        unread: bool | None = None,
+        slim: bool = True,
+    ):
+        filters: dict = {"eq": {}, "lt": {}}
         if channel_id:
-            rows = [r for r in rows if r.get("channel_id") == channel_id]
+            filters["eq"]["channel_id"] = channel_id
         if before_ts:
-            rows = [r for r in rows if str(r.get("ts") or "") < before_ts]
-        rows.sort(key=lambda r: str(r.get("ts") or ""))
-        return rows[-limit:], len(rows)
+            filters["lt"]["ts"] = before_ts
+        if not filters["eq"]:
+            filters.pop("eq")
+        if not filters["lt"]:
+            filters.pop("lt")
+        if unread:
+            filters["truthy"] = ["operator.unread"]
+        rows, total = self._page(
+            "teams_messages",
+            account_id,
+            order="ts",
+            desc=True,
+            limit=limit,
+            offset=0,
+            filters=filters or None,
+            fields=CHAT_SLIM_FIELDS if slim else None,
+        )
+        rows.reverse()
+        return rows, total
 
     def list_teams_channels(self, account_id: str) -> list[dict]:
         return self._account_rows("teams_channels", account_id)
@@ -1506,6 +1743,7 @@ class CsmRepo:
         else:
             merged.setdefault("operator", {"prep_note": "", "unread": True})
         self.store.save("calendar_events", doc_id, merged)
+        self._touch_rollup(str(merged.get("account_id") or ""))
         return _attach(merged, doc_id) or merged
 
     def get_calendar(self, event_id: str) -> dict | None:
@@ -1522,13 +1760,35 @@ class CsmRepo:
         self.store.save("calendar_events", event_id, doc)
         return _attach(doc, event_id) or doc
 
-    def page_calendar(self, account_id: str, *, start: str | None = None, end: str | None = None):
-        rows = self._account_rows("calendar_events", account_id)
+    def page_calendar(
+        self,
+        account_id: str,
+        *,
+        start: str | None = None,
+        end: str | None = None,
+        limit: int | None = None,
+        desc: bool = False,
+        slim: bool = True,
+    ):
+        filters: dict = {"gte": {}, "lte": {}}
         if start:
-            rows = [r for r in rows if str(r.get("start_at") or "") >= start]
+            filters["gte"]["start_at"] = start
         if end:
-            rows = [r for r in rows if str(r.get("start_at") or "") <= end]
-        rows.sort(key=lambda r: str(r.get("start_at") or ""))
+            filters["lte"]["start_at"] = end
+        if not filters["gte"]:
+            filters.pop("gte")
+        if not filters["lte"]:
+            filters.pop("lte")
+        rows, _ = self._page(
+            "calendar_events",
+            account_id,
+            order="start_at",
+            desc=desc,
+            limit=limit or 500,
+            offset=0,
+            filters=filters or None,
+            fields=CAL_SLIM_FIELDS if slim else None,
+        )
         return rows
 
     # -- actions / drafts / reports / chats / jobs -------------------------
@@ -1582,9 +1842,25 @@ class CsmRepo:
         due: str = "all",
         today: str | None = None,
     ) -> list[dict]:
-        rows = self._account_rows("action_items", account_id) if account_id else self.store.query_all("action_items")
-        if status:
-            rows = [r for r in rows if r.get("status") == status]
+        filters: dict | None = None
+        if account_id and status:
+            filters = {"eq": {"status": status}}
+        elif account_id:
+            filters = None
+        if account_id:
+            rows, _ = self._page(
+                "action_items",
+                account_id,
+                order="due_on",
+                desc=False,
+                limit=200,
+                offset=0,
+                filters=filters,
+            )
+        else:
+            rows = self.store.query_all("action_items")
+            if status:
+                rows = [r for r in rows if r.get("status") == status]
         day = today or utcnow()[:10]
         if due == "overdue":
             rows = [r for r in rows if r.get("status") == "open" and str(r.get("due_on") or "") and r["due_on"] < day]
@@ -1915,8 +2191,7 @@ class CsmRepo:
 
     def next_meeting(self, account_id: str) -> dict | None:
         now = utcnow()
-        upcoming: list[dict] = []
-        for ev in self.page_calendar(account_id):
+        for ev in self.page_calendar(account_id, start=now, limit=40, slim=True):
             start = str(ev.get("start_at") or "")
             if start < now:
                 continue
@@ -1926,16 +2201,13 @@ class CsmRepo:
             proposed = raw in {"proposed", "tentative", "needsaction", "needs_action"} or bool(
                 (ev.get("operator") or {}).get("proposed")
             )
-            upcoming.append(
-                {
-                    "title": ev.get("title") or "",
-                    "start_at": start,
-                    "status": "proposed" if proposed else "scheduled",
-                    "location": ev.get("location") or "",
-                }
-            )
-        upcoming.sort(key=lambda r: r["start_at"])
-        return upcoming[0] if upcoming else None
+            return {
+                "title": ev.get("title") or "",
+                "start_at": start,
+                "status": "proposed" if proposed else "scheduled",
+                "location": ev.get("location") or "",
+            }
+        return None
 
     def _audience_book(self, acct: dict, *, me: str, us_domains: set[str]) -> dict:
         aid = acct.get("account_id") or acct.get("_id") or ""
@@ -2020,7 +2292,7 @@ class CsmRepo:
                         "label": company_label + ":" + pname,
                     }
                 )
-            for ev in self.page_calendar(aid):
+            for ev in self.page_calendar(aid, start=meet_start, end=meet_end + "T23:59:59Z", limit=80, slim=True):
                 start = str(ev.get("start_at") or "")
                 ev_day = start[:10]
                 if ev_day < meet_start or ev_day > meet_end:
@@ -2051,7 +2323,7 @@ class CsmRepo:
                 "us_domains": book["us_domains"],
                 "them_domains": book["them_domains"],
             }
-            emails, _ = self.page_emails(aid, limit=200)
+            emails, _ = self.page_emails(aid, limit=40, slim=True, tasks=True, desc=True)
             for mail in emails:
                 op = mail.get("operator") or {}
                 is_task = _is_task_email(mail)
@@ -2084,7 +2356,7 @@ class CsmRepo:
                         "ref": {"collection": "emails", "id": mail.get("_id") or "", "thread_id": mail.get("thread_id") or ""},
                     }
                 )
-            slack, _ = self.page_slack(aid, limit=200)
+            slack, _ = self.page_slack(aid, limit=30, unread=True, slim=True)
             for msg in slack:
                 if not (msg.get("operator") or {}).get("unread"):
                     continue
@@ -2108,7 +2380,7 @@ class CsmRepo:
                         "ref": {"collection": "slack_messages", "id": msg.get("_id") or ""},
                     }
                 )
-            teams, _ = self.page_teams(aid, limit=200)
+            teams, _ = self.page_teams(aid, limit=30, unread=True, slim=True)
             for msg in teams:
                 if not (msg.get("operator") or {}).get("unread"):
                     continue
@@ -2144,40 +2416,47 @@ class CsmRepo:
         }
 
     def account_inbox_stats(self, account_id: str) -> dict:
-        tickets, _ = self.page_tickets(account_id, limit=500)
-        open_t = [t for t in tickets if _is_open_ticket(t)]
-        new_tickets = [t for t in open_t if not str((t.get("operator") or {}).get("triage") or "").strip()]
-        threads, _ = self.page_threads(account_id, limit=500)
-        new_email = [t for t in threads if (t.get("operator") or {}).get("unread")]
-        slack, _ = self.page_slack(account_id, limit=500)
-        new_slack = [m for m in slack if (m.get("operator") or {}).get("unread")]
-        teams, _ = self.page_teams(account_id, limit=500)
-        new_teams = [m for m in teams if (m.get("operator") or {}).get("unread")]
+        open_filter = {"in": {"status": list(OPEN_TICKET)}, "not_true": ["operator.ignore"]}
+        open_tickets = self._count("tickets", account_id, open_filter)
+        open_p1 = self._count("tickets", account_id, {**open_filter, "eq": {"priority": "p1"}})
+        open_rows, _ = self._page(
+            "tickets",
+            account_id,
+            order="updated_at",
+            desc=True,
+            limit=200,
+            filters=open_filter,
+            fields=TICKET_SLIM_FIELDS,
+            omit=TICKET_LIST_OMIT,
+        )
+        new_ticket_n = sum(1 for t in open_rows if not str((t.get("operator") or {}).get("triage") or "").strip())
+        unread_threads = self._count("threads", account_id, {"truthy": ["operator.unread"]})
+        new_slack = self._count("slack_messages", account_id, {"truthy": ["operator.unread"]})
+        new_teams = self._count("teams_messages", account_id, {"truthy": ["operator.unread"]})
         now = utcnow()
-        cal = self.page_calendar(account_id)
-        new_cal = []
-        for ev in cal:
-            start = str(ev.get("start_at") or "")
-            if start < now:
-                continue
-            op = ev.get("operator") or {}
+        upcoming = self.page_calendar(account_id, start=now, limit=40, slim=True)
+        new_cal = 0
+        for ev in upcoming:
             raw = str(ev.get("status") or "").lower()
             if raw in {"cancelled", "canceled", "declined"}:
                 continue
+            op = ev.get("operator") or {}
             if op.get("unread") or raw in {"proposed", "tentative", "needsaction", "needs_action"}:
-                new_cal.append(ev)
+                new_cal += 1
         overdue = self.page_actions(account_id=account_id, due="overdue")
+        next_meet = self.next_meeting(account_id)
         return {
-            "open_tickets": len(open_t),
-            "open_p1": len([t for t in open_t if t.get("priority") == "p1"]),
-            "new_tickets": len(new_tickets),
-            "new_email": len(new_email),
-            "new_slack": len(new_slack),
-            "new_teams": len(new_teams),
-            "new_chat": len(new_slack) + len(new_teams),
-            "new_calendar": len(new_cal),
+            "open_tickets": open_tickets,
+            "open_p1": open_p1,
+            "new_tickets": new_ticket_n,
+            "new_email": unread_threads,
+            "new_slack": new_slack,
+            "new_teams": new_teams,
+            "new_chat": new_slack + new_teams,
+            "new_calendar": new_cal,
             "overdue_actions": len(overdue),
-            "unread_threads": len(new_email),
+            "unread_threads": unread_threads,
+            "next_meeting": next_meet,
             "refreshed_at": utcnow(),
         }
 
@@ -2241,28 +2520,48 @@ class CsmRepo:
             return expanded
 
         out["team"] = {"account": _expand(team.get("account")), "ps": _expand(team.get("ps"))}
-        out["input_counts"] = self.account_input_counts(out.get("account_id") or out.get("_id") or "")
+        aid = out.get("account_id") or out.get("_id") or ""
+        cached = out.get("input_counts")
+        if isinstance(cached, dict) and cached.get("refreshed_at"):
+            out["input_counts"] = cached
+        else:
+            out["input_counts"] = self.refresh_input_counts(aid)
         return out
 
-    def account_input_counts(self, account_id: str) -> dict[str, int]:
-        def n(collection: str) -> int:
-            return len(self._account_rows(collection, account_id))
-
-        people = self._account_rows("people", account_id)
-        return {
-            "timeline": n("activities"),
-            "tickets": n("tickets"),
-            "email": n("threads"),
-            "slack": n("slack_messages"),
-            "teams": n("teams_messages"),
-            "chat": n("slack_messages") + n("teams_messages"),
-            "salesforce": n("salesforce_opportunities") + n("salesforce_cases"),
-            "calendar": n("calendar_events"),
-            "projects": n("projects"),
-            "people": len(people),
-            "orgchart": sum(1 for p in people if p.get("kind") == "customer"),
-            "accountteam": sum(1 for p in people if p.get("kind") in {"account_team", "ps_team"}),
+    def refresh_input_counts(self, account_id: str) -> dict:
+        slack = self._count("slack_messages", account_id)
+        teams = self._count("teams_messages", account_id)
+        counts = {
+            "timeline": self._count("activities", account_id),
+            "tickets": self._count("tickets", account_id),
+            "email": self._count("threads", account_id),
+            "slack": slack,
+            "teams": teams,
+            "chat": slack + teams,
+            "salesforce": self._count("salesforce_opportunities", account_id)
+            + self._count("salesforce_cases", account_id),
+            "calendar": self._count("calendar_events", account_id),
+            "projects": self._count("projects", account_id, {"neq": {"removed": True}}),
+            "people": self._count("people", account_id),
+            "orgchart": self._count("people", account_id, {"eq": {"kind": "customer"}}),
+            "accountteam": self._count(
+                "people", account_id, {"in": {"kind": ["account_team", "ps_team"]}}
+            ),
+            "refreshed_at": utcnow(),
         }
+        acct = self.store.get("accounts", account_id)
+        if acct:
+            acct["input_counts"] = counts
+            acct["updated_at"] = utcnow()
+            self.store.save("accounts", account_id, acct)
+        return counts
+
+    def account_input_counts(self, account_id: str) -> dict:
+        acct = self.store.get("accounts", account_id) or {}
+        cached = acct.get("input_counts")
+        if isinstance(cached, dict) and cached.get("refreshed_at"):
+            return cached
+        return self.refresh_input_counts(account_id)
 
     def operator_profile(self, doc: dict | None = None) -> dict:
         stored = ((doc if doc is not None else self.get_settings()) or {}).get("operator") or {}

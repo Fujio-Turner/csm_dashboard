@@ -6,6 +6,16 @@ import threading
 from typing import Any
 
 from .cblite import CBL
+from .paging import (
+    compile_filters,
+    count_from_row,
+    omit_fields,
+    row_matches,
+    safe_collection,
+    safe_order,
+    sort_rows,
+    sql_select_list,
+)
 
 log = logging.getLogger(__name__)
 
@@ -56,19 +66,24 @@ INDEXES = (
     ("emails", "idx_em_sent", "sent_at"),
     ("emails", "idx_em_message_id", "message_id"),
     ("emails", "idx_em_acct_sent", "account_id, sent_at"),
+    ("emails", "idx_em_unread", "operator.unread"),
+    ("emails", "idx_em_task", "operator.task"),
     ("threads", "idx_thr_account", "account_id"),
     ("threads", "idx_thr_last", "last_at"),
     ("threads", "idx_thr_acct_last", "account_id, last_at"),
+    ("threads", "idx_thr_unread", "operator.unread"),
     ("slack_channels", "idx_slc_account", "account_id"),
     ("slack_messages", "idx_slm_account", "account_id"),
     ("slack_messages", "idx_slm_channel", "channel_id"),
     ("slack_messages", "idx_slm_ts", "ts"),
     ("slack_messages", "idx_slm_chan_ts", "channel_id, ts"),
+    ("slack_messages", "idx_slm_unread", "operator.unread"),
     ("teams_channels", "idx_tmc_account", "account_id"),
     ("teams_messages", "idx_tmm_account", "account_id"),
     ("teams_messages", "idx_tmm_channel", "channel_id"),
     ("teams_messages", "idx_tmm_ts", "ts"),
     ("teams_messages", "idx_tmm_chan_ts", "channel_id, ts"),
+    ("teams_messages", "idx_tmm_unread", "operator.unread"),
     ("salesforce_opportunities", "idx_sfo_account", "account_id"),
     ("salesforce_opportunities", "idx_sfo_stage", "stage"),
     ("salesforce_opportunities", "idx_sfo_close", "close_on"),
@@ -251,6 +266,73 @@ class CBLStore:
         )
         rows = self.query(sql, params)
         return [_unwrap_row(row, "activities") for row in rows]
+
+    def count_account(self, collection: str, account_id: str, *, filters: dict | None = None) -> int:
+        col = safe_collection(collection)
+        params: dict[str, Any] = {"aid": account_id}
+        where = ["account_id = $aid"]
+        try:
+            where.extend(compile_filters(filters, params))
+            sql = f"SELECT COUNT(*) AS n FROM {col} WHERE {' AND '.join(where)}"
+            rows = self.query(sql, params)
+            return count_from_row(rows[0] if rows else None)
+        except Exception as exc:
+            log.warning("csm.query.count_failed collection=%s err=%s", collection, exc)
+            return sum(1 for row in self.query_by_account(collection, account_id) if row_matches(row, filters))
+
+    def page_account(
+        self,
+        collection: str,
+        account_id: str,
+        *,
+        order: str = "updated_at",
+        desc: bool = True,
+        limit: int = 50,
+        offset: int = 0,
+        filters: dict | None = None,
+        omit: tuple[str, ...] | list[str] | None = None,
+        fields: tuple[str, ...] | list[str] | None = None,
+    ) -> tuple[list[dict], int]:
+        col = safe_collection(collection)
+        lim = _clamp(limit, 50)
+        off = _clamp(offset, 0, hi=100_000)
+        order_by = safe_order(order)
+        direction = "DESC" if desc else "ASC"
+        params: dict[str, Any] = {"aid": account_id}
+        where = ["account_id = $aid"]
+        try:
+            where.extend(compile_filters(filters, params))
+            total = self.count_account(collection, account_id, filters=filters)
+            select_list = sql_select_list(fields)
+            sql = (
+                f"SELECT {select_list} FROM {col} "
+                f"WHERE {' AND '.join(where)} ORDER BY {order_by} {direction} "
+                f"LIMIT {lim} OFFSET {off}"
+            )
+            raw = self.query(sql, params)
+            rows = []
+            for row in raw:
+                doc = _unwrap_row(row, collection)
+                if fields and collection not in row:
+                    doc = dict(row)
+                    if row.get("_id"):
+                        doc["_id"] = row["_id"]
+                if omit:
+                    doc = omit_fields(doc, omit)
+                rows.append(doc)
+            return rows, total
+        except Exception as exc:
+            log.warning("csm.query.page_failed collection=%s err=%s", collection, exc)
+            rows = [r for r in self.query_by_account(collection, account_id) if row_matches(r, filters)]
+            sort_rows(rows, order, desc=desc)
+            total = len(rows)
+            sliced = rows[off : off + lim]
+            if fields:
+                keep = set(fields) | {"_id"}
+                sliced = [{k: v for k, v in row.items() if k in keep} for row in sliced]
+            elif omit:
+                sliced = [omit_fields(row, omit) for row in sliced]
+            return sliced, total
 
     def close(self) -> None:
         with self._lock:

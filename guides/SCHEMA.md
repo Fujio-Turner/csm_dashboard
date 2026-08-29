@@ -9,7 +9,7 @@ Every durable document and `config.json` has a file under [`schema/`](../schema/
 | File | What it describes |
 | --- | --- |
 | [`config.schema.json`](../schema/config.schema.json) | `config.json` |
-| [`account.schema.json`](../schema/account.schema.json) | CBL `accounts` |
+| [`account.schema.json`](../schema/account.schema.json) | CBL `accounts`. Optional caches: `stats` (`refreshed_at`, inbox counts, `next_meeting`) and `input_counts` (tab badges). Never source of truth. |
 | [`person.schema.json`](../schema/person.schema.json) | `people` |
 | [`project.schema.json`](../schema/project.schema.json) | `projects` |
 | [`ticket.schema.json`](../schema/ticket.schema.json) | `tickets` |
@@ -59,6 +59,8 @@ Every durable document and `config.json` has a file under [`schema/`](../schema/
 Token-bearing ids: prefix + `[a-z0-9-]{2,32}` (e.g. `^person:[a-z0-9-]{2,32}$`). Hex12 is the **generator**, not the only legal id. Structured ids (`tkt:jira:ACME-12`, `em:{hash20}`) have their own patterns.
 
 Do **not** put secrets, API keys, or note/email bodies in examples.
+
+Inbox **audience** (`me` / `us` / `them` / `all` / `unknown` / `na`) is computed on `GET /api/home/agenda`. It is not a stored field on `emails` or chat docs.
 
 ## Adding a schema
 

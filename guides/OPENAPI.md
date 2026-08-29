@@ -36,7 +36,9 @@ Do this in order. A handler without a spec update is not done.
 | `operationId` | camelCase, unique (`listAccounts`, `composeDraft`). |
 | Path params | Account ids look like `acct:acme`. Ticket ids look like `tkt:jira:ACME-12`. Encode in the client. |
 | Errors | FastAPI `HTTPException` → `{ "detail": "..." }`. Use 400 validation, 404 missing, 409 conflict (`send_not_configured`, `slug_immutable`, abbr clash), 502 upstream (xAI / SMTP). |
-| Lists | `{ "items": [...], "total"?: n }` unless the resource already has another shape. |
+| Lists | `{ "items": [...], "total"?: n }` unless the resource already has another shape. **Slim by default:** mail lists omit `body_text`; ticket lists omit `comments`. `GET` by id (and `GET /api/threads/{id}?include=messages`) return the full document. |
+| Home agenda inbox | Each item has `kind`, `title`, `body` (snippet), `at`, `account`, `audience` (`me` / `us` / `them` / `all` / `unknown` / `na`), `ref`. |
+| Status | `GET /api/status` may be memoized a few seconds in-process. Writes to settings/keys must invalidate. |
 | Streaming | Chat is `text/event-stream`. |
 | Secrets | Never in spec examples. Keys are `PUT /api/settings/keys` only. |
 | Sync | `POST /api/connectors/{name}/sync` + `GET /api/sync/jobs`. Do not add `POST /api/sync/{name}`. |

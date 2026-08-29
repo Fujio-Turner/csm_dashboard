@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -48,6 +49,13 @@ log = logging.getLogger(__name__)
 
 HERE = Path(__file__).resolve().parent
 _INDEX_HTML: str | None = None
+_STATUS_TTL = 5.0
+_status_memo: dict = {"t": 0.0, "v": None}
+
+
+def _invalidate_status() -> None:
+    _status_memo["v"] = None
+    _status_memo["t"] = 0.0
 
 
 def _send_mail(
@@ -189,6 +197,10 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
 
     @app.get("/api/status")
     def get_status():
+        now = time.monotonic()
+        cached = _status_memo.get("v")
+        if cached is not None and now - float(_status_memo.get("t") or 0) < _STATUS_TTL:
+            return cached
         from csm_dashboard.connectors.google_secrets import hydrate_google
 
         settings = _settings()
@@ -200,7 +212,7 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         spec = provider_spec(provider)
         grok_on = bool(creds["ai"]["grok"]["present"] or settings.has_xai_key)
         ai = doc.get("ai") or {}
-        return {
+        payload = {
             "version": __version__,
             "host": settings.host,
             "port": settings.port,
@@ -242,6 +254,9 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
                 "slack_redirect": oauth_flow.redirect_uri("slack"),
             },
         }
+        _status_memo["v"] = payload
+        _status_memo["t"] = time.monotonic()
+        return payload
 
     @app.get("/api/help")
     def get_help():
@@ -250,6 +265,7 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
     @app.put("/api/settings")
     def put_settings(body: dict):
         saved = repo_obj().save_settings(body)
+        _invalidate_status()
         log.info("csm.settings.updated changed_fields=%s", ",".join(body.keys()))
         if "world_clock" in body or (
             isinstance(body.get("operator"), dict) and "timezones" in (body.get("operator") or {})
@@ -293,6 +309,7 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
     def put_keys(body: dict):
         fields = apply_key_body(body or {})
         log.info("csm.settings.keys_updated fields=%s", ",".join(fields))
+        _invalidate_status()
         return {"ok": True, "fields": fields, "credentials": repo_obj().list_credentials_public()}
 
     @app.get("/api/settings/keys")
@@ -329,6 +346,9 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         items = []
         for acct in repo_obj().list_accounts():
             aid = acct.get("account_id") or acct.get("_id")
+            stats = acct.get("stats")
+            if not (isinstance(stats, dict) and stats.get("refreshed_at")):
+                stats = repo_obj().account_inbox_stats(aid)
             items.append(
                 {
                     "account_id": aid,
@@ -339,10 +359,8 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
                     "logo_updated_at": acct.get("logo_updated_at") or "",
                     "health": acct.get("health"),
                     "contract": {"renewal_on": (acct.get("contract") or {}).get("renewal_on")},
-                    "stats": acct.get("stats")
-                    if isinstance(acct.get("stats"), dict) and acct["stats"].get("refreshed_at")
-                    else repo_obj().account_inbox_stats(aid),
-                    "next_meeting": repo_obj().next_meeting(aid),
+                    "stats": stats,
+                    "next_meeting": (stats or {}).get("next_meeting") or repo_obj().next_meeting(aid),
                 }
             )
         return items
@@ -618,7 +636,9 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         if not doc:
             raise HTTPException(404, "not found")
         if include == "messages":
-            msgs, _ = repo_obj().page_emails(doc.get("account_id") or "", thread_id=thread_id, limit=50)
+            msgs, _ = repo_obj().page_emails(
+                doc.get("account_id") or "", thread_id=thread_id, limit=80, slim=False
+            )
             doc = {**doc, "messages": msgs}
         return doc
 

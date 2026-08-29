@@ -17,8 +17,6 @@ The sidebar badge comes from `/api/status`. **Never** hard-code the semver in JS
 
 Vanilla IIFE. **Never nest raw backticks** inside template literals. Prefer `createElement` + `textContent`.
 
-Function declarations in that IIFE share one scope. **Never declare two `function foo`.** The later wins; earlier call sites throw. The empty Edit person sheet was `fieldLabel` colliding with a settings formatter (now `humanizeField`).
-
 Account tabs live in `ACCOUNT_TABS`. Slack and Teams are one `chat` tab labeled **slack / teams**. `#account/{abbr}/slack` and `/teams` alias to it. Deep links: `#account/{abbr}/{tab}/id={id}`.
 
 ```bash
@@ -35,7 +33,19 @@ stdlib `logging`. Event names `csm.<area>.<verb>`. Field names, not email/Slack/
 
 ## Store
 
-Couchbase Lite **Community 4.0.3**. Strip top-level `_id` / `_created` on save. No vector index (EE). SQL++ lives in `CsmRepo` / `CBLStore` — **not** in `web/app.py`. Tests inject `create_app(repo=CsmRepo(MemoryStore()))`.
+Couchbase Lite **Community 4.0.3**. Strip top-level `_id` / `_created` on save. No vector index (EE). SQL++ lives in `CsmRepo` / `CBLStore` / `storage/paging.py` — **not** in `web/app.py`. Tests inject `create_app(repo=CsmRepo(MemoryStore()))`.
+
+**Do less:** list/count helpers go through `page_account` / `count_account` (`WHERE` + `ORDER BY` + `LIMIT`). Do not `_account_rows` / `query_all` a whole book then slice. Mail lists omit `body_text`; ticket lists omit `comments`; `GET` by id still returns the full doc. Tab badges use `COUNT` (cached on `accounts.input_counts`). Seed uses `begin_bulk` / `end_bulk` so ingest does not roll up every row.
+
+**Inbox who-stamp:** `inbox_audience` / `home_agenda` — Me / Us / Them / All / ?? / n/a. Not a stored field.
+
+## Desk UI
+
+- **Search-select** is single-value (timezone, Kind, Reports to, Thread, Task name).
+- **Tagify** (`mountTagifyMulti`) is every multi-value field (Projects, Functions, tags, compose Tickets, To/Cc/Bcc). Bind after the input is in the DOM.
+- Function declarations in the desk IIFE share one scope. **Never declare two `function foo`.** The empty Edit person sheet was `fieldLabel` colliding with a settings formatter (now `humanizeField`).
+
+## Bind and secrets
 
 Default bind **127.0.0.1**. `CSM_DASHBOARD_BIND=0.0.0.0` is explicit and logged (`csm.boot.bind auth=none`).
 

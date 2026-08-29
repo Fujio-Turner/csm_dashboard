@@ -48,7 +48,7 @@ Event names: `csm.<area>.<verb>`.
 | `csm.draft.created` / `updated` / `compose` | `result=grok\|fallback`, `prompt_name` |
 | `csm.draft.sent` | SMTP delivered a draft; `draft_id`, `via` |
 | `csm.task.sent` | SMTP delivered a self-email task; `email_id`, `via` |
-| `csm.mail.sent` | SMTP accepted the message; `host`, `to_count` (no addresses) |
+| `csm.mail.sent` | SMTP accepted the message; `host`, `to_count`, `attach_count` (no addresses) |
 | `csm.mail.send_failed` | SMTP raised; `err` only |
 | `csm.report.generated` | `kind`, `account_id` |
 | `csm.ai.complete` | `account_id`, `prompt_name`, `model`, token counts, `truncated` |
@@ -60,6 +60,7 @@ Event names: `csm.<area>.<verb>`.
 | `csm.seed.applied` | counts per collection |
 | `csm.store.reset` | |
 | `csm.query.fts_failed` | `err` |
+| `csm.query.count_failed` / `page_failed` | SQL++ `count_account` / `page_account` fell back to Python filter |
 | `csm.index.fts_failed` | |
 | `csm.cbl.unavailable` | boot |
 
