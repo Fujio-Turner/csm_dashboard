@@ -28,6 +28,25 @@
   var deskClockFmts = { tz: "", hour24: null, time: null, date: null, zone: null };
   var homeItems = null;
   var helpReady = false;
+  var pickedConnector = "";
+  var aiTestOk = {};
+  var connTestOk = {};
+  var AI_PROVIDERS = [
+    { id: "grok", label: "xAI / Grok", key: "xai" },
+    { id: "openai", label: "OpenAI", key: "openai" },
+    { id: "gemini", label: "Gemini", key: "gemini" },
+  ];
+  var CONN_LABELS = {
+    smtp_imap: "IMAP",
+    google_mail: "Gmail",
+    microsoft365: "Microsoft 365",
+    jira: "Jira",
+    slack: "Slack",
+    teams: "Teams",
+    salesforce: "Salesforce",
+    google_cal: "Google Calendar",
+    m365_cal: "M365 Calendar",
+  };
   var TZ_FALLBACK = [
     "UTC",
     "America/New_York",
@@ -292,18 +311,6 @@
       }
       var tag = $("home-tagline");
       if (tag) tag.textContent = s.tagline || "";
-      var xai = $("key-xai");
-      if (xai) {
-        xai.textContent = s.keys && s.keys.xai ? "present" : "absent";
-        xai.className = "pill " + (s.keys && s.keys.xai ? "on" : "off");
-      }
-      [["key-openai", "openai"], ["key-gemini", "gemini"]].forEach(function (pair) {
-        var el = $(pair[0]);
-        if (!el) return;
-        var on = s.keys && s.keys[pair[1]];
-        el.textContent = on ? "present" : "absent";
-        el.className = "pill " + (on ? "on" : "off");
-      });
       operatorTz = (s.operator && s.operator.timezone) || "UTC";
       tickDeskClock();
       return s;
@@ -3574,6 +3581,337 @@
     });
   }
 
+  function fieldLabel(name) {
+    return String(name || "").replace(/_/g, " ");
+  }
+
+  function connectorLabel(name) {
+    return CONN_LABELS[name] || String(name || "");
+  }
+
+  function setStatePill(el, state) {
+    if (!el) return;
+    el.textContent = state;
+    el.className = "pill " + state;
+  }
+
+  function tallyText(items) {
+    var counts = { active: 0, inactive: 0, error: 0 };
+    items.forEach(function (item) {
+      counts[item.state] = (counts[item.state] || 0) + 1;
+    });
+    return counts.active + " active · " + counts.inactive + " inactive · " + counts.error + " error";
+  }
+
+  function fillStatusSelect(sel, items, current) {
+    if (!sel) return current;
+    var keep = current;
+    var ids = items.map(function (item) { return item.id; });
+    if (!keep || ids.indexOf(keep) < 0) keep = items.length ? items[0].id : "";
+    empty(sel);
+    items.forEach(function (item) {
+      var opt = document.createElement("option");
+      opt.value = item.id;
+      opt.textContent = item.label + " · " + item.state;
+      if (item.id === keep) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    return keep;
+  }
+
+  function aiHasKey(s, provider) {
+    var keys = (s && s.keys) || {};
+    if (provider === "grok") return !!(keys.grok || keys.xai);
+    return !!keys[provider];
+  }
+
+  function aiStateOf(s, provider) {
+    if (aiTestOk[provider] === false) return "error";
+    var selected = ((s.ai || {}).provider || "grok");
+    var has = aiHasKey(s, provider);
+    if (selected === provider && !has) return "error";
+    if (selected === provider && has) return "active";
+    return "inactive";
+  }
+
+  function connectorStateOf(c) {
+    var name = c.name || "";
+    if (connTestOk[name] === false) return "error";
+    var mode = c.mode || "disabled";
+    if (c.ok === false) return "error";
+    var ready = c.auth === "oauth" ? !!c.connected : !!c.present;
+    if (mode === "live" && !ready) return "error";
+    if (mode === "live" && ready) return "active";
+    return "inactive";
+  }
+
+  function aiItems(s) {
+    return AI_PROVIDERS.map(function (row) {
+      return { id: row.id, label: row.label, state: aiStateOf(s, row.id) };
+    });
+  }
+
+  function connectorItems(s) {
+    return (s.connectors || []).map(function (c) {
+      return { id: c.name, label: connectorLabel(c.name), state: connectorStateOf(c), raw: c };
+    });
+  }
+
+  function paintAiPicker(s, prefer) {
+    var selected = prefer || ((s.ai || {}).provider || "grok");
+    selected = fillStatusSelect($("ai-provider"), aiItems(s), selected);
+    var current = aiItems(s).filter(function (item) { return item.id === selected; })[0];
+    setStatePill($("ai-state"), current ? current.state : "inactive");
+    if ($("ai-tally")) $("ai-tally").textContent = tallyText(aiItems(s));
+    if ($("ai-key")) {
+      $("ai-key").value = "";
+      $("ai-key").placeholder = aiHasKey(s, selected) ? "leave blank to keep" : "";
+    }
+  }
+
+  function paintSso(s) {
+    var sso = s.sso || {};
+    var clients = sso.clients || {};
+    if ($("sso-portal")) $("sso-portal").value = sso.org_url || "";
+    if ($("sso-redirect")) $("sso-redirect").value = sso.redirect_uri || "";
+    [["sso-client-id", sso.client_present], ["sso-google-id", clients.google], ["sso-google-secret", clients.google_secret], ["sso-ms-id", clients.microsoft], ["sso-slack-id", clients.slack]].forEach(function (row) {
+      var el = $(row[0]);
+      if (!el) return;
+      el.value = "";
+      el.placeholder = row[1] ? "saved" : "";
+    });
+    var ident = $("sso-identity");
+    if (ident) {
+      var bits = [];
+      if (sso.signed_in) bits.push("Signed in as " + (sso.name ? sso.name + " · " : "") + (sso.email || "you"));
+      else bits.push("Not signed in with SSO.");
+      if (sso.google_file) bits.push("Google app client loaded from " + (sso.google_file_label || "credentials.json") + ".");
+      ident.textContent = bits.join(" ");
+    }
+    ["sso-google-id", "sso-google-secret"].forEach(function (id) {
+      var el = $(id);
+      if (!el || !el.parentElement) return;
+      el.parentElement.style.display = sso.google_file ? "none" : "";
+    });
+  }
+
+  function collectConnectorFields(c, box) {
+    var fields = {};
+    (c.fields || []).forEach(function (f) {
+      var input = box.querySelector('[data-field="' + f.name + '"]');
+      if (input && input.value) fields[f.name] = input.value;
+    });
+    return fields;
+  }
+
+  function saveConnectorThen(c, box, modeEl, after) {
+    var conn = {};
+    conn[c.name] = collectConnectorFields(c, box);
+    if (c.oauth_vendor === "google") {
+      var g = Object.assign({}, conn.google || {});
+      if ($("sso-google-id") && $("sso-google-id").value) g.client_id = $("sso-google-id").value;
+      if ($("sso-google-secret") && $("sso-google-secret").value) g.client_secret = $("sso-google-secret").value;
+      if (Object.keys(g).length) conn.google = g;
+    }
+    if (c.oauth_vendor === "microsoft" && $("sso-ms-id") && $("sso-ms-id").value) {
+      conn.microsoft = Object.assign({}, conn.microsoft || {}, { client_id: $("sso-ms-id").value });
+    }
+    if (c.oauth_vendor === "slack" && $("sso-slack-id") && $("sso-slack-id").value) {
+      conn.slack = Object.assign({}, conn.slack || {}, { client_id: $("sso-slack-id").value });
+    }
+    var modes = {};
+    modes[c.name] = { mode: modeEl.value };
+    return api("/api/settings/keys", { method: "PUT", body: JSON.stringify({ connectors: conn }) }).then(function () {
+      return api("/api/settings", { method: "PUT", body: JSON.stringify({ connectors: modes }) });
+    }).then(after);
+  }
+
+  function renderConnectorDetail(c) {
+    var box = $("connector-detail");
+    if (!box) return;
+    empty(box);
+    if (!c) {
+      var emptyMsg = document.createElement("p");
+      emptyMsg.className = "muted";
+      emptyMsg.textContent = "No connectors registered.";
+      box.appendChild(emptyMsg);
+      return;
+    }
+    var isOauth = c.auth === "oauth";
+    var form = document.createElement("div");
+    form.className = "settings-form conn-fields";
+    var modeLabel = document.createElement("label");
+    modeLabel.textContent = "Mode";
+    var mode = document.createElement("select");
+    ["live", "disabled"].forEach(function (opt) {
+      var option = document.createElement("option");
+      option.value = opt;
+      option.textContent = opt;
+      if ((c.mode || "disabled") === opt) option.selected = true;
+      mode.appendChild(option);
+    });
+    modeLabel.appendChild(mode);
+    form.appendChild(modeLabel);
+    (c.fields || []).forEach(function (f) {
+      var label = document.createElement("label");
+      label.textContent = fieldLabel(f.name) + (f.present ? " (saved)" : "");
+      var input = document.createElement("input");
+      input.setAttribute("data-field", f.name);
+      input.type = f.secret ? "password" : "text";
+      input.autocomplete = "off";
+      if (f.name === "tenant_id") input.placeholder = "common";
+      else if (f.name === "instance_url") input.placeholder = "https://login.salesforce.com";
+      else if (f.name === "base_url") input.placeholder = "https://your-site.atlassian.net";
+      else if (f.name === "email") input.placeholder = "you@company.com";
+      else if (f.name === "user_token") input.placeholder = f.present ? "leave blank to keep" : "xoxp-...";
+      else if (f.name === "api_token") input.placeholder = f.present ? "leave blank to keep" : "Atlassian API token";
+      else input.placeholder = f.present ? "leave blank to keep" : "";
+      label.appendChild(input);
+      form.appendChild(label);
+    });
+    box.appendChild(form);
+    if (isOauth || c.name === "jira" || c.name === "slack") {
+      var note = document.createElement("p");
+      note.className = "muted conn-oauth-note";
+      if (c.name === "slack") {
+        note.textContent = c.connected
+          ? "Connected. Paste a new xoxp token to replace it, or Reconnect the Slack app."
+          : "Paste a Slack user token (xoxp-) from api.slack.com, or Connect a Slack app.";
+      } else if (c.name === "teams") {
+        note.textContent = c.connected
+          ? "Connected to Microsoft. Sync pulls Teams chats you belong to."
+          : "Connect Microsoft (Chat.Read). That login also covers Outlook mail and calendar.";
+      } else if (c.name === "jira") {
+        note.textContent = "Create an Atlassian API token at id.atlassian.com. Site URL looks like https://your-company.atlassian.net.";
+      } else if (c.name === "google_mail" || c.name === "google_cal") {
+        note.textContent = c.connected
+          ? "Connected. Tokens stay in the local store; this form never shows them."
+          : "Click Sign in with Google on You (or Connect here). Add the redirect URI below in Google Cloud Console if the browser says redirect_uri_mismatch.";
+      } else {
+        note.textContent = c.connected
+          ? "Connected. Tokens stay in the local store; this form never shows them."
+          : "Connect opens the vendor login in a new window. Tokens stay in the local store.";
+      }
+      box.appendChild(note);
+    }
+    if (c.redirect_uri) {
+      var redirLabel = document.createElement("label");
+      redirLabel.className = "settings-span sso-redirect";
+      redirLabel.appendChild(document.createTextNode("Redirect URI (add in the vendor console)"));
+      var redirRow = document.createElement("div");
+      redirRow.className = "redir-row";
+      var redirInput = document.createElement("input");
+      redirInput.type = "text";
+      redirInput.readOnly = true;
+      redirInput.value = c.redirect_uri;
+      var redirCopy = document.createElement("button");
+      redirCopy.type = "button";
+      redirCopy.className = "btn";
+      redirCopy.textContent = "Copy";
+      redirCopy.addEventListener("click", function () {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(c.redirect_uri).then(function () { toast("Redirect URI copied"); });
+        } else toast(c.redirect_uri);
+      });
+      redirRow.appendChild(redirInput);
+      redirRow.appendChild(redirCopy);
+      redirLabel.appendChild(redirRow);
+      box.appendChild(redirLabel);
+    }
+    var actions = document.createElement("div");
+    actions.className = "settings-actions";
+    if (isOauth) {
+      var connect = document.createElement("button");
+      connect.type = "button";
+      connect.className = "btn btn-primary";
+      connect.textContent = c.connected ? "Reconnect" : "Connect";
+      connect.addEventListener("click", function () {
+        var clients = (status.sso && status.sso.clients) || {};
+        var typedId = c.oauth_vendor === "google" ? ($("sso-google-id") && $("sso-google-id").value)
+          : c.oauth_vendor === "microsoft" ? ($("sso-ms-id") && $("sso-ms-id").value)
+          : c.oauth_vendor === "slack" ? ($("sso-slack-id") && $("sso-slack-id").value)
+          : "";
+        if (c.oauth_vendor && !clients[c.oauth_vendor] && !typedId) {
+          toast("Paste the " + c.oauth_vendor + " client ID on Sign in, Save, then Connect.");
+          return;
+        }
+        saveConnectorThen(c, box, mode, function () {
+          window.open("/api/oauth/" + encodeURIComponent(c.oauth_vendor) + "/start", "csm-oauth", "width=520,height=720");
+        }).catch(function (err) {
+          toast(String(err.message || err));
+        });
+      });
+      actions.appendChild(connect);
+      if (c.connected) {
+        var disc = document.createElement("button");
+        disc.type = "button";
+        disc.className = "btn btn-cancel";
+        disc.textContent = "Disconnect";
+        disc.addEventListener("click", function () {
+          api("/api/oauth/" + encodeURIComponent(c.oauth_vendor) + "/disconnect", { method: "POST", body: "{}" }).then(function () {
+            toast(connectorLabel(c.name) + " disconnected");
+            loadSettings();
+          }).catch(function (err) {
+            toast(String(err.message || err));
+          });
+        });
+        actions.appendChild(disc);
+      }
+    }
+    var save = document.createElement("button");
+    save.type = "button";
+    save.className = isOauth ? "btn" : "btn btn-primary";
+    save.textContent = "Save";
+    save.addEventListener("click", function () {
+      saveConnectorThen(c, box, mode, function () {
+        toast(connectorLabel(c.name) + " saved");
+        loadSettings();
+      }).catch(function (err) {
+        toast(String(err.message || err));
+      });
+    });
+    var test = document.createElement("button");
+    test.type = "button";
+    test.className = "btn";
+    test.textContent = "Test";
+    test.addEventListener("click", function () {
+      api("/api/connectors/" + encodeURIComponent(c.name) + "/test", { method: "POST", body: "{}" }).then(function (doc) {
+        connTestOk[c.name] = !!doc.ok;
+        toast(connectorLabel(c.name) + ": " + (doc.ok ? "ok" : "error") + " · auth " + (doc.auth || "n/a"));
+        loadSettings();
+      }).catch(function (err) {
+        connTestOk[c.name] = false;
+        toast(String(err.message || err));
+        loadSettings();
+      });
+    });
+    var sync = document.createElement("button");
+    sync.type = "button";
+    sync.className = "btn";
+    sync.textContent = "Sync";
+    sync.addEventListener("click", function () {
+      api("/api/connectors/" + encodeURIComponent(c.name) + "/sync", { method: "POST", body: "{}" }).then(function (doc) {
+        var extra = doc.error ? " · " + doc.error : "";
+        toast(connectorLabel(c.name) + " sync " + (doc.status || "done") + extra);
+      }).catch(function (err) {
+        toast(String(err.message || err));
+      });
+    });
+    actions.appendChild(save);
+    actions.appendChild(test);
+    actions.appendChild(sync);
+    box.appendChild(actions);
+  }
+
+  function paintConnectorPicker(s) {
+    var items = connectorItems(s);
+    pickedConnector = fillStatusSelect($("connector-picker"), items, pickedConnector);
+    var current = items.filter(function (item) { return item.id === pickedConnector; })[0];
+    setStatePill($("connector-state"), current ? current.state : "inactive");
+    if ($("connector-tally")) $("connector-tally").textContent = tallyText(items);
+    renderConnectorDetail(current ? current.raw : null);
+  }
+
   function loadSettings() {
     refreshStatus().then(function (s) {
       var op = s.operator || {};
@@ -3582,34 +3920,11 @@
       if ($("op-email")) $("op-email").value = op.email || "";
       fillTimezoneSelect(op.timezone);
       var ai = s.ai || {};
-      if ($("ai-provider")) $("ai-provider").value = ai.provider || "grok";
       if ($("ai-model")) $("ai-model").value = ai.model || s.default_model || "";
-      var box = $("connector-list");
-      empty(box);
-      (s.connectors || []).forEach(function (c) {
-        var row = document.createElement("div");
-        row.className = "conn-row";
-        var name = document.createElement("span");
-        name.textContent = c.name || "";
-        var mode = document.createElement("span");
-        mode.className = "pill";
-        mode.textContent = (c.mode || "stub") + (c.ok ? " · ok" : " · down");
-        var test = document.createElement("button");
-        test.type = "button";
-        test.className = "btn";
-        test.textContent = "Test";
-        test.addEventListener("click", function () {
-          api("/api/connectors/" + encodeURIComponent(c.name) + "/test", { method: "POST", body: "{}" }).then(function (doc) {
-            toast((c.name || "connector") + ": " + (doc.ok ? "ok" : "down") + " · auth " + (doc.auth || "n/a"));
-          }).catch(function (err) {
-            toast(String(err.message || err));
-          });
-        });
-        row.appendChild(name);
-        row.appendChild(mode);
-        row.appendChild(test);
-        box.appendChild(row);
-      });
+      var preferAi = ($("ai-provider") && $("ai-provider").value) || ai.provider || "grok";
+      paintAiPicker(s, preferAi);
+      paintConnectorPicker(s);
+      paintSso(s);
       return api("/api/accounts?include=all");
     }).then(function (data) {
       renderCompanyList(data && data.items ? data.items : []);
@@ -4232,6 +4547,20 @@
         });
       });
     }
+    function startGoogleSignIn() {
+      var email = ($("op-email") && $("op-email").value) || "";
+      var save = email
+        ? api("/api/settings", { method: "PUT", body: JSON.stringify({ operator: { email: email } }) })
+        : Promise.resolve();
+      save.then(function () {
+        window.open("/api/oauth/google/start", "csm-oauth", "width=520,height=720");
+      }).catch(function (err) {
+        toast(String(err.message || err));
+      });
+    }
+    if ($("btn-google-signin")) {
+      $("btn-google-signin").addEventListener("click", startGoogleSignIn);
+    }
     if ($("btn-save-operator")) {
       $("btn-save-operator").addEventListener("click", function () {
         api("/api/settings", {
@@ -4258,33 +4587,99 @@
         openCompanyForm(null);
       });
     }
+    if ($("btn-save-sso")) {
+      $("btn-save-sso").addEventListener("click", function () {
+        var org = ($("sso-portal") && $("sso-portal").value) || "";
+        var conn = { okta: { org_url: org } };
+        if ($("sso-client-id") && $("sso-client-id").value) conn.okta.client_id = $("sso-client-id").value;
+        if ($("sso-google-id") && $("sso-google-id").value) {
+          conn.google = Object.assign({}, conn.google || {}, { client_id: $("sso-google-id").value });
+        }
+        if ($("sso-google-secret") && $("sso-google-secret").value) {
+          conn.google = Object.assign({}, conn.google || {}, { client_secret: $("sso-google-secret").value });
+        }
+        if ($("sso-ms-id") && $("sso-ms-id").value) conn.microsoft = { client_id: $("sso-ms-id").value };
+        if ($("sso-slack-id") && $("sso-slack-id").value) conn.slack = { client_id: $("sso-slack-id").value };
+        api("/api/settings", { method: "PUT", body: JSON.stringify({ sso: { org_url: org } }) }).then(function () {
+          return api("/api/settings/keys", { method: "PUT", body: JSON.stringify({ connectors: conn }) });
+        }).then(function () {
+          toast("SSO saved");
+          loadSettings();
+        }).catch(function (err) {
+          toast(String(err.message || err));
+        });
+      });
+    }
+    if ($("btn-sso-signin")) {
+      $("btn-sso-signin").addEventListener("click", function () {
+        var org = ($("sso-portal") && $("sso-portal").value) || "";
+        var conn = { okta: { org_url: org } };
+        if ($("sso-client-id") && $("sso-client-id").value) conn.okta.client_id = $("sso-client-id").value;
+        api("/api/settings", { method: "PUT", body: JSON.stringify({ sso: { org_url: org } }) }).then(function () {
+          return api("/api/settings/keys", { method: "PUT", body: JSON.stringify({ connectors: conn }) });
+        }).then(function () {
+          window.open("/api/oauth/okta/start", "csm-sso", "width=520,height=720");
+        }).catch(function (err) {
+          toast(String(err.message || err));
+        });
+      });
+    }
+    if ($("btn-sso-signout")) {
+      $("btn-sso-signout").addEventListener("click", function () {
+        api("/api/oauth/okta/disconnect", { method: "POST", body: "{}" }).then(function () {
+          toast("Signed out");
+          loadSettings();
+        }).catch(function (err) {
+          toast(String(err.message || err));
+        });
+      });
+    }
+    if ($("btn-copy-sso-redirect")) {
+      $("btn-copy-sso-redirect").addEventListener("click", function () {
+        var uri = ($("sso-redirect") && $("sso-redirect").value) || "";
+        if (navigator.clipboard && navigator.clipboard.writeText && uri) {
+          navigator.clipboard.writeText(uri).then(function () { toast("Redirect URI copied"); });
+        } else toast(uri || "Nothing to copy");
+      });
+    }
+    if ($("ai-provider")) {
+      $("ai-provider").addEventListener("change", function () {
+        paintAiPicker(status, $("ai-provider").value);
+      });
+    }
+    if ($("connector-picker")) {
+      $("connector-picker").addEventListener("change", function () {
+        pickedConnector = $("connector-picker").value;
+        paintConnectorPicker(status);
+      });
+    }
     $("btn-save-key").addEventListener("click", function () {
-      var body = {
-        xai_api_key: $("xai-key") && $("xai-key").value,
-        openai_api_key: $("openai-key") && $("openai-key").value,
-        gemini_api_key: $("gemini-key") && $("gemini-key").value,
-      };
+      var provider = ($("ai-provider") && $("ai-provider").value) || "grok";
+      var body = { ai: {} };
+      if ($("ai-key") && $("ai-key").value) body.ai[provider] = $("ai-key").value;
       var ai = {
-        provider: ($("ai-provider") && $("ai-provider").value) || "grok",
+        provider: provider,
         model: ($("ai-model") && $("ai-model").value) || "",
       };
       api("/api/settings/keys", { method: "PUT", body: JSON.stringify(body) }).then(function () {
         return api("/api/settings", { method: "PUT", body: JSON.stringify({ ai: ai }) });
       }).then(function () {
-        if ($("xai-key")) $("xai-key").value = "";
-        if ($("openai-key")) $("openai-key").value = "";
-        if ($("gemini-key")) $("gemini-key").value = "";
-        toast("Keys saved");
-        refreshStatus();
+        if ($("ai-key")) $("ai-key").value = "";
+        toast("AI provider saved");
+        loadSettings();
       });
     });
     if ($("btn-test-ai")) {
       $("btn-test-ai").addEventListener("click", function () {
         var provider = ($("ai-provider") && $("ai-provider").value) || "grok";
         api("/api/settings/providers/test", { method: "POST", body: JSON.stringify({ provider: provider }) }).then(function (doc) {
-          toast((doc.provider || provider) + ": " + (doc.message || (doc.ok ? "ok" : "failed")));
+          aiTestOk[provider] = !!doc.ok;
+          toast((doc.provider || provider) + ": " + (doc.message || (doc.ok ? "ok" : "error")));
+          loadSettings();
         }).catch(function (err) {
+          aiTestOk[provider] = false;
           toast(String(err.message || err));
+          loadSettings();
         });
       });
     }
@@ -4300,6 +4695,11 @@
         toast("Store reset");
         loadHome(true);
       });
+    });
+    window.addEventListener("message", function (ev) {
+      if (ev.origin !== window.location.origin) return;
+      if (!ev.data || !ev.data.csm_oauth) return;
+      loadSettings();
     });
     window.addEventListener("hashchange", route);
     startDeskClock();

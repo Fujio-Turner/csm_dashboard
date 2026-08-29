@@ -24,6 +24,7 @@ Every durable document and `config.json` has a file under [`schema/`](../schema/
 | [`chat_thread.schema.json`](../schema/chat_thread.schema.json) | `chats` |
 | [`sync_job.schema.json`](../schema/sync_job.schema.json) | `sync_jobs` |
 | [`settings.schema.json`](../schema/settings.schema.json) | CBL settings (no secrets) |
+| [`credential.schema.json`](../schema/credential.schema.json) | CBL `credentials` (AI keys + connector tokens) |
 | [`activity.schema.json`](../schema/activity.schema.json) | `activities` |
 | [`note.schema.json`](../schema/note.schema.json) | `notes` |
 | [`compose_request.schema.json`](../schema/compose_request.schema.json) | `POST /api/drafts/compose` |
@@ -65,4 +66,4 @@ Do **not** put secrets, API keys, or note/email bodies in examples.
 
 ## Config vs secrets
 
-`config.json` is non-secret (bind, models, connector *mode*). Keys live in `.env` / `data/secrets.json` only. Never add an `xai_api_key` field to a CBL schema.
+`config.json` is non-secret (bind, models, default connector *mode*). Operator-chosen mode lives on the CBL `settings` doc. **Secrets live in the CBL `credentials` collection** (`cred:ai:{provider}` / `cred:connector:{name}`), managed from Settings. Never put API keys on `accounts`, `emails`, `tickets`, or the `settings` document. HTTP list/status endpoints return `present` flags only — never `secret` values. Community Lite does not encrypt the file; FileVault is the disk story. Do not replicate the `credentials` collection.

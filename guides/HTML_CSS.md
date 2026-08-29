@@ -16,6 +16,7 @@ The desk is **vanilla HTML + one CSS file + IIFE JavaScript**. No React, no bund
 - **No nested backticks** inside JS template literals. Prefer `createElement` + `textContent`. After any JS edit: `make check-js`.
 - **Never hard-code the version.** Version comes from `/api/status`.
 - **Cache-bust** `app.css` / `app.js` query strings when those files change (`?v=` matches the served version).
+- **Playwright MCP** (`.grok/config.toml`) is the local browser check. Drive `http://127.0.0.1:8788` (Docker: `http://localhost:8788`). Click, type, and visit every view that shares the state you touched.
 - **Buttons live on the edges.** Put actions in a **corner** or on the **far left / far right** of the bar they belong to. **Exception: lightboxes** — actions stay in the panel.
 - Account **color + abbr** are data. Render chips with `accountChip()` (`createElement`). Do not invent 25 CSS themes.
 

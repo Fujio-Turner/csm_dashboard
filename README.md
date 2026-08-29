@@ -75,8 +75,12 @@ See [`certs/README.md`](certs/README.md).
 | [docs/openapi.yaml](docs/openapi.yaml) | HTTP API |
 
 ```bash
-make ci    # compileall + node --check + pytest
+make ci         # compileall + node --check + unit tests
+make test-e2e   # Playwright Chromium against a local desk
+make ci-full    # both
 ```
+
+Playwright MCP is in `.grok/config.toml` for local UI checks against a running desk (`make mcp-playwright` warms `npx`). In Grok, `/mcps` and enable **playwright**.
 
 Version source of truth: `src/csm_dashboard/__init__.py` → `__version__`. The sidebar badge comes from `/api/status`.
 

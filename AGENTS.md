@@ -35,6 +35,8 @@ Couchbase Lite **Community 4.0.3**. Strip top-level `_id` / `_created` on save. 
 
 Default bind **127.0.0.1**. `CSM_DASHBOARD_BIND=0.0.0.0` is explicit and logged (`csm.boot.bind auth=none`).
 
+**`__local/` is gitignored.** Operator credentials, OAuth client JSON, and machine URLs live there (`__local/SETUP.md`, `__local/credentials.json`). Never copy that folder into a commit, a PR, or the Docker image.
+
 ## Spec first
 
 `docs/openapi.yaml` is SoT. JSON Schema under `schema/`. Guides: [`guides/OPENAPI.md`](guides/OPENAPI.md), [`guides/SCHEMA.md`](guides/SCHEMA.md), [`guides/HTML_CSS.md`](guides/HTML_CSS.md).
@@ -42,5 +44,18 @@ Default bind **127.0.0.1**. `CSM_DASHBOARD_BIND=0.0.0.0` is explicit and logged 
 ## Local gate
 
 ```bash
-make ci    # compileall + node --check + pytest
+make ci         # compileall + node --check + unit tests
+make test-e2e   # Playwright Chromium against a local MemoryStore desk
+make ci-full    # ci + e2e
 ```
+
+## Playwright MCP (local browser)
+
+Project MCP: `.grok/config.toml` → `playwright`. Isolated Chromium, 1280×800. Desk must already be up.
+
+```bash
+make mcp-playwright   # first-time npx fetch
+# Grok: /mcps → enable playwright, or start Grok from this repo
+```
+
+When a change is something a user sees (Settings, Home, OAuth copy, connectors), open `http://127.0.0.1:8788` (or `http://localhost:8788` under Docker) and exercise the path. Do not stop at a screenshot of a single render.

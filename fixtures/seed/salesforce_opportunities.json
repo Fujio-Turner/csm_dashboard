@@ -12,9 +12,11 @@
     "currency": "USD",
     "close_on": "2026-11-01",
     "owner_name": "Riley Park",
-    "url": "https://acme.my.salesforce.com/006ACME0001",
+    "url": "https://example.my.salesforce.com/006ACME0001",
     "project_id": "proj:acme-scan",
-    "operator": { "pin": false },
+    "operator": {
+      "pin": false
+    },
     "updated_at": "2026-08-16T18:00:00Z",
     "created_at": "2026-05-01T00:00:00Z"
   },
@@ -31,11 +33,13 @@
     "currency": "USD",
     "close_on": "2026-10-15",
     "owner_name": "Riley Park",
-    "url": "https://acme.my.salesforce.com/006ACME0002",
+    "url": "https://example.my.salesforce.com/006ACME0002",
     "project_id": "proj:acme-scan",
-    "operator": { "pin": false },
-    "updated_at": "2026-08-15T12:00:00Z",
-    "created_at": "2026-07-20T00:00:00Z"
+    "operator": {
+      "pin": false
+    },
+    "updated_at": "2026-08-16T18:00:00Z",
+    "created_at": "2026-05-01T00:00:00Z"
   },
   {
     "_id": "sfo:006NWIN0001",
@@ -43,18 +47,41 @@
     "account_id": "acct:northwind",
     "external_id": "006NWIN0001",
     "sf_account_id": "001NWIN0001",
-    "name": "Northwind Renewal — at risk",
+    "name": "Northwind renewal",
     "kind": "renewal",
-    "stage": "qualification",
+    "stage": "proposal",
     "amount": 180000,
     "currency": "USD",
     "close_on": "2026-09-05",
-    "owner_name": "Jordan Lee",
+    "owner_name": "Riley Park",
     "url": "https://example.my.salesforce.com/006NWIN0001",
     "project_id": "proj:nwin-renew",
-    "operator": { "pin": true },
-    "updated_at": "2026-08-14T09:00:00Z",
-    "created_at": "2026-06-01T00:00:00Z"
+    "operator": {
+      "pin": false
+    },
+    "updated_at": "2026-08-16T18:00:00Z",
+    "created_at": "2026-05-01T00:00:00Z"
+  },
+  {
+    "_id": "sfo:006NWIN0002",
+    "type": "salesforce_opportunity",
+    "account_id": "acct:northwind",
+    "external_id": "006NWIN0002",
+    "sf_account_id": "001NWIN0001",
+    "name": "Identity add-on",
+    "kind": "upsell",
+    "stage": "discovery",
+    "amount": 22000,
+    "currency": "USD",
+    "close_on": "2026-10-01",
+    "owner_name": "Riley Park",
+    "url": "https://example.my.salesforce.com/006NWIN0002",
+    "project_id": "proj:nwin-renew",
+    "operator": {
+      "pin": false
+    },
+    "updated_at": "2026-08-16T18:00:00Z",
+    "created_at": "2026-05-01T00:00:00Z"
   },
   {
     "_id": "sfo:006GLX0001",
@@ -62,17 +89,40 @@
     "account_id": "acct:globex",
     "external_id": "006GLX0001",
     "sf_account_id": "001GLX0001",
-    "name": "Plant 2 expansion",
+    "name": "Globex plant 2 expansion",
     "kind": "upsell",
-    "stage": "prospecting",
-    "amount": 90000,
+    "stage": "discovery",
+    "amount": 40000,
     "currency": "USD",
     "close_on": "2026-12-01",
     "owner_name": "Morgan Diaz",
     "url": "https://example.my.salesforce.com/006GLX0001",
     "project_id": "proj:glx-onboard",
-    "operator": { "pin": false },
-    "updated_at": "2026-08-13T16:00:00Z",
-    "created_at": "2026-08-10T00:00:00Z"
+    "operator": {
+      "pin": false
+    },
+    "updated_at": "2026-08-16T18:00:00Z",
+    "created_at": "2026-05-01T00:00:00Z"
+  },
+  {
+    "_id": "sfo:006GLX0002",
+    "type": "salesforce_opportunity",
+    "account_id": "acct:globex",
+    "external_id": "006GLX0002",
+    "sf_account_id": "001GLX0001",
+    "name": "Globex plant 1 renewal",
+    "kind": "renewal",
+    "stage": "qualification",
+    "amount": 96000,
+    "currency": "USD",
+    "close_on": "2027-03-01",
+    "owner_name": "Morgan Diaz",
+    "url": "https://example.my.salesforce.com/006GLX0002",
+    "project_id": "proj:glx-onboard",
+    "operator": {
+      "pin": false
+    },
+    "updated_at": "2026-08-16T18:00:00Z",
+    "created_at": "2026-05-01T00:00:00Z"
   }
 ]

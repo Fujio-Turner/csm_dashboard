@@ -42,6 +42,11 @@ REQUIRED = {
     "deleteAccount",
     "suggestThreadReply",
     "testProvider",
+    "putKeys",
+    "getKeys",
+    "startOauth",
+    "oauthCallback",
+    "disconnectOauth",
     "uploadAccountLogo",
     "getAccountLogo",
 }

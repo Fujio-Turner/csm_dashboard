@@ -3,12 +3,12 @@
     "type": "slack_message",
     "account_id": "acct:acme",
     "channel_id": "C0ACME1",
-    "ts": "1723900000.000100",
+    "ts": "1787918400.000100",
     "thread_ts": "",
     "user": "U0PAT",
     "user_name": "pat.nguyen",
     "text": "Scanner died again in DC3",
-    "permalink": "https://slack.com/archives/C0ACME1/p1723900000000100",
+    "permalink": "https://slack.com/archives/C0ACME1/p1787918400000100",
     "operator": {
       "pin": false,
       "unread": true
@@ -23,12 +23,12 @@
     "type": "slack_message",
     "account_id": "acct:acme",
     "channel_id": "C0ACME1",
-    "ts": "1723900001.000100",
+    "ts": "1787918401.000100",
     "thread_ts": "",
     "user": "U0JOR",
     "user_name": "jordan",
     "text": "TAM is looking at the logs",
-    "permalink": "https://slack.com/archives/C0ACME1/p1723900001000100",
+    "permalink": "https://slack.com/archives/C0ACME1/p1787918401000100",
     "operator": {
       "pin": false,
       "unread": true
@@ -43,15 +43,15 @@
     "type": "slack_message",
     "account_id": "acct:acme",
     "channel_id": "C0ACME1",
-    "ts": "1723900002.000100",
+    "ts": "1787918402.000100",
     "thread_ts": "",
     "user": "U0PAT",
     "user_name": "pat.nguyen",
     "text": "OS 14 image went out last night",
-    "permalink": "https://slack.com/archives/C0ACME1/p1723900002000100",
+    "permalink": "https://slack.com/archives/C0ACME1/p1787918402000100",
     "operator": {
       "pin": false,
-      "unread": false
+      "unread": true
     },
     "sources": {
       "stub": {
@@ -63,15 +63,15 @@
     "type": "slack_message",
     "account_id": "acct:acme",
     "channel_id": "C0ACME1",
-    "ts": "1723900003.000100",
+    "ts": "1787918403.000100",
     "thread_ts": "",
     "user": "U0JOR",
     "user_name": "jordan",
     "text": "Can we get a date for the pin?",
-    "permalink": "https://slack.com/archives/C0ACME1/p1723900003000100",
+    "permalink": "https://slack.com/archives/C0ACME1/p1787918403000100",
     "operator": {
       "pin": false,
-      "unread": false
+      "unread": true
     },
     "sources": {
       "stub": {
@@ -83,15 +83,15 @@
     "type": "slack_message",
     "account_id": "acct:acme",
     "channel_id": "C0ACME1",
-    "ts": "1723900004.000100",
+    "ts": "1787918404.000100",
     "thread_ts": "",
     "user": "U0PAT",
     "user_name": "pat.nguyen",
     "text": "DC1 is fine, DC3 is the problem",
-    "permalink": "https://slack.com/archives/C0ACME1/p1723900004000100",
+    "permalink": "https://slack.com/archives/C0ACME1/p1787918404000100",
     "operator": {
       "pin": false,
-      "unread": false
+      "unread": true
     },
     "sources": {
       "stub": {
@@ -103,15 +103,15 @@
     "type": "slack_message",
     "account_id": "acct:acme",
     "channel_id": "C0ACME1",
-    "ts": "1723900005.000100",
+    "ts": "1787918405.000100",
     "thread_ts": "",
     "user": "U0JOR",
     "user_name": "jordan",
     "text": "QBR is on the calendar",
-    "permalink": "https://slack.com/archives/C0ACME1/p1723900005000100",
+    "permalink": "https://slack.com/archives/C0ACME1/p1787918405000100",
     "operator": {
       "pin": false,
-      "unread": false
+      "unread": true
     },
     "sources": {
       "stub": {
@@ -123,15 +123,15 @@
     "type": "slack_message",
     "account_id": "acct:acme",
     "channel_id": "C0ACME1",
-    "ts": "1723900006.000100",
+    "ts": "1787918406.000100",
     "thread_ts": "",
     "user": "U0PAT",
     "user_name": "pat.nguyen",
     "text": "Pat prefers email before Slack",
-    "permalink": "https://slack.com/archives/C0ACME1/p1723900006000100",
+    "permalink": "https://slack.com/archives/C0ACME1/p1787918406000100",
     "operator": {
       "pin": false,
-      "unread": false
+      "unread": true
     },
     "sources": {
       "stub": {
@@ -143,15 +143,15 @@
     "type": "slack_message",
     "account_id": "acct:acme",
     "channel_id": "C0ACME1",
-    "ts": "1723900007.000100",
+    "ts": "1787918407.000100",
     "thread_ts": "",
     "user": "U0JOR",
     "user_name": "jordan",
     "text": "Firmware build tagged 14.2-rc2",
-    "permalink": "https://slack.com/archives/C0ACME1/p1723900007000100",
+    "permalink": "https://slack.com/archives/C0ACME1/p1787918407000100",
     "operator": {
       "pin": false,
-      "unread": false
+      "unread": true
     },
     "sources": {
       "stub": {
@@ -163,15 +163,15 @@
     "type": "slack_message",
     "account_id": "acct:acme",
     "channel_id": "C0ACME1",
-    "ts": "1723900008.000100",
+    "ts": "1787918408.000100",
     "thread_ts": "",
     "user": "U0PAT",
     "user_name": "pat.nguyen",
     "text": "Need a war room if it fails again",
-    "permalink": "https://slack.com/archives/C0ACME1/p1723900008000100",
+    "permalink": "https://slack.com/archives/C0ACME1/p1787918408000100",
     "operator": {
       "pin": false,
-      "unread": false
+      "unread": true
     },
     "sources": {
       "stub": {
@@ -183,15 +183,15 @@
     "type": "slack_message",
     "account_id": "acct:acme",
     "channel_id": "C0ACME1",
-    "ts": "1723900009.000100",
+    "ts": "1787918409.000100",
     "thread_ts": "",
     "user": "U0JOR",
     "user_name": "jordan",
     "text": "Ack, watching the channel",
-    "permalink": "https://slack.com/archives/C0ACME1/p1723900009000100",
+    "permalink": "https://slack.com/archives/C0ACME1/p1787918409000100",
     "operator": {
       "pin": false,
-      "unread": false
+      "unread": true
     },
     "sources": {
       "stub": {
@@ -203,15 +203,175 @@
     "type": "slack_message",
     "account_id": "acct:acme",
     "channel_id": "C0ACME1",
-    "ts": "1723900020.000200",
-    "thread_ts": "1723900000.000100",
+    "ts": "1787918410.000100",
+    "thread_ts": "",
     "user": "U0PAT",
     "user_name": "pat.nguyen",
-    "text": "thread: still failing",
-    "permalink": "https://slack.com/archives/C0ACME1/p1723900020000200",
+    "text": "Dana wants a one-pager before 3pm",
+    "permalink": "https://slack.com/archives/C0ACME1/p1787918410000100",
     "operator": {
       "pin": false,
-      "unread": false
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "slack_message",
+    "account_id": "acct:acme",
+    "channel_id": "C0ACME1",
+    "ts": "1787918411.000100",
+    "thread_ts": "",
+    "user": "U0JOR",
+    "user_name": "jordan",
+    "text": "Raj says SSO logs look clean after 8h",
+    "permalink": "https://slack.com/archives/C0ACME1/p1787918411000100",
+    "operator": {
+      "pin": false,
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "slack_message",
+    "account_id": "acct:acme",
+    "channel_id": "C0ACME1",
+    "ts": "1787918412.000100",
+    "thread_ts": "",
+    "user": "U0PAT",
+    "user_name": "pat.nguyen",
+    "text": "Grace needs ARR confirmed for QBR",
+    "permalink": "https://slack.com/archives/C0ACME1/p1787918412000100",
+    "operator": {
+      "pin": false,
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "slack_message",
+    "account_id": "acct:acme",
+    "channel_id": "C0ACME1",
+    "ts": "1787918413.000100",
+    "thread_ts": "",
+    "user": "U0JOR",
+    "user_name": "jordan",
+    "text": "Priya can take the DC2 training slot",
+    "permalink": "https://slack.com/archives/C0ACME1/p1787918413000100",
+    "operator": {
+      "pin": false,
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "slack_message",
+    "account_id": "acct:acme",
+    "channel_id": "C0ACME1",
+    "ts": "1787918414.000100",
+    "thread_ts": "",
+    "user": "U0PAT",
+    "user_name": "pat.nguyen",
+    "text": "Standup in 10 \u2014 bring the DC3 log",
+    "permalink": "https://slack.com/archives/C0ACME1/p1787918414000100",
+    "operator": {
+      "pin": false,
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "slack_message",
+    "account_id": "acct:acme",
+    "channel_id": "C0ACME1",
+    "ts": "1787918415.000100",
+    "thread_ts": "",
+    "user": "U0JOR",
+    "user_name": "jordan",
+    "text": "Bob is on the floor with the spare batteries",
+    "permalink": "https://slack.com/archives/C0ACME1/p1787918415000100",
+    "operator": {
+      "pin": false,
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "slack_message",
+    "account_id": "acct:acme",
+    "channel_id": "C0ACME1",
+    "ts": "1787918416.000100",
+    "thread_ts": "",
+    "user": "U0PAT",
+    "user_name": "pat.nguyen",
+    "text": "Mei wants contractor mapping before QBR",
+    "permalink": "https://slack.com/archives/C0ACME1/p1787918416000100",
+    "operator": {
+      "pin": false,
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "slack_message",
+    "account_id": "acct:acme",
+    "channel_id": "C0ACME1",
+    "ts": "1787918417.000100",
+    "thread_ts": "",
+    "user": "U0JOR",
+    "user_name": "jordan",
+    "text": "Safety walk at DC3 is clear",
+    "permalink": "https://slack.com/archives/C0ACME1/p1787918417000100",
+    "operator": {
+      "pin": false,
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "slack_message",
+    "account_id": "acct:acme",
+    "channel_id": "C0ACME1",
+    "ts": "1787918420.000200",
+    "thread_ts": "1787918400.000100",
+    "user": "U0BOB",
+    "user_name": "bob.hale",
+    "text": "thread: still failing on DC3",
+    "permalink": "https://slack.com/archives/C0ACME1/p1787918420000200",
+    "operator": {
+      "pin": false,
+      "unread": true
     },
     "sources": {
       "stub": {
@@ -223,12 +383,12 @@
     "type": "slack_message",
     "account_id": "acct:northwind",
     "channel_id": "C0NWIN1",
-    "ts": "1723900100.000100",
+    "ts": "1787918500.000100",
     "thread_ts": "",
     "user": "U0KIM",
     "user_name": "kim.hale",
     "text": "Anyone seen Kim?",
-    "permalink": "https://slack.com/archives/C0NWIN1/p1723900100000100",
+    "permalink": "https://slack.com/archives/C0NWIN1/p1787918500000100",
     "operator": {
       "pin": false,
       "unread": true
@@ -243,12 +403,12 @@
     "type": "slack_message",
     "account_id": "acct:northwind",
     "channel_id": "C0NWIN1",
-    "ts": "1723900101.000100",
+    "ts": "1787918501.000100",
     "thread_ts": "",
     "user": "U0JOR",
     "user_name": "jordan",
     "text": "She is dark since the outage",
-    "permalink": "https://slack.com/archives/C0NWIN1/p1723900101000100",
+    "permalink": "https://slack.com/archives/C0NWIN1/p1787918501000100",
     "operator": {
       "pin": false,
       "unread": true
@@ -263,15 +423,15 @@
     "type": "slack_message",
     "account_id": "acct:northwind",
     "channel_id": "C0NWIN1",
-    "ts": "1723900102.000100",
+    "ts": "1787918502.000100",
     "thread_ts": "",
     "user": "U0JOR",
     "user_name": "jordan",
     "text": "Renewal is 19 days out",
-    "permalink": "https://slack.com/archives/C0NWIN1/p1723900102000100",
+    "permalink": "https://slack.com/archives/C0NWIN1/p1787918502000100",
     "operator": {
       "pin": false,
-      "unread": false
+      "unread": true
     },
     "sources": {
       "stub": {
@@ -283,15 +443,15 @@
     "type": "slack_message",
     "account_id": "acct:northwind",
     "channel_id": "C0NWIN1",
-    "ts": "1723900103.000100",
+    "ts": "1787918503.000100",
     "thread_ts": "",
     "user": "U0JOR",
     "user_name": "jordan",
     "text": "Rob wants numbers",
-    "permalink": "https://slack.com/archives/C0NWIN1/p1723900103000100",
+    "permalink": "https://slack.com/archives/C0NWIN1/p1787918503000100",
     "operator": {
       "pin": false,
-      "unread": false
+      "unread": true
     },
     "sources": {
       "stub": {
@@ -303,15 +463,15 @@
     "type": "slack_message",
     "account_id": "acct:northwind",
     "channel_id": "C0NWIN1",
-    "ts": "1723900104.000100",
+    "ts": "1787918504.000100",
     "thread_ts": "",
     "user": "U0JOR",
     "user_name": "jordan",
     "text": "I pinged twice",
-    "permalink": "https://slack.com/archives/C0NWIN1/p1723900104000100",
+    "permalink": "https://slack.com/archives/C0NWIN1/p1787918504000100",
     "operator": {
       "pin": false,
-      "unread": false
+      "unread": true
     },
     "sources": {
       "stub": {
@@ -323,15 +483,15 @@
     "type": "slack_message",
     "account_id": "acct:northwind",
     "channel_id": "C0NWIN1",
-    "ts": "1723900105.000100",
+    "ts": "1787918505.000100",
     "thread_ts": "",
     "user": "U0JOR",
     "user_name": "jordan",
     "text": "Need exec sponsor",
-    "permalink": "https://slack.com/archives/C0NWIN1/p1723900105000100",
+    "permalink": "https://slack.com/archives/C0NWIN1/p1787918505000100",
     "operator": {
       "pin": false,
-      "unread": false
+      "unread": true
     },
     "sources": {
       "stub": {
@@ -343,15 +503,15 @@
     "type": "slack_message",
     "account_id": "acct:northwind",
     "channel_id": "C0NWIN1",
-    "ts": "1723900106.000100",
+    "ts": "1787918506.000100",
     "thread_ts": "",
     "user": "U0JOR",
     "user_name": "jordan",
     "text": "P1 still open",
-    "permalink": "https://slack.com/archives/C0NWIN1/p1723900106000100",
+    "permalink": "https://slack.com/archives/C0NWIN1/p1787918506000100",
     "operator": {
       "pin": false,
-      "unread": false
+      "unread": true
     },
     "sources": {
       "stub": {
@@ -363,15 +523,155 @@
     "type": "slack_message",
     "account_id": "acct:northwind",
     "channel_id": "C0NWIN1",
-    "ts": "1723900107.000100",
+    "ts": "1787918507.000100",
     "thread_ts": "",
     "user": "U0JOR",
     "user_name": "jordan",
     "text": "Call recap?",
-    "permalink": "https://slack.com/archives/C0NWIN1/p1723900107000100",
+    "permalink": "https://slack.com/archives/C0NWIN1/p1787918507000100",
     "operator": {
       "pin": false,
-      "unread": false
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "slack_message",
+    "account_id": "acct:northwind",
+    "channel_id": "C0NWIN1",
+    "ts": "1787918508.000100",
+    "thread_ts": "",
+    "user": "U0JOR",
+    "user_name": "jordan",
+    "text": "Helen asked for a commercial option",
+    "permalink": "https://slack.com/archives/C0NWIN1/p1787918508000100",
+    "operator": {
+      "pin": false,
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "slack_message",
+    "account_id": "acct:northwind",
+    "channel_id": "C0NWIN1",
+    "ts": "1787918509.000100",
+    "thread_ts": "",
+    "user": "U0JOR",
+    "user_name": "jordan",
+    "text": "Devin has a contractor SSO patch",
+    "permalink": "https://slack.com/archives/C0NWIN1/p1787918509000100",
+    "operator": {
+      "pin": false,
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "slack_message",
+    "account_id": "acct:northwind",
+    "channel_id": "C0NWIN1",
+    "ts": "1787918510.000100",
+    "thread_ts": "",
+    "user": "U0JOR",
+    "user_name": "jordan",
+    "text": "Nina can join the 11:00",
+    "permalink": "https://slack.com/archives/C0NWIN1/p1787918510000100",
+    "operator": {
+      "pin": false,
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "slack_message",
+    "account_id": "acct:northwind",
+    "channel_id": "C0NWIN1",
+    "ts": "1787918511.000100",
+    "thread_ts": "",
+    "user": "U0JOR",
+    "user_name": "jordan",
+    "text": "Marco says Tacoma is quiet",
+    "permalink": "https://slack.com/archives/C0NWIN1/p1787918511000100",
+    "operator": {
+      "pin": false,
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "slack_message",
+    "account_id": "acct:northwind",
+    "channel_id": "C0NWIN1",
+    "ts": "1787918512.000100",
+    "thread_ts": "",
+    "user": "U0JOR",
+    "user_name": "jordan",
+    "text": "Owen has a renewal model draft",
+    "permalink": "https://slack.com/archives/C0NWIN1/p1787918512000100",
+    "operator": {
+      "pin": false,
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "slack_message",
+    "account_id": "acct:northwind",
+    "channel_id": "C0NWIN1",
+    "ts": "1787918513.000100",
+    "thread_ts": "",
+    "user": "U0JOR",
+    "user_name": "jordan",
+    "text": "Pedro opened a network ticket",
+    "permalink": "https://slack.com/archives/C0NWIN1/p1787918513000100",
+    "operator": {
+      "pin": false,
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "slack_message",
+    "account_id": "acct:northwind",
+    "channel_id": "C0NWIN1",
+    "ts": "1787918514.000100",
+    "thread_ts": "",
+    "user": "U0JOR",
+    "user_name": "jordan",
+    "text": "Seth wants sales ops on the exec brief",
+    "permalink": "https://slack.com/archives/C0NWIN1/p1787918514000100",
+    "operator": {
+      "pin": false,
+      "unread": true
     },
     "sources": {
       "stub": {
@@ -383,12 +683,12 @@
     "type": "slack_message",
     "account_id": "acct:globex",
     "channel_id": "C0GLX1",
-    "ts": "1723900200.000100",
+    "ts": "1787918600.000100",
     "thread_ts": "",
     "user": "U0AVA",
     "user_name": "ava.chen",
     "text": "Kickoff went well",
-    "permalink": "https://slack.com/archives/C0GLX1/p1723900200000100",
+    "permalink": "https://slack.com/archives/C0GLX1/p1787918600000100",
     "operator": {
       "pin": false,
       "unread": true
@@ -403,12 +703,12 @@
     "type": "slack_message",
     "account_id": "acct:globex",
     "channel_id": "C0GLX1",
-    "ts": "1723900201.000100",
+    "ts": "1787918601.000100",
     "thread_ts": "",
     "user": "U0JOR",
     "user_name": "jordan",
     "text": "Badge list incoming",
-    "permalink": "https://slack.com/archives/C0GLX1/p1723900201000100",
+    "permalink": "https://slack.com/archives/C0GLX1/p1787918601000100",
     "operator": {
       "pin": false,
       "unread": true
@@ -423,15 +723,15 @@
     "type": "slack_message",
     "account_id": "acct:globex",
     "channel_id": "C0GLX1",
-    "ts": "1723900202.000100",
+    "ts": "1787918602.000100",
     "thread_ts": "",
     "user": "U0AVA",
     "user_name": "ava.chen",
     "text": "Plant 2 wants training",
-    "permalink": "https://slack.com/archives/C0GLX1/p1723900202000100",
+    "permalink": "https://slack.com/archives/C0GLX1/p1787918602000100",
     "operator": {
       "pin": false,
-      "unread": false
+      "unread": true
     },
     "sources": {
       "stub": {
@@ -443,15 +743,15 @@
     "type": "slack_message",
     "account_id": "acct:globex",
     "channel_id": "C0GLX1",
-    "ts": "1723900203.000100",
+    "ts": "1787918603.000100",
     "thread_ts": "",
     "user": "U0JOR",
     "user_name": "jordan",
     "text": "VPN ticket opened",
-    "permalink": "https://slack.com/archives/C0GLX1/p1723900203000100",
+    "permalink": "https://slack.com/archives/C0GLX1/p1787918603000100",
     "operator": {
       "pin": false,
-      "unread": false
+      "unread": true
     },
     "sources": {
       "stub": {
@@ -463,15 +763,15 @@
     "type": "slack_message",
     "account_id": "acct:globex",
     "channel_id": "C0GLX1",
-    "ts": "1723900204.000100",
+    "ts": "1787918604.000100",
     "thread_ts": "",
     "user": "U0AVA",
     "user_name": "ava.chen",
     "text": "See you Thursday",
-    "permalink": "https://slack.com/archives/C0GLX1/p1723900204000100",
+    "permalink": "https://slack.com/archives/C0GLX1/p1787918604000100",
     "operator": {
       "pin": false,
-      "unread": false
+      "unread": true
     },
     "sources": {
       "stub": {
@@ -483,15 +783,15 @@
     "type": "slack_message",
     "account_id": "acct:globex",
     "channel_id": "C0GLX1",
-    "ts": "1723900205.000100",
+    "ts": "1787918605.000100",
     "thread_ts": "",
     "user": "U0JOR",
     "user_name": "jordan",
     "text": "Notes in the drive",
-    "permalink": "https://slack.com/archives/C0GLX1/p1723900205000100",
+    "permalink": "https://slack.com/archives/C0GLX1/p1787918605000100",
     "operator": {
       "pin": false,
-      "unread": false
+      "unread": true
     },
     "sources": {
       "stub": {
@@ -503,15 +803,15 @@
     "type": "slack_message",
     "account_id": "acct:globex",
     "channel_id": "C0GLX1",
-    "ts": "1723900206.000100",
+    "ts": "1787918606.000100",
     "thread_ts": "",
     "user": "U0AVA",
     "user_name": "ava.chen",
     "text": "No blockers",
-    "permalink": "https://slack.com/archives/C0GLX1/p1723900206000100",
+    "permalink": "https://slack.com/archives/C0GLX1/p1787918606000100",
     "operator": {
       "pin": false,
-      "unread": false
+      "unread": true
     },
     "sources": {
       "stub": {
@@ -523,15 +823,155 @@
     "type": "slack_message",
     "account_id": "acct:globex",
     "channel_id": "C0GLX1",
-    "ts": "1723900207.000100",
+    "ts": "1787918607.000100",
     "thread_ts": "",
     "user": "U0JOR",
     "user_name": "jordan",
     "text": "Nice start",
-    "permalink": "https://slack.com/archives/C0GLX1/p1723900207000100",
+    "permalink": "https://slack.com/archives/C0GLX1/p1787918607000100",
     "operator": {
       "pin": false,
-      "unread": false
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "slack_message",
+    "account_id": "acct:globex",
+    "channel_id": "C0GLX1",
+    "ts": "1787918608.000100",
+    "thread_ts": "",
+    "user": "U0AVA",
+    "user_name": "ava.chen",
+    "text": "Sofia needs a spare printer",
+    "permalink": "https://slack.com/archives/C0GLX1/p1787918608000100",
+    "operator": {
+      "pin": false,
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "slack_message",
+    "account_id": "acct:globex",
+    "channel_id": "C0GLX1",
+    "ts": "1787918609.000100",
+    "thread_ts": "",
+    "user": "U0JOR",
+    "user_name": "jordan",
+    "text": "Ben can cover the 2pm walk",
+    "permalink": "https://slack.com/archives/C0GLX1/p1787918609000100",
+    "operator": {
+      "pin": false,
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "slack_message",
+    "account_id": "acct:globex",
+    "channel_id": "C0GLX1",
+    "ts": "1787918610.000100",
+    "thread_ts": "",
+    "user": "U0AVA",
+    "user_name": "ava.chen",
+    "text": "Nadia opened GLX-12",
+    "permalink": "https://slack.com/archives/C0GLX1/p1787918610000100",
+    "operator": {
+      "pin": false,
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "slack_message",
+    "account_id": "acct:globex",
+    "channel_id": "C0GLX1",
+    "ts": "1787918611.000100",
+    "thread_ts": "",
+    "user": "U0JOR",
+    "user_name": "jordan",
+    "text": "Victor sitting in on standup",
+    "permalink": "https://slack.com/archives/C0GLX1/p1787918611000100",
+    "operator": {
+      "pin": false,
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "slack_message",
+    "account_id": "acct:globex",
+    "channel_id": "C0GLX1",
+    "ts": "1787918612.000100",
+    "thread_ts": "",
+    "user": "U0AVA",
+    "user_name": "ava.chen",
+    "text": "Eleanor wants Plant 2 first",
+    "permalink": "https://slack.com/archives/C0GLX1/p1787918612000100",
+    "operator": {
+      "pin": false,
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "slack_message",
+    "account_id": "acct:globex",
+    "channel_id": "C0GLX1",
+    "ts": "1787918613.000100",
+    "thread_ts": "",
+    "user": "U0JOR",
+    "user_name": "jordan",
+    "text": "Moira is on OT allowlist",
+    "permalink": "https://slack.com/archives/C0GLX1/p1787918613000100",
+    "operator": {
+      "pin": false,
+      "unread": true
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    }
+  },
+  {
+    "type": "slack_message",
+    "account_id": "acct:globex",
+    "channel_id": "C0GLX1",
+    "ts": "1787918614.000100",
+    "thread_ts": "",
+    "user": "U0AVA",
+    "user_name": "ava.chen",
+    "text": "Ivy asked for onboarding cost",
+    "permalink": "https://slack.com/archives/C0GLX1/p1787918614000100",
+    "operator": {
+      "pin": false,
+      "unread": true
     },
     "sources": {
       "stub": {

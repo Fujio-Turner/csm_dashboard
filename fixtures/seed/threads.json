@@ -64,6 +64,22 @@
     }
   },
   {
+    "_id": "thr:c55edb1be32de4e2",
+    "type": "thread",
+    "account_id": "acct:acme",
+    "subject": "Re: ACME-12 workaround",
+    "last_at": "2026-08-28T13:10:00Z",
+    "message_count": 1,
+    "participants": [
+      "jordan@example.com",
+      "sam.ortiz@acme.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
     "_id": "thr:4fcbdb37410cd468",
     "type": "thread",
     "account_id": "acct:acme",
@@ -73,6 +89,54 @@
     "participants": [
       "jordan@example.com",
       "sam.ortiz@acme.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:8e887f33b5e76a4d",
+    "type": "thread",
+    "account_id": "acct:acme",
+    "subject": "QBR numbers for Friday",
+    "last_at": "2026-08-28T14:05:00Z",
+    "message_count": 1,
+    "participants": [
+      "jordan@example.com",
+      "taylor.brooks@acme.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:60c4f5c85fcd2c0b",
+    "type": "thread",
+    "account_id": "acct:acme",
+    "subject": "Re: DC3 scanner pin for ACME-12",
+    "last_at": "2026-08-17T07:15:00Z",
+    "message_count": 2,
+    "participants": [
+      "bob.hale@acme.com",
+      "jordan@example.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:63cda479c19f3181",
+    "type": "thread",
+    "account_id": "acct:acme",
+    "subject": "One-pager before 3pm",
+    "last_at": "2026-08-28T12:40:00Z",
+    "message_count": 1,
+    "participants": [
+      "dana.cole@acme.com",
+      "jordan@example.com"
     ],
     "operator": {
       "unread": true,
@@ -128,6 +192,38 @@
     }
   },
   {
+    "_id": "thr:d5ad69979a732066",
+    "type": "thread",
+    "account_id": "acct:northwind",
+    "subject": "Re: Friday auth outage",
+    "last_at": "2026-08-28T15:20:00Z",
+    "message_count": 1,
+    "participants": [
+      "jordan@example.com",
+      "rob.singh@northwind.example"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:46731a248644b2b3",
+    "type": "thread",
+    "account_id": "acct:northwind",
+    "subject": "Exec brief agenda",
+    "last_at": "2026-08-28T16:05:00Z",
+    "message_count": 1,
+    "participants": [
+      "helen.cho@northwind.example",
+      "jordan@example.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
     "_id": "thr:2491981d33cb8428",
     "type": "thread",
     "account_id": "acct:globex",
@@ -168,6 +264,38 @@
     "message_count": 1,
     "participants": [
       "ava.chen@globex.example",
+      "jordan@example.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:6eb19d226a00fa53",
+    "type": "thread",
+    "account_id": "acct:globex",
+    "subject": "Re: Kickoff recap",
+    "last_at": "2026-08-28T16:40:00Z",
+    "message_count": 1,
+    "participants": [
+      "jordan@example.com",
+      "sofia.berg@globex.example"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:86b8cb5355f292d8",
+    "type": "thread",
+    "account_id": "acct:globex",
+    "subject": "Onboarding review",
+    "last_at": "2026-08-28T17:10:00Z",
+    "message_count": 1,
+    "participants": [
+      "eleanor.voss@globex.example",
       "jordan@example.com"
     ],
     "operator": {

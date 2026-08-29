@@ -1,5 +1,108 @@
 [
   {
+    "_id": "person:acme-dana",
+    "type": "person",
+    "account_id": "acct:acme",
+    "kind": "customer",
+    "name": "Dana Cole",
+    "email": "dana.cole@acme.com",
+    "title": "Chief Executive Officer",
+    "role": "executive",
+    "location": "Chicago HQ",
+    "reports_to": "",
+    "project_ids": [],
+    "functions": [],
+    "owns_all_projects": true,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:acme-taylor",
+    "type": "person",
+    "account_id": "acct:acme",
+    "kind": "customer",
+    "name": "Taylor Brooks",
+    "email": "taylor.brooks@acme.com",
+    "title": "Chief Financial Officer",
+    "role": "economic_buyer",
+    "location": "Chicago HQ",
+    "reports_to": "person:acme-dana",
+    "project_ids": [],
+    "functions": [
+      "Accounting"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:acme-grace",
+    "type": "person",
+    "account_id": "acct:acme",
+    "kind": "customer",
+    "name": "Grace Lin",
+    "email": "grace.lin@acme.com",
+    "title": "Controller",
+    "role": "other",
+    "location": "Chicago HQ",
+    "reports_to": "person:acme-taylor",
+    "project_ids": [],
+    "functions": [
+      "Accounting"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:acme-ap",
+    "type": "person",
+    "account_id": "acct:acme",
+    "kind": "customer",
+    "name": "Chris Adeyemi",
+    "email": "chris.adeyemi@acme.com",
+    "title": "AP manager",
+    "role": "other",
+    "location": "Chicago HQ",
+    "reports_to": "person:acme-grace",
+    "project_ids": [],
+    "functions": [
+      "Accounting"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:acme-ar",
+    "type": "person",
+    "account_id": "acct:acme",
+    "kind": "customer",
+    "name": "Hannah Cole",
+    "email": "hannah.cole@acme.com",
+    "title": "AR specialist",
+    "role": "other",
+    "location": "Chicago HQ",
+    "reports_to": "person:acme-grace",
+    "project_ids": [],
+    "functions": [
+      "Accounting"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
     "_id": "person:acme-pat",
     "type": "person",
     "account_id": "acct:acme",
@@ -8,12 +111,8 @@
     "email": "pat.nguyen@acme.com",
     "title": "VP Operations",
     "role": "champion",
-    "external_ids": {},
-    "sources": {},
-    "created_at": "2026-08-01T00:00:00Z",
-    "updated_at": "2026-08-01T00:00:00Z",
     "location": "Chicago HQ",
-    "reports_to": "",
+    "reports_to": "person:acme-dana",
     "project_ids": [
       "proj:acme-scan",
       "proj:acme-sso"
@@ -21,7 +120,57 @@
     "functions": [
       "Ops"
     ],
-    "owns_all_projects": true
+    "owns_all_projects": true,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:acme-dc1",
+    "type": "person",
+    "account_id": "acct:acme",
+    "kind": "customer",
+    "name": "Lee Park",
+    "email": "lee.park@acme.com",
+    "title": "DC1 manager",
+    "role": "technical",
+    "location": "DC1",
+    "reports_to": "person:acme-pat",
+    "project_ids": [
+      "proj:acme-scan"
+    ],
+    "functions": [
+      "Ops"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:acme-dc2",
+    "type": "person",
+    "account_id": "acct:acme",
+    "kind": "customer",
+    "name": "Priya Shah",
+    "email": "priya.shah@acme.com",
+    "title": "DC2 manager",
+    "role": "technical",
+    "location": "DC2",
+    "reports_to": "person:acme-pat",
+    "project_ids": [
+      "proj:acme-scan"
+    ],
+    "functions": [
+      "Ops"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
   },
   {
     "_id": "person:acme-lee",
@@ -32,10 +181,6 @@
     "email": "sam.ortiz@acme.com",
     "title": "Warehouse lead",
     "role": "technical",
-    "external_ids": {},
-    "sources": {},
-    "created_at": "2026-08-01T00:00:00Z",
-    "updated_at": "2026-08-01T00:00:00Z",
     "location": "DC3 warehouse",
     "reports_to": "person:acme-pat",
     "project_ids": [
@@ -43,7 +188,12 @@
     ],
     "functions": [
       "Ops"
-    ]
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
   },
   {
     "_id": "person:acme-bob",
@@ -54,12 +204,6 @@
     "email": "bob.hale@acme.com",
     "title": "Plant ops",
     "role": "technical",
-    "external_ids": {
-      "teams": "bob-hale"
-    },
-    "sources": {},
-    "created_at": "2026-08-01T00:00:00Z",
-    "updated_at": "2026-08-01T00:00:00Z",
     "location": "DC3 floor",
     "reports_to": "person:acme-pat",
     "project_ids": [
@@ -67,7 +211,331 @@
     ],
     "functions": [
       "Ops"
-    ]
+    ],
+    "owns_all_projects": false,
+    "external_ids": {
+      "teams": "bob-hale"
+    },
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:acme-log",
+    "type": "person",
+    "account_id": "acct:acme",
+    "kind": "customer",
+    "name": "Noah Kim",
+    "email": "noah.kim@acme.com",
+    "title": "Logistics coordinator",
+    "role": "other",
+    "location": "Chicago HQ",
+    "reports_to": "person:acme-pat",
+    "project_ids": [],
+    "functions": [
+      "Ops"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:acme-inv",
+    "type": "person",
+    "account_id": "acct:acme",
+    "kind": "customer",
+    "name": "Maya Singh",
+    "email": "maya.singh@acme.com",
+    "title": "Inventory analyst",
+    "role": "other",
+    "location": "Chicago HQ",
+    "reports_to": "person:acme-pat",
+    "project_ids": [
+      "proj:acme-scan"
+    ],
+    "functions": [
+      "Ops"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:acme-safe",
+    "type": "person",
+    "account_id": "acct:acme",
+    "kind": "customer",
+    "name": "Tom Brennan",
+    "email": "tom.brennan@acme.com",
+    "title": "Safety lead",
+    "role": "other",
+    "location": "DC3 warehouse",
+    "reports_to": "person:acme-pat",
+    "project_ids": [],
+    "functions": [
+      "Ops"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:acme-mei",
+    "type": "person",
+    "account_id": "acct:acme",
+    "kind": "customer",
+    "name": "Mei Wong",
+    "email": "mei.wong@acme.com",
+    "title": "VP Information Technology",
+    "role": "technical",
+    "location": "Chicago HQ",
+    "reports_to": "person:acme-dana",
+    "project_ids": [
+      "proj:acme-sso"
+    ],
+    "functions": [
+      "DBA"
+    ],
+    "owns_all_projects": true,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:acme-raj",
+    "type": "person",
+    "account_id": "acct:acme",
+    "kind": "customer",
+    "name": "Raj Patel",
+    "email": "raj.patel@acme.com",
+    "title": "Lead DBA",
+    "role": "technical",
+    "location": "Chicago HQ",
+    "reports_to": "person:acme-mei",
+    "project_ids": [
+      "proj:acme-sso"
+    ],
+    "functions": [
+      "DBA"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:acme-vic",
+    "type": "person",
+    "account_id": "acct:acme",
+    "kind": "customer",
+    "name": "Vic Torres",
+    "email": "vic.torres@acme.com",
+    "title": "Night-shift DBA",
+    "role": "technical",
+    "location": "Remote",
+    "reports_to": "person:acme-raj",
+    "project_ids": [
+      "proj:acme-sso"
+    ],
+    "functions": [
+      "DBA"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:acme-elena",
+    "type": "person",
+    "account_id": "acct:acme",
+    "kind": "customer",
+    "name": "Elena Ruiz",
+    "email": "elena.ruiz@acme.com",
+    "title": "Security engineer",
+    "role": "technical",
+    "location": "Remote",
+    "reports_to": "person:acme-mei",
+    "project_ids": [
+      "proj:acme-sso"
+    ],
+    "functions": [
+      "DBA"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:acme-omar",
+    "type": "person",
+    "account_id": "acct:acme",
+    "kind": "customer",
+    "name": "Omar Haddad",
+    "email": "omar.haddad@acme.com",
+    "title": "Platform engineer",
+    "role": "technical",
+    "location": "Chicago HQ",
+    "reports_to": "person:acme-mei",
+    "project_ids": [
+      "proj:acme-scan"
+    ],
+    "functions": [],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:acme-help",
+    "type": "person",
+    "account_id": "acct:acme",
+    "kind": "customer",
+    "name": "Lila Chen",
+    "email": "lila.chen@acme.com",
+    "title": "Helpdesk manager",
+    "role": "other",
+    "location": "Chicago HQ",
+    "reports_to": "person:acme-mei",
+    "project_ids": [],
+    "functions": [],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:acme-amira",
+    "type": "person",
+    "account_id": "acct:acme",
+    "kind": "customer",
+    "name": "Amira Sol",
+    "email": "amira.sol@acme.com",
+    "title": "VP People",
+    "role": "other",
+    "location": "Chicago HQ",
+    "reports_to": "person:acme-dana",
+    "project_ids": [],
+    "functions": [],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:acme-hr",
+    "type": "person",
+    "account_id": "acct:acme",
+    "kind": "customer",
+    "name": "Kate Brennan",
+    "email": "kate.brennan@acme.com",
+    "title": "HR business partner",
+    "role": "other",
+    "location": "Chicago HQ",
+    "reports_to": "person:acme-amira",
+    "project_ids": [],
+    "functions": [],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:nwin-helen",
+    "type": "person",
+    "account_id": "acct:northwind",
+    "kind": "customer",
+    "name": "Helen Cho",
+    "email": "helen.cho@northwind.example",
+    "title": "Chief Executive Officer",
+    "role": "executive",
+    "location": "Seattle HQ",
+    "reports_to": "",
+    "project_ids": [],
+    "functions": [],
+    "owns_all_projects": true,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:nwin-rob",
+    "type": "person",
+    "account_id": "acct:northwind",
+    "kind": "customer",
+    "name": "Rob Singh",
+    "email": "rob.singh@northwind.example",
+    "title": "Chief Financial Officer",
+    "role": "economic_buyer",
+    "location": "Seattle HQ",
+    "reports_to": "person:nwin-helen",
+    "project_ids": [],
+    "functions": [
+      "Accounting"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:nwin-nina",
+    "type": "person",
+    "account_id": "acct:northwind",
+    "kind": "customer",
+    "name": "Nina Vogt",
+    "email": "nina.vogt@northwind.example",
+    "title": "Controller",
+    "role": "other",
+    "location": "Seattle HQ",
+    "reports_to": "person:nwin-rob",
+    "project_ids": [],
+    "functions": [
+      "Accounting"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:nwin-owen",
+    "type": "person",
+    "account_id": "acct:northwind",
+    "kind": "customer",
+    "name": "Owen Park",
+    "email": "owen.park@northwind.example",
+    "title": "FP&A lead",
+    "role": "other",
+    "location": "Seattle HQ",
+    "reports_to": "person:nwin-rob",
+    "project_ids": [],
+    "functions": [
+      "Accounting"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
   },
   {
     "_id": "person:nwin-kim",
@@ -78,40 +546,267 @@
     "email": "kim.hale@northwind.example",
     "title": "IT Director",
     "role": "champion",
-    "external_ids": {},
-    "sources": {},
-    "created_at": "2026-08-01T00:00:00Z",
-    "updated_at": "2026-08-01T00:00:00Z",
-    "location": "Seattle",
-    "reports_to": "",
+    "location": "Seattle HQ",
+    "reports_to": "person:nwin-helen",
     "project_ids": [
       "proj:nwin-renew"
     ],
     "functions": [
       "DBA"
-    ]
-  },
-  {
-    "_id": "person:nwin-rob",
-    "type": "person",
-    "account_id": "acct:northwind",
-    "kind": "customer",
-    "name": "Rob Singh",
-    "email": "rob.singh@northwind.example",
-    "title": "CFO",
-    "role": "economic_buyer",
+    ],
+    "owns_all_projects": true,
     "external_ids": {},
     "sources": {},
     "created_at": "2026-08-01T00:00:00Z",
-    "updated_at": "2026-08-01T00:00:00Z",
-    "location": "Seattle",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:nwin-jules",
+    "type": "person",
+    "account_id": "acct:northwind",
+    "kind": "customer",
+    "name": "Jules Hart",
+    "email": "jules.hart@northwind.example",
+    "title": "Application owner",
+    "role": "technical",
+    "location": "Seattle HQ",
+    "reports_to": "person:nwin-kim",
+    "project_ids": [
+      "proj:nwin-renew"
+    ],
+    "functions": [],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:nwin-devin",
+    "type": "person",
+    "account_id": "acct:northwind",
+    "kind": "customer",
+    "name": "Devin Cole",
+    "email": "devin.cole@northwind.example",
+    "title": "Identity engineer",
+    "role": "technical",
+    "location": "Remote",
     "reports_to": "person:nwin-kim",
     "project_ids": [
       "proj:nwin-renew"
     ],
     "functions": [
-      "Accounting"
-    ]
+      "DBA"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:nwin-sara",
+    "type": "person",
+    "account_id": "acct:northwind",
+    "kind": "customer",
+    "name": "Sara Nguyen",
+    "email": "sara.nguyen@northwind.example",
+    "title": "Helpdesk lead",
+    "role": "other",
+    "location": "Seattle HQ",
+    "reports_to": "person:nwin-kim",
+    "project_ids": [],
+    "functions": [],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:nwin-pedro",
+    "type": "person",
+    "account_id": "acct:northwind",
+    "kind": "customer",
+    "name": "Pedro Alves",
+    "email": "pedro.alves@northwind.example",
+    "title": "Network engineer",
+    "role": "technical",
+    "location": "Seattle HQ",
+    "reports_to": "person:nwin-kim",
+    "project_ids": [],
+    "functions": [
+      "DBA"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:nwin-marco",
+    "type": "person",
+    "account_id": "acct:northwind",
+    "kind": "customer",
+    "name": "Marco Rossi",
+    "email": "marco.rossi@northwind.example",
+    "title": "VP Supply Chain",
+    "role": "other",
+    "location": "Tacoma DC",
+    "reports_to": "person:nwin-helen",
+    "project_ids": [],
+    "functions": [
+      "Ops"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:nwin-imani",
+    "type": "person",
+    "account_id": "acct:northwind",
+    "kind": "customer",
+    "name": "Imani Wells",
+    "email": "imani.wells@northwind.example",
+    "title": "Warehouse supervisor",
+    "role": "technical",
+    "location": "Tacoma DC",
+    "reports_to": "person:nwin-marco",
+    "project_ids": [],
+    "functions": [
+      "Ops"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:nwin-tess",
+    "type": "person",
+    "account_id": "acct:northwind",
+    "kind": "customer",
+    "name": "Tess Okonkwo",
+    "email": "tess.okonkwo@northwind.example",
+    "title": "Buyer",
+    "role": "other",
+    "location": "Seattle HQ",
+    "reports_to": "person:nwin-marco",
+    "project_ids": [],
+    "functions": [
+      "Ops"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:nwin-cal",
+    "type": "person",
+    "account_id": "acct:northwind",
+    "kind": "customer",
+    "name": "Cal Winters",
+    "email": "cal.winters@northwind.example",
+    "title": "Yard lead",
+    "role": "technical",
+    "location": "Tacoma DC",
+    "reports_to": "person:nwin-marco",
+    "project_ids": [],
+    "functions": [
+      "Ops"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:nwin-yuki",
+    "type": "person",
+    "account_id": "acct:northwind",
+    "kind": "customer",
+    "name": "Yuki Tanaka",
+    "email": "yuki.tanaka@northwind.example",
+    "title": "General counsel",
+    "role": "other",
+    "location": "Seattle HQ",
+    "reports_to": "person:nwin-helen",
+    "project_ids": [],
+    "functions": [],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:nwin-seth",
+    "type": "person",
+    "account_id": "acct:northwind",
+    "kind": "customer",
+    "name": "Seth Brown",
+    "email": "seth.brown@northwind.example",
+    "title": "Sales operations",
+    "role": "other",
+    "location": "Seattle HQ",
+    "reports_to": "person:nwin-helen",
+    "project_ids": [],
+    "functions": [],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:glx-eleanor",
+    "type": "person",
+    "account_id": "acct:globex",
+    "kind": "customer",
+    "name": "Eleanor Voss",
+    "email": "eleanor.voss@globex.example",
+    "title": "Chief Executive Officer",
+    "role": "executive",
+    "location": "Cleveland HQ",
+    "reports_to": "",
+    "project_ids": [],
+    "functions": [],
+    "owns_all_projects": true,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:glx-victor",
+    "type": "person",
+    "account_id": "acct:globex",
+    "kind": "customer",
+    "name": "Victor Lang",
+    "email": "victor.lang@globex.example",
+    "title": "Chief Operating Officer",
+    "role": "champion",
+    "location": "Cleveland HQ",
+    "reports_to": "person:glx-eleanor",
+    "project_ids": [
+      "proj:glx-onboard"
+    ],
+    "functions": [
+      "Ops"
+    ],
+    "owns_all_projects": true,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
   },
   {
     "_id": "person:glx-ava",
@@ -120,20 +815,294 @@
     "kind": "customer",
     "name": "Ava Chen",
     "email": "ava.chen@globex.example",
-    "title": "Plant manager",
+    "title": "Plant 1 manager",
     "role": "champion",
-    "external_ids": {},
-    "sources": {},
-    "created_at": "2026-08-01T00:00:00Z",
-    "updated_at": "2026-08-01T00:00:00Z",
-    "location": "Cleveland plant",
-    "reports_to": "",
+    "location": "Plant 1",
+    "reports_to": "person:glx-victor",
     "project_ids": [
       "proj:glx-onboard"
     ],
     "functions": [
       "Ops"
-    ]
+    ],
+    "owns_all_projects": true,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:glx-ben",
+    "type": "person",
+    "account_id": "acct:globex",
+    "kind": "customer",
+    "name": "Ben Ortiz",
+    "email": "ben.ortiz@globex.example",
+    "title": "Shift lead",
+    "role": "technical",
+    "location": "Plant 1",
+    "reports_to": "person:glx-ava",
+    "project_ids": [],
+    "functions": [
+      "Ops"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:glx-carla",
+    "type": "person",
+    "account_id": "acct:globex",
+    "kind": "customer",
+    "name": "Carla Diaz",
+    "email": "carla.diaz@globex.example",
+    "title": "Quality lead",
+    "role": "technical",
+    "location": "Plant 1",
+    "reports_to": "person:glx-ava",
+    "project_ids": [],
+    "functions": [
+      "Ops"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:glx-hiro",
+    "type": "person",
+    "account_id": "acct:globex",
+    "kind": "customer",
+    "name": "Hiro Tanaka",
+    "email": "hiro.tanaka@globex.example",
+    "title": "Maintenance",
+    "role": "other",
+    "location": "Plant 1",
+    "reports_to": "person:glx-ava",
+    "project_ids": [],
+    "functions": [],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:glx-rita",
+    "type": "person",
+    "account_id": "acct:globex",
+    "kind": "customer",
+    "name": "Rita Gomez",
+    "email": "rita.gomez@globex.example",
+    "title": "Safety coordinator",
+    "role": "other",
+    "location": "Plant 1",
+    "reports_to": "person:glx-ava",
+    "project_ids": [],
+    "functions": [
+      "Ops"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:glx-sofia",
+    "type": "person",
+    "account_id": "acct:globex",
+    "kind": "customer",
+    "name": "Sofia Berg",
+    "email": "sofia.berg@globex.example",
+    "title": "Plant 2 manager",
+    "role": "other",
+    "location": "Plant 2",
+    "reports_to": "person:glx-victor",
+    "project_ids": [
+      "proj:glx-onboard"
+    ],
+    "functions": [
+      "Ops"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:glx-luis",
+    "type": "person",
+    "account_id": "acct:globex",
+    "kind": "customer",
+    "name": "Luis Romero",
+    "email": "luis.romero@globex.example",
+    "title": "Line supervisor",
+    "role": "technical",
+    "location": "Plant 2",
+    "reports_to": "person:glx-sofia",
+    "project_ids": [],
+    "functions": [
+      "Ops"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:glx-paul",
+    "type": "person",
+    "account_id": "acct:globex",
+    "kind": "customer",
+    "name": "Paul Nkrumah",
+    "email": "paul.nkrumah@globex.example",
+    "title": "Night shift lead",
+    "role": "technical",
+    "location": "Plant 2",
+    "reports_to": "person:glx-sofia",
+    "project_ids": [],
+    "functions": [
+      "Ops"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:glx-ines",
+    "type": "person",
+    "account_id": "acct:globex",
+    "kind": "customer",
+    "name": "Ines Costa",
+    "email": "ines.costa@globex.example",
+    "title": "Shipping lead",
+    "role": "other",
+    "location": "Plant 2",
+    "reports_to": "person:glx-sofia",
+    "project_ids": [],
+    "functions": [
+      "Ops"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:glx-nadia",
+    "type": "person",
+    "account_id": "acct:globex",
+    "kind": "customer",
+    "name": "Nadia Ali",
+    "email": "nadia.ali@globex.example",
+    "title": "Plant IT",
+    "role": "technical",
+    "location": "Cleveland HQ",
+    "reports_to": "person:glx-eleanor",
+    "project_ids": [],
+    "functions": [
+      "DBA"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:glx-ken",
+    "type": "person",
+    "account_id": "acct:globex",
+    "kind": "customer",
+    "name": "Ken Walsh",
+    "email": "ken.walsh@globex.example",
+    "title": "Plant DBA",
+    "role": "technical",
+    "location": "Cleveland HQ",
+    "reports_to": "person:glx-nadia",
+    "project_ids": [],
+    "functions": [
+      "DBA"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:glx-moira",
+    "type": "person",
+    "account_id": "acct:globex",
+    "kind": "customer",
+    "name": "Moira Flynn",
+    "email": "moira.flynn@globex.example",
+    "title": "OT engineer",
+    "role": "technical",
+    "location": "Plant 1",
+    "reports_to": "person:glx-nadia",
+    "project_ids": [],
+    "functions": [
+      "DBA"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:glx-greg",
+    "type": "person",
+    "account_id": "acct:globex",
+    "kind": "customer",
+    "name": "Greg Hale",
+    "email": "greg.hale@globex.example",
+    "title": "Chief Financial Officer",
+    "role": "economic_buyer",
+    "location": "Cleveland HQ",
+    "reports_to": "person:glx-eleanor",
+    "project_ids": [],
+    "functions": [
+      "Accounting"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:glx-ivy",
+    "type": "person",
+    "account_id": "acct:globex",
+    "kind": "customer",
+    "name": "Ivy Chen",
+    "email": "ivy.chen@globex.example",
+    "title": "Plant controller",
+    "role": "other",
+    "location": "Cleveland HQ",
+    "reports_to": "person:glx-greg",
+    "project_ids": [],
+    "functions": [
+      "Accounting"
+    ],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
   },
   {
     "_id": "person:ae01",
@@ -144,36 +1113,15 @@
     "email": "riley@example.com",
     "title": "Account Executive",
     "role": "ae",
-    "external_ids": {},
-    "sources": {},
-    "created_at": "2026-08-01T00:00:00Z",
-    "updated_at": "2026-08-01T00:00:00Z",
-    "location": "New York",
-    "reports_to": "",
-    "project_ids": [
-      "proj:acme-scan"
-    ],
-    "functions": []
-  },
-  {
-    "_id": "person:ae02",
-    "type": "person",
-    "account_id": "acct:globex",
-    "kind": "account_team",
-    "name": "Morgan Diaz",
-    "email": "morgan@example.com",
-    "title": "Account Executive",
-    "role": "ae",
-    "external_ids": {},
-    "sources": {},
-    "created_at": "2026-08-01T00:00:00Z",
-    "updated_at": "2026-08-01T00:00:00Z",
     "location": "Chicago",
     "reports_to": "",
-    "project_ids": [
-      "proj:glx-onboard"
-    ],
-    "functions": []
+    "project_ids": [],
+    "functions": [],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
   },
   {
     "_id": "person:csm01",
@@ -184,19 +1132,15 @@
     "email": "jordan@example.com",
     "title": "CSM",
     "role": "csm",
+    "location": "Chicago",
+    "reports_to": "person:ae01",
+    "project_ids": [],
+    "functions": [],
+    "owns_all_projects": false,
     "external_ids": {},
     "sources": {},
     "created_at": "2026-08-01T00:00:00Z",
-    "updated_at": "2026-08-01T00:00:00Z",
-    "location": "Remote",
-    "reports_to": "person:ae01",
-    "project_ids": [
-      "proj:acme-scan",
-      "proj:acme-sso"
-    ],
-    "functions": [
-      "Ops"
-    ]
+    "updated_at": "2026-08-01T00:00:00Z"
   },
   {
     "_id": "person:tam01",
@@ -207,18 +1151,15 @@
     "email": "chris@example.com",
     "title": "TAM",
     "role": "tam",
+    "location": "Remote",
+    "reports_to": "person:csm01",
+    "project_ids": [],
+    "functions": [],
+    "owns_all_projects": false,
     "external_ids": {},
     "sources": {},
     "created_at": "2026-08-01T00:00:00Z",
-    "updated_at": "2026-08-01T00:00:00Z",
-    "location": "Austin",
-    "reports_to": "person:csm01",
-    "project_ids": [
-      "proj:acme-sso"
-    ],
-    "functions": [
-      "DBA"
-    ]
+    "updated_at": "2026-08-01T00:00:00Z"
   },
   {
     "_id": "person:ps01",
@@ -229,40 +1170,34 @@
     "email": "alex@example.com",
     "title": "PS lead",
     "role": "ps_lead",
+    "location": "Chicago",
+    "reports_to": "person:csm01",
+    "project_ids": [],
+    "functions": [],
+    "owns_all_projects": false,
     "external_ids": {},
     "sources": {},
     "created_at": "2026-08-01T00:00:00Z",
-    "updated_at": "2026-08-01T00:00:00Z",
-    "location": "Denver",
-    "reports_to": "person:csm01",
-    "project_ids": [
-      "proj:acme-scan"
-    ],
-    "functions": [
-      "DBA"
-    ]
+    "updated_at": "2026-08-01T00:00:00Z"
   },
   {
-    "_id": "person:ps02",
+    "_id": "person:nwin-ae",
     "type": "person",
     "account_id": "acct:northwind",
-    "kind": "ps_team",
-    "name": "Quinn Brooks",
-    "email": "quinn@example.com",
-    "title": "PS consultant",
-    "role": "ps_consultant",
+    "kind": "account_team",
+    "name": "Riley Park",
+    "email": "riley@example.com",
+    "title": "Account Executive",
+    "role": "ae",
+    "location": "Chicago",
+    "reports_to": "",
+    "project_ids": [],
+    "functions": [],
+    "owns_all_projects": false,
     "external_ids": {},
     "sources": {},
     "created_at": "2026-08-01T00:00:00Z",
-    "updated_at": "2026-08-01T00:00:00Z",
-    "location": "Portland",
-    "reports_to": "person:nwin-csm",
-    "project_ids": [
-      "proj:nwin-renew"
-    ],
-    "functions": [
-      "DBA"
-    ]
+    "updated_at": "2026-08-01T00:00:00Z"
   },
   {
     "_id": "person:nwin-csm",
@@ -273,18 +1208,72 @@
     "email": "jordan@example.com",
     "title": "CSM",
     "role": "csm",
+    "location": "Chicago",
+    "reports_to": "person:nwin-ae",
+    "project_ids": [],
+    "functions": [],
+    "owns_all_projects": false,
     "external_ids": {},
     "sources": {},
     "created_at": "2026-08-01T00:00:00Z",
-    "updated_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:nwin-tam",
+    "type": "person",
+    "account_id": "acct:northwind",
+    "kind": "account_team",
+    "name": "Chris Vale",
+    "email": "chris@example.com",
+    "title": "TAM",
+    "role": "tam",
     "location": "Remote",
+    "reports_to": "person:nwin-csm",
+    "project_ids": [],
+    "functions": [],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:ps02",
+    "type": "person",
+    "account_id": "acct:northwind",
+    "kind": "ps_team",
+    "name": "Quinn Brooks",
+    "email": "quinn@example.com",
+    "title": "PS consultant",
+    "role": "ps_consultant",
+    "location": "Seattle",
+    "reports_to": "person:nwin-csm",
+    "project_ids": [],
+    "functions": [],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:ae02",
+    "type": "person",
+    "account_id": "acct:globex",
+    "kind": "account_team",
+    "name": "Morgan Diaz",
+    "email": "morgan@example.com",
+    "title": "Account Executive",
+    "role": "ae",
+    "location": "Cleveland",
     "reports_to": "",
-    "project_ids": [
-      "proj:nwin-renew"
-    ],
-    "functions": [
-      "Ops"
-    ]
+    "project_ids": [],
+    "functions": [],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
   },
   {
     "_id": "person:glx-csm",
@@ -295,18 +1284,34 @@
     "email": "jordan@example.com",
     "title": "CSM",
     "role": "csm",
+    "location": "Chicago",
+    "reports_to": "person:ae02",
+    "project_ids": [],
+    "functions": [],
+    "owns_all_projects": false,
     "external_ids": {},
     "sources": {},
     "created_at": "2026-08-01T00:00:00Z",
-    "updated_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
+  },
+  {
+    "_id": "person:glx-tam",
+    "type": "person",
+    "account_id": "acct:globex",
+    "kind": "account_team",
+    "name": "Chris Vale",
+    "email": "chris@example.com",
+    "title": "TAM",
+    "role": "tam",
     "location": "Remote",
-    "reports_to": "person:ae02",
-    "project_ids": [
-      "proj:glx-onboard"
-    ],
-    "functions": [
-      "Ops"
-    ]
+    "reports_to": "person:glx-csm",
+    "project_ids": [],
+    "functions": [],
+    "owns_all_projects": false,
+    "external_ids": {},
+    "sources": {},
+    "created_at": "2026-08-01T00:00:00Z",
+    "updated_at": "2026-08-01T00:00:00Z"
   },
   {
     "_id": "person:glx-ps",
@@ -317,17 +1322,14 @@
     "email": "alex@example.com",
     "title": "PS lead",
     "role": "ps_lead",
+    "location": "Chicago",
+    "reports_to": "person:glx-csm",
+    "project_ids": [],
+    "functions": [],
+    "owns_all_projects": false,
     "external_ids": {},
     "sources": {},
     "created_at": "2026-08-01T00:00:00Z",
-    "updated_at": "2026-08-01T00:00:00Z",
-    "location": "Denver",
-    "reports_to": "person:glx-csm",
-    "project_ids": [
-      "proj:glx-onboard"
-    ],
-    "functions": [
-      "DBA"
-    ]
+    "updated_at": "2026-08-01T00:00:00Z"
   }
 ]
