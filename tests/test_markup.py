@@ -78,6 +78,15 @@ def test_views_present():
     assert "appendHelpAnswer" in js
     assert "help-sub" in css
     assert "help-ul" in css
+    assert "chat-ops" in css
+    assert "chat-link" in css
+    assert "chat-when" in css
+    assert "parseChatDraft" in js
+    assert "attachChatOps" in js
+    assert "fillChatBody" in js
+    assert "prettyChatText" in js
+    assert "formatAgo" in js
+    assert "openChatNotes" in js
     assert "fillTimezoneSelect" in js
     assert "mountSearchSelect" in js
     assert "mountTagifyMulti" in js

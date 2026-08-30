@@ -84,6 +84,7 @@ Chrome: pale page (`--page`), white cards with a soft dual shadow, periwinkle pr
 | Activity lightbox | `#detail-box` + `.sheet` — close `×` top-right. Notes live at the bottom. |
 | Timeline note badge | `img.tl-sticky` → `/static/sticky-note.png` |
 | Help | `#help-search` centered, half the page wide. Group **tiles** in `.help-body` (2-col cards). Questions are **How do I…**. Answers use `.help-sub` headings and `.help-ul` bullets (`blocks` in `prompts/help.json`). `#help/{id}` highlights the item. |
+| Desk chat | `.chat-link` in the bubble. `.chat-ops` Open / Compose / Add note / Add person. `.chat-when` is relative time. Add note opens the Timeline notes sheet. History is an overlay (`.chat-history`), scoped to the book or all accounts. |
 
 ## Search, select, Tagify
 

@@ -38,6 +38,7 @@ The sections below stay the v0.1 lock. These are the post-lock facts agents shou
 | **CDN** | Quicksand + Tagify `@yaireo/tagify@4.32.2`. Still no Leaflet, ECharts, or a second email-composer kit. |
 | **Desk chrome** | Pale page, white floating cards, periwinkle `--accent` `#7d80f5`, selected tabs match the primary, people/mail rows use initials avatars, desk chat is bubble-shaped. Night keeps the same primary. |
 | **Help** | `#help-search` filters. Groups are 2-col tiles. Questions are How-do-I with `.help-sub` headings and bullets (`blocks` in `prompts/help.json`). `#help/{id}` highlights. |
+| **Desk chat targets** | Operator questions + bubble actions (Open, Compose To/Cc, Add note, Add person, title sniff): [`AI_CHAT_IDEAS.md`](AI_CHAT_IDEAS.md). |
 
 Files: `storage/paging.py`, `tests/test_paging.py`, `tests/test_inbox_audience.py`.
 

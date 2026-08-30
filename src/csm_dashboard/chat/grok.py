@@ -6,6 +6,7 @@ from collections.abc import Iterator
 
 import httpx
 
+from csm_dashboard.chat.format import humanize_chat_text
 from csm_dashboard.chat.tools import get_tools, run_tool
 
 log = logging.getLogger(__name__)
@@ -74,7 +75,7 @@ class GrokClient:
                     result = run_tool(repo, account_id, name, args or {})
                     working.append({"role": "tool", "tool_call_id": call.get("id") or name, "content": result})
                 continue
-            text = msg.get("content") or ""
+            text = humanize_chat_text(msg.get("content") or "")
             working.append({"role": "assistant", "content": text})
             log.info("csm.chat.turn model=%s tools=%s result=grok", model, ",".join(tools_used) or "none")
             return text, working

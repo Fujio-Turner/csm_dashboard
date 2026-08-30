@@ -144,6 +144,26 @@ def test_seed_loads_companies_on_home(page, live_server):
     page.locator("#detail-box .sheet-close").click()
 
 
+def test_desk_chat_links_and_actions(page, live_server):
+    page.goto(f"{live_server}/#settings", wait_until="domcontentloaded")
+    page.wait_for_selector("#btn-seed")
+    page.click("#btn-seed")
+    page.wait_for_timeout(400)
+    page.click('[data-nav="home"]')
+    page.wait_for_selector("#home-chat-input")
+    page.fill("#home-chat-input", "What is on fire at #{ACME}?")
+    page.locator("#home-chat-form button[type=submit]").click()
+    page.wait_for_selector(".chat-ops", timeout=15000)
+    bubble = page.locator(".chat-bubble.assistant").last
+    body = bubble.inner_text()
+    assert '"key"' not in body
+    assert page.locator(".chat-link").count() >= 1
+    assert page.get_by_role("button", name="Open").count() >= 1
+    assert page.get_by_role("button", name="Compose").count() >= 1
+    assert page.locator(".chat-when").count() >= 1
+    assert page.locator("#chat-notes").count() == 0
+
+
 def test_help_and_connector_picker(page, live_server):
     page.goto(f"{live_server}/#help", wait_until="domcontentloaded")
     page.wait_for_selector("#view-help, .help-page, [data-view='help']")

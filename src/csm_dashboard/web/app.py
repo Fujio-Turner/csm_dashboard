@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 
 from csm_dashboard import __version__
 from csm_dashboard.chat.desk_answer import answer_desk
+from csm_dashboard.chat.format import humanize_chat_text
 from csm_dashboard.chat.mentions import resolve_account
 from csm_dashboard.chat.providers import provider_spec, resolve_ai_client, selected_provider
 from csm_dashboard.compose.context import build_compose_context
@@ -1208,16 +1209,25 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         hinted = str(body.get("account_id") or "").strip()
         acct = resolve_account(repo_obj(), message, hinted)
         account_id = (acct or {}).get("account_id") or hinted or "desk"
+        project = str(body.get("project") or "").strip()
         chat_id = body.get("chat_id")
         chat = repo_obj().get_chat(chat_id) if chat_id else None
         if not chat:
-            title = "Desk chat" if account_id == "desk" else "Account coach"
-            chat = repo_obj().save_chat({"account_id": account_id, "title": title, "messages": []})
+            title = "All accounts" if account_id == "desk" else ((acct or {}).get("abbr") or "Account") + " chat"
+            chat = repo_obj().save_chat(
+                {
+                    "account_id": account_id,
+                    "account_abbr": (acct or {}).get("abbr") or ("All accounts" if account_id == "desk" else ""),
+                    "project": project,
+                    "title": title,
+                    "messages": [],
+                }
+            )
             chat_id = chat["_id"]
         messages = list(chat.get("messages") or [])
-        messages.append({"role": "user", "content": message})
-        settings = _settings()
-        local_reply = answer_desk(repo_obj(), message, acct)
+        now = utcnow()
+        messages.append({"role": "user", "content": message, "at": now})
+        local_reply = humanize_chat_text(answer_desk(repo_obj(), message, acct))
 
         def sse():
             client = ai_client()
@@ -1226,8 +1236,17 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
                 for i in range(0, len(reply), 40):
                     chunk = reply[i : i + 40]
                     yield f"event: token\ndata: {json.dumps(chunk)}\n\n"
-                messages.append({"role": "assistant", "content": reply})
-                repo_obj().save_chat({**chat, "messages": messages, "account_id": account_id}, chat_id=chat_id)
+                messages.append({"role": "assistant", "content": reply, "at": utcnow()})
+                repo_obj().save_chat(
+                    {
+                        **chat,
+                        "messages": messages,
+                        "account_id": account_id,
+                        "account_abbr": (acct or {}).get("abbr") or chat.get("account_abbr") or "",
+                        "project": project or chat.get("project") or "",
+                    },
+                    chat_id=chat_id,
+                )
                 log.info("csm.chat.turn result=fallback account_id=%s", account_id)
                 yield f"event: done\ndata: {json.dumps({'result': 'fallback', 'chat_id': chat_id, 'account_id': account_id})}\n\n"
                 return
@@ -1237,15 +1256,37 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
             ]
             try:
                 text, model, working = client.complete(sys + messages, repo_obj(), account_id)
+                text = humanize_chat_text(text)
             except Exception as exc:
                 log.warning("csm.chat.turn result=fallback err=%s", exc)
                 text = local_reply
                 model = ""
-                working = messages + [{"role": "assistant", "content": text}]
+                working = messages + [{"role": "assistant", "content": text, "at": utcnow()}]
+            stamped = []
+            for msg in working if working else messages + [{"role": "assistant", "content": text}]:
+                if not isinstance(msg, dict):
+                    continue
+                if msg.get("role") not in {"user", "assistant"}:
+                    continue
+                if msg.get("tool_calls"):
+                    continue
+                row = dict(msg)
+                if not row.get("at"):
+                    row["at"] = utcnow()
+                if row.get("role") == "assistant" and row.get("content"):
+                    row["content"] = humanize_chat_text(str(row.get("content") or ""))
+                stamped.append(row)
             for piece in [text[i : i + 40] for i in range(0, len(text), 40)] or [""]:
                 yield f"event: token\ndata: {json.dumps(piece)}\n\n"
             repo_obj().save_chat(
-                {**chat, "messages": working if working else messages + [{"role": "assistant", "content": text}], "account_id": account_id, "model": model},
+                {
+                    **chat,
+                    "messages": stamped,
+                    "account_id": account_id,
+                    "account_abbr": (acct or {}).get("abbr") or chat.get("account_abbr") or "",
+                    "project": project or chat.get("project") or "",
+                    "model": model,
+                },
                 chat_id=chat_id,
             )
             yield f"event: done\ndata: {json.dumps({'result': 'grok' if model else 'fallback', 'chat_id': chat_id, 'account_id': account_id})}\n\n"
