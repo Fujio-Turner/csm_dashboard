@@ -46,6 +46,10 @@ def test_views_present():
     assert "Tagify" in js
     assert "group_email" in js
     assert "yaireo/tagify" in HTML
+    assert "Quicksand" in HTML
+    assert "--accent: #7d80f5" in css
+    assert "avatarEl" in js
+    assert "has-avatar" in js
     assert "btn-add-company" in HTML
     assert "op-timezone" in HTML
     assert "settings-page" in HTML
@@ -63,9 +67,26 @@ def test_views_present():
     assert "connectorStateOf" in js
     assert "help-page" in HTML
     assert "help-toc" not in HTML
+    assert 'id="help-search"' in HTML
+    assert "help-chips" in HTML
     assert "settings-page" in css
     assert "help-q" in css
-    assert "help-q-icon" in css
+    assert "help-body" in css
+    assert "repeat(2, minmax(0, 1fr))" in css
+    assert "filterHelp" in js
+    assert "paintHelp" in js
+    assert "appendHelpAnswer" in js
+    assert "help-sub" in css
+    assert "help-ul" in css
+    assert "chat-ops" in css
+    assert "chat-link" in css
+    assert "chat-when" in css
+    assert "parseChatDraft" in js
+    assert "attachChatOps" in js
+    assert "fillChatBody" in js
+    assert "prettyChatText" in js
+    assert "formatAgo" in js
+    assert "openChatNotes" in js
     assert "fillTimezoneSelect" in js
     assert "mountSearchSelect" in js
     assert "mountTagifyMulti" in js

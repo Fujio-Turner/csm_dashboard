@@ -14,7 +14,7 @@
   </script>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/@yaireo/tagify@4.32.2/dist/tagify.css" rel="stylesheet">
   <link rel="stylesheet" href="/static/app.css?v={{ version }}">
 </head>
@@ -146,10 +146,15 @@
         <header class="page-head">
           <div>
             <h1>Help</h1>
-            <p class="muted">Click a question to see the answer.</p>
+            <p class="muted">Search for what you want to do.</p>
           </div>
         </header>
         <div class="help-page">
+          <div class="help-search-row">
+            <input class="search" id="help-search" type="search" placeholder="Search help" autocomplete="off" aria-label="Search help">
+          </div>
+          <div class="help-chips" id="help-chips"></div>
+          <p class="muted help-empty" id="help-empty" hidden>No help matches.</p>
           <div class="help-body" id="help-body"></div>
         </div>
       </section>

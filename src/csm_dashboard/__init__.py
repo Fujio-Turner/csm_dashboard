@@ -1,3 +1,3 @@
 """Local Customer Success Manager desk."""
 
-__version__ = "0.1.92"
+__version__ = "0.1.98"

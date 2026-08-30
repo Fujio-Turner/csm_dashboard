@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+
 from csm_dashboard.chat.mentions import find_people, parse_person_handles, resolve_account
+from csm_dashboard.storage.repo import utcnow
 
 
 def answer_desk(repo, message: str, account: dict | None) -> str:
     text = (message or "").strip()
     low = text.lower()
     handles = parse_person_handles(text)
+
+    if _is_desk_wide(low) and not account:
+        return _desk_wide(repo, low)
 
     if not account:
         books = repo.list_accounts()
@@ -17,7 +23,8 @@ def answer_desk(repo, message: str, account: dict | None) -> str:
         names = ", ".join("#{" + str(b.get("abbr") or "?") + "}" for b in books[:8])
         return (
             "Which book? Tag a customer like #{ACME} or #{Northwind}. "
-            f"On the desk now: {names}."
+            f"On the desk now: {names}. "
+            "Or ask across every book: “What tasks are due this week?”"
         )
 
     abbr = account.get("abbr") or "?"
@@ -36,7 +43,65 @@ def answer_desk(repo, message: str, account: dict | None) -> str:
     if any(k in low for k in ("salesforce", "sfdc", "opportunity", "renewal", "case")):
         return _salesforce(repo, aid, abbr)
 
+    if _is_desk_wide(low):
+        return _tasks_due(repo, account)
     return _status(repo, account, aid, abbr, name)
+
+
+def _is_desk_wide(low: str) -> bool:
+    needles = (
+        "due this week",
+        "tasks are due",
+        "what tasks",
+        "opening next",
+        "free next",
+        "all accounts",
+        "across accounts",
+        "every book",
+    )
+    return any(n in low for n in needles)
+
+
+def _week_end(day: str) -> str:
+    start = datetime.fromisoformat(day + "T00:00:00+00:00")
+    return (start + timedelta(days=6)).date().isoformat()
+
+
+def _tasks_due(repo, account: dict | None) -> str:
+    day = utcnow()[:10]
+    end = _week_end(day)
+    books = [account] if account else repo.list_accounts()
+    lines = []
+    for acct in books:
+        aid = acct.get("account_id") or acct.get("_id") or ""
+        abbr = acct.get("abbr") or "?"
+        items, _ = repo.page_emails(aid, tasks=True, limit=80, slim=True, desc=True)
+        due = []
+        for row in items:
+            op = row.get("operator") or {}
+            if not op.get("task"):
+                continue
+            due_at = str(op.get("due_at") or "")[:10]
+            if due_at and day <= due_at <= end:
+                due.append((due_at, op.get("task_name") or row.get("subject") or "Task", abbr))
+        due.sort()
+        for due_at, name, tag in due[:8]:
+            lines.append(f"- #{{{tag}}} {name} (due {due_at})")
+    if not lines:
+        scope = (account or {}).get("abbr") if account else "every book"
+        return f"No tasks due this week on {scope}."
+    head = "Tasks due this week:" if not account else f"Tasks due this week on #{{{account.get('abbr')}}}:"
+    return head + "\n" + "\n".join(lines[:12])
+
+
+def _desk_wide(repo, low: str) -> str:
+    if "opening" in low or "free next" in low or "meeting" in low:
+        return (
+            "Desk-wide meeting fit: open the book (#{ACME}) and World clock, "
+            "or tag the project like ACME:SSO hardening. "
+            "I will not send an invite — I can only suggest a window."
+        )
+    return _tasks_due(repo, None)
 
 
 def _issues(repo, account: dict, aid: str, abbr: str, name: str) -> str:

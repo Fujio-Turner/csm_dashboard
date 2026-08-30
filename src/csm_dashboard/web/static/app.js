@@ -7,6 +7,7 @@
   var homeChatId = "";
   var chatScope = "";
   var chatBookmarked = false;
+  var pendingComposeSeed = null;
   var accountQ = "";
   var accountProject = "";
   var lastAccountAbbr = "";
@@ -593,7 +594,9 @@
       setHomeMode(true);
       var openCompose = function () {
         syncChatScope(currentAccount && currentAccount.account_id);
-        if (window.CSMCompose) window.CSMCompose.open(currentAccount);
+        var seed = pendingComposeSeed || {};
+        pendingComposeSeed = null;
+        if (window.CSMCompose) window.CSMCompose.open(currentAccount, seed);
       };
       if (currentAccount && (currentAccount.abbr || "").toLowerCase() === parts[1].toLowerCase()) {
         openCompose();
@@ -2347,9 +2350,9 @@
           "Any open tickets I should see?",
         ]
       : [
+          "What tasks are due this week?",
           "Is there any issue with #{ACME}?",
           "Did @bob from #{ACME} reply to my last email?",
-          "What is on fire at #{NWIN}?",
         ];
     samples.forEach(function (text) {
       var b = document.createElement("button");
@@ -2399,7 +2402,9 @@
       var log = $("home-chat-log");
       if (log) empty(log);
       (doc.messages || []).forEach(function (msg) {
-        appendChat(msg.role === "user" ? "user" : "assistant", msg.content || "");
+        if (msg.role !== "user" && msg.role !== "assistant") return;
+        if (msg.tool_calls) return;
+        appendChat(msg.role === "user" ? "user" : "assistant", msg.content || "", msg.at);
       });
       return doc;
     });
@@ -2432,10 +2437,16 @@
     api("/api/chats?account_id=" + encodeURIComponent(chatScope || "desk")).then(function (data) {
       empty(box);
       var items = data.items || [];
+      var head = document.createElement("p");
+      head.className = "chat-hist-scope";
+      head.textContent = chatScope && chatScope !== "desk"
+        ? "Chats for " + ((currentAccount && currentAccount.abbr) || "this book")
+        : "All-accounts chats";
+      box.appendChild(head);
       if (!items.length) {
         var p = document.createElement("p");
         p.className = "muted";
-        p.textContent = "No chats yet.";
+        p.textContent = "No chats in this scope yet. Ask something, then bookmark to keep it.";
         box.appendChild(p);
         return;
       }
@@ -2449,7 +2460,10 @@
         t.textContent = item.title || "Untitled";
         var m = document.createElement("div");
         m.className = "chat-hist-meta";
-        m.textContent = formatWhen(item.updated_at || item.created_at);
+        var bits = [formatAgo(item.updated_at || item.created_at) || formatWhen(item.updated_at || item.created_at)];
+        if (item.account_abbr) bits.push(item.account_abbr);
+        if (item.project) bits.push(item.project);
+        m.textContent = bits.filter(Boolean).join(" · ");
         left.appendChild(t);
         left.appendChild(m);
         btn.appendChild(left);
@@ -2485,18 +2499,281 @@
     }).then(function (doc) {
       setBookmarkUi(!!(doc && doc.bookmarked));
       toast(chatBookmarked ? "Bookmarked" : "Bookmark removed");
+      var hist = $("chat-history");
+      if (hist && !hist.hidden) {
+        hideChatHistory();
+        toggleChatHistory();
+      }
     }).catch(function (err) {
       toast(String(err.message || err));
     });
   }
 
-  function appendChat(role, text) {
+  function parseChatDraft(text) {
+    var out = { abbr: "", to: [], cc: [], emails: [], tickets: [], titleHint: "", subject: "" };
+    var t = String(text || "");
+    var book = t.match(/#\{([A-Za-z0-9][A-Za-z0-9._-]{0,15})\}/);
+    if (book) out.abbr = book[1];
+    function lineList(label) {
+      var re = new RegExp("(?:^|\\n)\\s*" + label + "\\s*:\\s*(.+)$", "im");
+      var hit = t.match(re);
+      if (!hit) return [];
+      return hit[1].split(/[,;]/).map(function (s) { return s.trim(); }).filter(Boolean);
+    }
+    out.to = lineList("To");
+    out.cc = lineList("Cc");
+    var sub = t.match(/(?:^|\n)\s*Subject\s*:\s*(.+)$/im);
+    if (sub) out.subject = sub[1].trim();
+    out.emails = t.match(/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/gi) || [];
+    out.tickets = t.match(/\b[A-Z]{2,6}-\d+\b/g) || [];
+    var title = t.match(/\b(?:now|promoted to|title[:\s]+)\s*(Director|VP|Vice President|Manager|Chief[^,\n]{0,40}|CEO|CTO|CFO)\b/i);
+    if (title) out.titleHint = title[1];
+    return out;
+  }
+
+  function chatLinkEl(label, kind, val) {
+    var a = document.createElement("a");
+    a.className = "chat-link";
+    a.href = "#";
+    a.textContent = label;
+    a.setAttribute("data-kind", kind);
+    a.setAttribute("data-val", val);
+    a.addEventListener("click", onChatLink);
+    return a;
+  }
+
+  function onChatLink(ev) {
+    ev.preventDefault();
+    var a = ev.currentTarget;
+    var kind = a.getAttribute("data-kind") || "";
+    var val = a.getAttribute("data-val") || "";
+    var abbr = (currentAccount && currentAccount.abbr) || "";
+    if (kind === "hash") {
+      location.hash = val.charAt(0) === "#" ? val : "#" + val;
+      return;
+    }
+    if (kind === "book") {
+      location.hash = "#account/" + val;
+      return;
+    }
+    if (kind === "compose") {
+      location.hash = "#compose/" + val;
+      return;
+    }
+    if (kind === "ticket") {
+      if (!abbr && currentAccount) abbr = currentAccount.abbr;
+      if (!abbr) return;
+      accountQ = "/ticket " + val;
+      var qEl = $("account-q");
+      if (qEl) qEl.value = accountQ;
+      location.hash = "#account/" + abbr + "/tickets";
+      return;
+    }
+    if (kind === "slash") {
+      if (!abbr) return;
+      var spec = null;
+      var cmd = String(val.replace(/^\//, "").split(/\s+/)[0] || "").toLowerCase();
+      SLASH.forEach(function (s) {
+        if (s.cmd === cmd) spec = s;
+      });
+      accountQ = val.charAt(0) === "/" ? val : "/" + val;
+      var box = $("account-q");
+      if (box) box.value = accountQ;
+      location.hash = "#account/" + abbr + "/" + ((spec && spec.tab) || "timeline");
+      return;
+    }
+    if (kind === "mail" && currentAccount) {
+      openPersonForm(currentAccount, { email: val, name: "", title: "" });
+    }
+  }
+
+  function fillChatBody(el, text) {
+    empty(el);
+    var raw = String(text || "");
+    if (!raw) return;
+    var re = /#\{[A-Za-z0-9][A-Za-z0-9._-]{0,15}\}|#(?:account|compose|help|home|settings)\/[^\s)\]>]+|\/(?:ticket|project|people|email|chat|slack|teams|calendar|sf)\s+[^\s,;]+|\b[A-Z]{2,6}-\d+\b|[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/gi;
+    var last = 0;
+    var m;
+    while ((m = re.exec(raw))) {
+      if (m.index > last) el.appendChild(document.createTextNode(raw.slice(last, m.index)));
+      var tok = m[0];
+      if (tok.charAt(0) === "#" && tok.charAt(1) === "{") {
+        el.appendChild(chatLinkEl(tok, "book", tok.slice(2, -1)));
+      } else if (tok.charAt(0) === "#") {
+        el.appendChild(chatLinkEl(tok, "hash", tok));
+      } else if (tok.charAt(0) === "/") {
+        el.appendChild(chatLinkEl(tok, "slash", tok));
+      } else if (tok.indexOf("@") >= 0) {
+        el.appendChild(chatLinkEl(tok, "mail", tok));
+      } else {
+        el.appendChild(chatLinkEl(tok, "ticket", tok));
+      }
+      last = m.index + tok.length;
+    }
+    if (last < raw.length) el.appendChild(document.createTextNode(raw.slice(last)));
+  }
+
+  function chatOpBtn(label, fn) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "btn btn-ghost";
+    b.textContent = label;
+    b.addEventListener("click", fn);
+    return b;
+  }
+
+  function attachChatOps(turn, text) {
+    var draft = parseChatDraft(text);
+    var abbr = draft.abbr || (currentAccount && currentAccount.abbr) || "";
+    var ops = document.createElement("div");
+    ops.className = "chat-ops";
+    if (abbr) {
+      ops.appendChild(chatOpBtn("Open", function () {
+        if (draft.tickets[0] && abbr) {
+          accountQ = "/ticket " + draft.tickets[0];
+          var qEl = $("account-q");
+          if (qEl) qEl.value = accountQ;
+          location.hash = "#account/" + abbr + "/tickets";
+        } else {
+          location.hash = "#account/" + abbr;
+        }
+      }));
+    }
+    if (abbr || currentAccount) {
+      ops.appendChild(chatOpBtn("Compose", function () {
+        var seed = { to: draft.to.length ? draft.to : [], cc: draft.cc.slice(), subject: draft.subject || "" };
+        if (currentAccount && (currentAccount.abbr || "").toLowerCase() === String(abbr || currentAccount.abbr).toLowerCase()) {
+          if (window.CSMCompose) window.CSMCompose.open(currentAccount, seed);
+          return;
+        }
+        pendingComposeSeed = seed;
+        location.hash = "#compose/" + (abbr || (currentAccount && currentAccount.abbr) || "");
+      }));
+    }
+    if (homeChatId) {
+      ops.appendChild(chatOpBtn("Add note", function () {
+        openChatNotes(text);
+      }));
+    }
+    if ((draft.emails[0] || draft.to[0]) && (currentAccount || abbr)) {
+      ops.appendChild(chatOpBtn(draft.titleHint ? "Update title" : "Add person", function () {
+        var addr = draft.to[0] || draft.emails[0];
+        var hint = { email: addr, name: "", title: draft.titleHint || "" };
+        if (currentAccount) openPersonForm(currentAccount, hint);
+        else location.hash = "#account/" + abbr + "/people";
+      }));
+    }
+    if (!ops.firstChild) return;
+    turn.appendChild(ops);
+  }
+
+  function prettyChatText(text) {
+    var raw = String(text || "").trim();
+    if (!raw) return "";
+    if (raw.charAt(0) !== "[" && raw.charAt(0) !== "{") return String(text || "");
+    try {
+      var data = JSON.parse(raw);
+    } catch (e) {
+      return String(text || "");
+    }
+    if (Array.isArray(data)) {
+      if (!data.length) return "Nothing to show.";
+      if (data[0] && data[0].key) {
+        var open = data.filter(function (row) {
+          return row.status !== "done" && row.status !== "cancelled";
+        });
+        var lines = [open.length + " open ticket" + (open.length === 1 ? "" : "s") + ":"];
+        open.slice(0, 12).forEach(function (row) {
+          lines.push("- " + (row.key || "—") + ": " + (row.summary || "—") + " (" + (row.priority || "—") + " · " + String(row.status || "").replace(/_/g, " ") + ")");
+        });
+        return lines.join("\n");
+      }
+      return data.slice(0, 12).map(function (row) {
+        if (row && typeof row === "object") return "- " + (row.title || row.subject || row.key || JSON.stringify(row));
+        return "- " + row;
+      }).join("\n");
+    }
+    if (data && typeof data === "object") {
+      if (data.error) return String(data.error);
+      if (data.key) return prettyChatText(JSON.stringify([data]));
+    }
+    return String(text || "");
+  }
+
+  function formatAgo(iso) {
+    if (!iso) return "";
+    var at = new Date(iso);
+    if (isNaN(at.getTime())) return "";
+    var sec = Math.round((Date.now() - at.getTime()) / 1000);
+    var future = sec < 0;
+    sec = Math.abs(sec);
+    if (sec < 45) return future ? "in a moment" : "just now";
+    var mins = Math.round(sec / 60);
+    if (mins < 60) {
+      var mlabel = mins === 1 ? "minute" : "minutes";
+      return future ? "in " + mins + " " + mlabel : mins + " " + mlabel + " ago";
+    }
+    var hours = Math.round(mins / 60);
+    if (hours < 24) {
+      var hlabel = hours === 1 ? "hour" : "hours";
+      return future ? "in " + hours + " " + hlabel : hours + " " + hlabel + " ago";
+    }
+    var days = Math.round(hours / 24);
+    var dlabel = days === 1 ? "day" : "days";
+    return future ? "in " + days + " " + dlabel : days + " " + dlabel + " ago";
+  }
+
+  function stampChatWhen(turn, role, at) {
+    if (!turn) return;
+    var old = turn.querySelector(".chat-when");
+    if (old) old.remove();
+    var label = formatAgo(at);
+    if (!label) return;
+    var when = document.createElement("div");
+    when.className = "chat-when";
+    when.textContent = (role === "user" ? "Asked " : "Replied ") + label;
+    var ops = turn.querySelector(".chat-ops");
+    if (ops) turn.insertBefore(when, ops);
+    else turn.appendChild(when);
+  }
+
+  function finishChatMessage(el, text, role) {
+    if (!el) return;
+    var pretty = prettyChatText(text);
+    fillChatBody(el, pretty);
+    var turn = el.parentNode;
+    if (!turn) return;
+    var old = turn.querySelector(".chat-ops");
+    if (old) old.remove();
+    if (role === "assistant") attachChatOps(turn, pretty);
+    stampChatWhen(turn, role, el.getAttribute("data-at"));
+  }
+
+  function openChatNotes(seed) {
+    if (!homeChatId) {
+      toast("Ask something first, then add a note.");
+      return;
+    }
+    var sheet = openSheet("Chat notes");
+    if (!sheet) return;
+    var aid = chatScope && chatScope !== "desk" ? chatScope : ((currentAccount && currentAccount.account_id) || "desk");
+    mountNoteEditor(sheet, { _id: homeChatId, account_id: aid }, "chats");
+    var ta = sheet.querySelector("textarea");
+    if (ta && seed && !(ta.value || "").trim()) ta.value = String(seed || "").slice(0, 400);
+  }
+
+  function appendChat(role, text, at) {
     var log = $("home-chat-log");
     if (!log) return null;
+    var turn = document.createElement("div");
+    turn.className = "chat-turn is-" + role;
     var el = document.createElement("div");
     el.className = "chat-bubble " + role;
-    el.textContent = text || "";
-    log.appendChild(el);
+    el.setAttribute("data-at", at || new Date().toISOString());
+    turn.appendChild(el);
+    log.appendChild(turn);
+    if (text) finishChatMessage(el, text, role);
+    else stampChatWhen(turn, role, el.getAttribute("data-at"));
     log.scrollTop = log.scrollHeight;
     return el;
   }
@@ -2543,6 +2820,7 @@
                 var done = JSON.parse(data);
                 if (done.chat_id) homeChatId = done.chat_id;
               } catch (e) {}
+              if (bubble) finishChatMessage(bubble, acc, "assistant");
             }
           });
           var log = $("home-chat-log");
@@ -3688,7 +3966,7 @@
     loadPeople();
   }
 
-  function mountNoteEditor(sheet, item) {
+  function mountNoteEditor(sheet, item, collection) {
     var wrap = document.createElement("section");
     wrap.className = "note-block";
     var h = document.createElement("h3");
@@ -3741,7 +4019,7 @@
         body: JSON.stringify({
           account_id: aid,
           body: text,
-          ref: { collection: "activities", id: item._id },
+          ref: { collection: collection || "activities", id: item._id },
           author: (status.operator && status.operator.name) || "you",
         }),
       }).then(function () {
@@ -3765,7 +4043,8 @@
 
   function threadRow(item) {
     var row = rowEl((item.message_count || 0) + " msgs", item.subject || "", (item.last_at || "").replace("T", " ").slice(0, 16));
-    row.classList.add("is-click");
+    row.classList.add("is-click", "has-avatar");
+    row.insertBefore(avatarEl(item.subject || "Mail"), row.firstChild);
     if (item._id) row.setAttribute("data-doc-id", item._id);
     row.addEventListener("click", function () {
       if (!item._id) return;
@@ -4423,7 +4702,8 @@
     var right = item.email || "";
     if (item.location) right = (right ? right + " · " : "") + item.location;
     var row = rowEl(item.role || item.kind || "", mid, right);
-    row.classList.add("is-click");
+    row.classList.add("is-click", "has-avatar");
+    row.insertBefore(avatarEl(item.name || item.email || "?"), row.firstChild);
     var extra = document.createElement("div");
     extra.className = "row-meta";
     if (item.owns_all_projects) {
@@ -4444,7 +4724,8 @@
       chip.textContent = fn;
       extra.appendChild(chip);
     });
-    if (extra.firstChild && row.children[1]) row.children[1].appendChild(extra);
+    var titleCol = row.querySelector(".row-title");
+    if (extra.firstChild && titleCol && titleCol.parentNode) titleCol.parentNode.appendChild(extra);
     if (acct) {
       row.addEventListener("click", function (ev) {
         ev.preventDefault();
@@ -4552,6 +4833,39 @@
     return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
   }
 
+  var AVATAR_TONES = [
+    ["#ecebfe", "#5c5fd4"],
+    ["#ffe8d6", "#c65d12"],
+    ["#d8f5ed", "#178066"],
+    ["#dceefc", "#1573ab"],
+    ["#fde2ea", "#b81d5a"],
+    ["#fff1cc", "#9a6b00"],
+    ["#e7e4ff", "#6d3ccf"],
+  ];
+
+  function avatarTone(seed) {
+    var s = String(seed || "");
+    var n = 0;
+    var i;
+    for (i = 0; i < s.length; i++) n += s.charCodeAt(i) * (i + 3);
+    return AVATAR_TONES[n % AVATAR_TONES.length];
+  }
+
+  function paintAvatar(el, seed) {
+    var tone = avatarTone(seed);
+    el.style.background = tone[0];
+    el.style.color = tone[1];
+    return el;
+  }
+
+  function avatarEl(name) {
+    var el = document.createElement("span");
+    el.className = "avatar";
+    el.setAttribute("aria-hidden", "true");
+    el.textContent = initials(name);
+    return paintAvatar(el, name);
+  }
+
   function fillOrgChart(pane, acct) {
     fillOrgSubs(pane, acct, "orgchart");
     return api(peopleUrl(acct)).then(function (data) {
@@ -4617,6 +4931,7 @@
     av.className = "org-avatar";
     av.setAttribute("aria-hidden", "true");
     av.textContent = initials(person.name);
+    paintAvatar(av, person.name || person._id || "");
     var text = document.createElement("div");
     var name = document.createElement("div");
     name.className = "org-name";
@@ -4953,35 +5268,182 @@
 
   function closeHelpItem(el) {
     if (!el) return;
-    el.classList.remove("is-open");
-    var b = el.querySelector(".help-q");
-    var a = el.querySelector(".help-a");
-    var ic = el.querySelector(".help-q-icon");
-    if (b) b.setAttribute("aria-expanded", "false");
-    if (a) a.hidden = true;
-    if (ic) ic.textContent = "+";
+    el.classList.remove("is-jump", "is-open");
   }
 
   function openHelpItem(el) {
     if (!el) return;
-    el.classList.add("is-open");
-    var b = el.querySelector(".help-q");
-    var a = el.querySelector(".help-a");
-    var ic = el.querySelector(".help-q-icon");
-    if (b) b.setAttribute("aria-expanded", "true");
-    if (a) a.hidden = false;
-    if (ic) ic.textContent = "−";
+    el.classList.add("is-jump", "is-open");
+  }
+
+  function helpBlob() {
+    var parts = [];
+    var i;
+    for (i = 0; i < arguments.length; i++) parts.push(String(arguments[i] || ""));
+    return parts.join(" ").toLowerCase();
+  }
+
+  function helpTextOf(item) {
+    var bits = [item && item.h, item && item.p];
+    ((item && item.blocks) || []).forEach(function (b) {
+      if (!b) return;
+      if (b.h3) bits.push(b.h3);
+      if (b.p) bits.push(b.p);
+      if (b.ul) bits.push((b.ul || []).join(" "));
+    });
+    return bits.join(" ");
+  }
+
+  function appendHelpAnswer(ans, item) {
+    var blocks = (item && item.blocks) || [];
+    if (!blocks.length) {
+      if (item && item.p) {
+        var only = document.createElement("p");
+        only.textContent = item.p;
+        ans.appendChild(only);
+      }
+      return;
+    }
+    blocks.forEach(function (b) {
+      if (!b) return;
+      if (b.h3) {
+        var sub = document.createElement("h3");
+        sub.className = "help-sub";
+        sub.textContent = b.h3;
+        ans.appendChild(sub);
+      }
+      if (b.p) {
+        var p = document.createElement("p");
+        p.textContent = b.p;
+        ans.appendChild(p);
+      }
+      if (b.ul && b.ul.length) {
+        var ul = document.createElement("ul");
+        ul.className = "help-ul";
+        b.ul.forEach(function (line) {
+          var li = document.createElement("li");
+          li.textContent = line;
+          ul.appendChild(li);
+        });
+        ans.appendChild(ul);
+      }
+    });
+  }
+
+  function filterHelp(raw) {
+    var box = $("help-body");
+    var emptyEl = $("help-empty");
+    var chips = $("help-chips");
+    if (!box) return;
+    var q = String(raw || "").toLowerCase().trim();
+    var any = false;
+    box.querySelectorAll(".help-group").forEach(function (sec) {
+      var titleHit = !q || (sec.getAttribute("data-title") || "").indexOf(q) >= 0;
+      var shown = 0;
+      sec.querySelectorAll(".help-item").forEach(function (item) {
+        var hit = !q || titleHit || (item.getAttribute("data-search") || "").indexOf(q) >= 0;
+        item.hidden = !!q && !hit;
+        if (hit) shown += 1;
+      });
+      var vis = !q || shown > 0;
+      sec.hidden = !vis;
+      if (vis) any = true;
+      var countEl = sec.querySelector(".help-count");
+      if (countEl) countEl.textContent = String(shown);
+      var chip = chips ? chips.querySelector('[data-help-group="' + (sec.id || "").replace("help-", "") + '"]') : null;
+      if (chip) chip.hidden = !vis;
+    });
+    if (emptyEl) emptyEl.hidden = any;
   }
 
   function applyHelpTopic(topic) {
     var box = $("help-body");
     if (!box) return;
-    box.querySelectorAll(".help-item.is-open").forEach(closeHelpItem);
+    box.querySelectorAll(".help-item.is-jump, .help-item.is-open").forEach(closeHelpItem);
     var jump = topic ? $("help-" + topic) : null;
-    if (jump) {
-      openHelpItem(jump);
-      jump.scrollIntoView({ block: "start", behavior: "smooth" });
+    if (!jump) return;
+    var search = $("help-search");
+    if (search && search.value) {
+      search.value = "";
+      filterHelp("");
     }
+    if (jump.classList.contains("help-group")) {
+      jump.scrollIntoView({ block: "start", behavior: "smooth" });
+      var first = jump.querySelector(".help-item");
+      if (first) openHelpItem(first);
+      return;
+    }
+    openHelpItem(jump);
+    jump.scrollIntoView({ block: "start", behavior: "smooth" });
+  }
+
+  function bindHelpSearch() {
+    var search = $("help-search");
+    if (!search || search.getAttribute("data-bound") === "1") return;
+    search.setAttribute("data-bound", "1");
+    search.addEventListener("input", function () {
+      filterHelp(search.value);
+    });
+  }
+
+  function paintHelp(data) {
+    var box = $("help-body");
+    var chips = $("help-chips");
+    if (!box) return;
+    empty(box);
+    if (chips) empty(chips);
+    (data.groups || []).forEach(function (g) {
+      var gid = g.id || "";
+      var items = g.items || [];
+      var sec = document.createElement("section");
+      sec.className = "help-group";
+      sec.id = "help-" + gid;
+      var groupSearch = [g.title];
+      var h = document.createElement("h2");
+      var title = document.createElement("span");
+      title.textContent = g.title || "";
+      var count = document.createElement("span");
+      count.className = "help-count";
+      count.textContent = String(items.length);
+      h.appendChild(title);
+      h.appendChild(count);
+      sec.appendChild(h);
+      if (chips) {
+        var chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "tab";
+        chip.setAttribute("data-help-group", gid);
+        chip.textContent = g.title || "";
+        chip.addEventListener("click", function () {
+          location.hash = "#help/" + gid;
+        });
+        chips.appendChild(chip);
+      }
+      items.forEach(function (item) {
+        var wrap = document.createElement("div");
+        wrap.className = "help-item";
+        wrap.id = "help-" + (item.id || "");
+        wrap.setAttribute("data-search", helpBlob(g.title, helpTextOf(item)));
+        groupSearch.push(helpTextOf(item));
+        var q = document.createElement("h3");
+        q.className = "help-q";
+        var qText = document.createElement("span");
+        qText.className = "help-q-text";
+        qText.textContent = item.h || "";
+        q.appendChild(qText);
+        var ans = document.createElement("div");
+        ans.className = "help-a";
+        appendHelpAnswer(ans, item);
+        wrap.appendChild(q);
+        wrap.appendChild(ans);
+        sec.appendChild(wrap);
+      });
+      sec.setAttribute("data-title", helpBlob(g.title));
+      sec.setAttribute("data-search", helpBlob.apply(null, groupSearch));
+      box.appendChild(sec);
+    });
+    bindHelpSearch();
+    filterHelp(($("help-search") && $("help-search").value) || "");
   }
 
   function loadHelp(topic) {
@@ -4991,52 +5453,7 @@
       return;
     }
     api("/api/help").then(function (data) {
-      if (!box) box = $("help-body");
-      if (!box) return;
-      empty(box);
-      (data.groups || []).forEach(function (g) {
-        var gid = g.id || "";
-        var sec = document.createElement("section");
-        sec.className = "help-group";
-        sec.id = "help-" + gid;
-        var h = document.createElement("h2");
-        h.textContent = g.title || "";
-        sec.appendChild(h);
-        (g.items || []).forEach(function (item) {
-          var wrap = document.createElement("div");
-          wrap.className = "help-item";
-          wrap.id = "help-" + (item.id || "");
-          var btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = "help-q";
-          btn.setAttribute("aria-expanded", "false");
-          var q = document.createElement("span");
-          q.className = "help-q-text";
-          q.textContent = item.h || "";
-          var icon = document.createElement("span");
-          icon.className = "help-q-icon";
-          icon.setAttribute("aria-hidden", "true");
-          icon.textContent = "+";
-          btn.appendChild(q);
-          btn.appendChild(icon);
-          var ans = document.createElement("div");
-          ans.className = "help-a";
-          ans.hidden = true;
-          var p = document.createElement("p");
-          p.textContent = item.p || "";
-          ans.appendChild(p);
-          btn.addEventListener("click", function () {
-            var wasOpen = wrap.classList.contains("is-open");
-            box.querySelectorAll(".help-item.is-open").forEach(closeHelpItem);
-            if (!wasOpen) openHelpItem(wrap);
-          });
-          wrap.appendChild(btn);
-          wrap.appendChild(ans);
-          if (topic && (topic === item.id || topic === gid)) openHelpItem(wrap);
-          sec.appendChild(wrap);
-        });
-        box.appendChild(sec);
-      });
+      paintHelp(data);
       helpReady = true;
       applyHelpTopic(topic);
     });

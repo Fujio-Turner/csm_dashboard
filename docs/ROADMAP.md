@@ -1,7 +1,7 @@
 # CSM Dashboard roadmap
 
-> Living train map · last updated **2026-08-29** (0.1.92 overlay: Tagify chips, inbox who-stamps, store paging)  
-> **Current baseline:** `0.1.92` · Apache License 2.0
+> Living train map · last updated **2026-08-29** (0.1.98 overlay: human chat)  
+> **Current baseline:** `0.1.98` · Apache License 2.0
 
 This file answers **what ships when**. Design depth lives in [`DESIGN.md`](DESIGN.md).
 
@@ -18,11 +18,12 @@ The desk stays **one operator, one machine, Couchbase Lite JSON documents**. Big
 | HTTP contract | [`openapi.yaml`](openapi.yaml) · [`guides/OPENAPI.md`](../guides/OPENAPI.md) |
 | Documents | [`schema/`](../schema/) · [`guides/SCHEMA.md`](../guides/SCHEMA.md) |
 | Desk UI | [`guides/HTML_CSS.md`](../guides/HTML_CSS.md) |
+| Desk chat targets | [`AI_CHAT_IDEAS.md`](AI_CHAT_IDEAS.md) |
 | Version | `src/csm_dashboard/__init__.py` `__version__` |
 
 ---
 
-## 1. Shipped now (0.1.92)
+## 1. Shipped now (0.1.98)
 
 | Area | State |
 | --- | --- |
@@ -33,13 +34,14 @@ The desk stays **one operator, one machine, Couchbase Lite JSON documents**. Big
 | Deep links | `#account/{abbr}/{tab}/id={id}` opens the matching meeting, mail, chat, or task lightbox |
 | Inbox | Mail, Slack, Teams, **tasks** (self-emails). Filter All / Email / Slack / Tasks / Teams. `+` creates a task. Far-right stamp is who it is **to**: Me / Us / Them / All / ?? / n/a. Lists page in the store (COUNT + LIMIT, no `body_text` on mail lists). |
 | World clock | Globe lightbox. Add / remove / reorder zones. Persists in CBL `settings.world_clock` |
-| Appearance | Settings → User Preferences: Day / Night / Auto. Sidebar sun/moon toggle. `html[data-theme]` |
+| Appearance | Settings → User Preferences: Day / Night / Auto. Sidebar sun/moon toggle. `html[data-theme]`. Pale page, periwinkle primary, Quicksand, initials avatars on people/mail, bubble desk chat |
+| Help | Search `#help-search`. Group tiles. Questions are **How do I…** with headings and bullets. `#help/{id}` highlights |
 | Account | Timeline, tickets, mail, **slack / teams** (one tab), Salesforce, calendar, **projects CRUD**, people, org chart, account team |
 | Timeline | Vertical (future top, oldest bottom) or Horizontal (past left, future right). Red **Now** line + **Now** button. Past 7 / 30 and Next 7 / 30 bound the window. Horizontal range labels are spine text so the rail stays narrow |
 | People | Add / Edit person sheet (`#detail-box` `.sheet-person`). Kind / Reports to are search-select. **Projects** and **Functions** are Tagify chips. Org chart scrolls; the tree is `max-content` so the left edge is not clipped |
 | Projects | Search, type, status, owner from people, group email, Tagify tag chips, remove |
 | Compose | Shared `.mail-composer` (Compose, thread Reply, New task): Tagify To / Cc / Bcc, subject, body, Attach, **AI Suggest**, **Save draft**, **Send**. Compose **Tickets** are Tagify chips; Thread is search-select. SMTP after confirm; 409 `send_not_configured` when SMTP is off. Attachments ride with the send (not stored as blobs). |
-| Chat | Desk / account scoped. Fallback SSE without a key |
+| Chat | Book-scoped or all-accounts (desk). Human replies, not raw JSON. Relative timestamps. History overlay + bookmark. `.chat-ops` Open / Compose / Add note / Add person |
 | Settings / Help | Sectioned operator profile (timezone search-select), companies, AI keys, connectors, lab seed, User Preferences. `GET /api/status` is memoized a few seconds. |
 | Connectors | Live **Jira**, **Slack**, **Teams**, **Gmail**, **Google Calendar**. **SMTP send** (drafts + task self-emails) after confirm when `smtp_imap` is live. Gmail/Calendar use local `credentials.json` plus Sign in with Google. Seed is Lab; Sync no longer replays fixtures. |
 | Credentials | CBL `credentials` collection. Settings → AI keys + connector tokens. GET never returns secret values. Secrets and OAuth client JSON live in gitignored `__local/` |
