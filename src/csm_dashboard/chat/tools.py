@@ -2,70 +2,15 @@ from __future__ import annotations
 
 import json
 
+from csm_dashboard.prompts import load_prompt
+
 
 def get_tools() -> list[dict]:
-    return [
-        {
-            "type": "function",
-            "function": {
-                "name": "get_account",
-                "description": "Get the current account profile",
-                "parameters": {"type": "object", "properties": {}, "additionalProperties": False},
-            },
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "list_tickets",
-                "description": "List open tickets for the account",
-                "parameters": {"type": "object", "properties": {}, "additionalProperties": False},
-            },
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "list_emails",
-                "description": "List recent emails for the account",
-                "parameters": {"type": "object", "properties": {}, "additionalProperties": False},
-            },
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "list_actions",
-                "description": "List open action items",
-                "parameters": {"type": "object", "properties": {}, "additionalProperties": False},
-            },
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "add_note",
-                "description": "Add an operator note",
-                "parameters": {
-                    "type": "object",
-                    "properties": {"body": {"type": "string"}},
-                    "required": ["body"],
-                },
-            },
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "create_action",
-                "description": "Create a follow-up action (does not send mail)",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "title": {"type": "string"},
-                        "due_on": {"type": "string"},
-                        "kind": {"type": "string"},
-                    },
-                    "required": ["title"],
-                },
-            },
-        },
-    ]
+    spec = load_prompt("desk_tools")
+    tools = spec.get("tools")
+    if not isinstance(tools, list) or not tools:
+        raise ValueError("desk_tools.tools missing")
+    return tools
 
 
 def run_tool(repo, account_id: str, name: str, args: dict) -> str:

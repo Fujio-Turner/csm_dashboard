@@ -129,7 +129,11 @@ def test_project_crud_search_and_owner(client):
     assert patched.status_code == 200
     assert patched.json()["status"] == "blocked"
     assert patched.json()["tags"] == ["scanner", "hot"]
-    gone = client.delete(f"/api/projects/{pid}")
+    blocked = client.delete(f"/api/projects/{pid}")
+    assert blocked.status_code == 400
+    wrong = client.request("DELETE", f"/api/projects/{pid}", json={"confirm": "nope"})
+    assert wrong.status_code == 400
+    gone = client.request("DELETE", f"/api/projects/{pid}", json={"confirm": "Firmware drop"})
     assert gone.status_code == 200
     listed = client.get("/api/projects", params={"account_id": "acct:acme"}).json()["items"]
     assert all(i["_id"] != pid for i in listed)
@@ -178,7 +182,7 @@ def test_home_chat_without_account_id(client):
     with client.stream(
         "POST",
         "/api/chat",
-        json={"message": "Is there any issue with #{ACME}?"},
+        json={"message": "Is there any issue with #ACME?"},
     ) as res:
         assert res.status_code == 200
         body = b"".join(res.iter_bytes()).decode("utf-8")
@@ -281,6 +285,10 @@ def test_people_create_and_project_filter(client):
     assert patched.json()["project_ids"] == ["proj:acme-scan"]
     ops = client.get("/api/people", params={"account_id": "acct:acme", "function": "Ops"}).json()["items"]
     assert any(p["_id"] == "person:acme-pat" for p in ops)
+    everyone = client.get("/api/people").json()["items"]
+    assert len(everyone) > len(ops)
+    assert any(p.get("account_id") == "acct:acme" for p in everyone)
+    assert any(p.get("account_id") != "acct:acme" for p in everyone)
 
 
 def test_activity_tag_project(client):
@@ -325,7 +333,9 @@ def test_account_input_counts_and_quiet(client):
     assert all(i["account_id"] != aid for i in home)
     listed = client.get("/api/accounts?include=all").json()["items"]
     assert any(i["account_id"] == aid and i.get("quiet") for i in listed)
-    gone = client.delete("/api/accounts/" + aid)
+    blocked = client.delete("/api/accounts/" + aid)
+    assert blocked.status_code == 400
+    gone = client.request("DELETE", "/api/accounts/" + aid, json={"confirm": "ACME"})
     assert gone.status_code == 200
     assert client.get("/api/accounts/by-abbr/acme").status_code == 404
 
@@ -355,6 +365,45 @@ PNG_1PX = (
     "data:image/png;base64,"
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
 )
+
+
+def test_reprocess_fixes_domain_typo(client, repo):
+    repo.create_account(
+        {
+            "name": "Acme",
+            "slug": "acme-repro",
+            "abbr": "ACMER",
+            "color": "#0B3D91",
+            "domains": ["accme.com"],
+            "coverage": {"mode": "new", "feeds": ["google_mail"]},
+        }
+    )
+    repo.upsert_email(
+        {
+            "from_addr": "pat@acme.com",
+            "to_addrs": ["you@example.com"],
+            "subject": "Hello",
+            "body_text": "hi",
+            "message_id": "<typo-acme@test>",
+            "sent_at": "2026-09-01T12:00:00Z",
+        }
+    )
+    before = client.get("/api/emails", params={"account_id": "acct:acme-repro"}).json()
+    assert (before.get("total") or 0) == 0
+    missing = client.post("/api/accounts/acct:nope/reprocess", json={"feeds": []})
+    assert missing.status_code == 404
+    res = client.post(
+        "/api/accounts/acct:acme-repro/reprocess",
+        json={"domains": ["acme.com"], "feeds": []},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["account"]["domains"] == ["acme.com"]
+    assert body["reattached"]["emails"] >= 1
+    assert body["jobs"] == []
+    after = client.get("/api/emails", params={"account_id": "acct:acme-repro"}).json()
+    assert after["total"] >= 1
+    assert any(r.get("subject") == "Hello" for r in after["items"])
 
 
 def test_account_logo_upload(client):
@@ -394,6 +443,17 @@ def test_operator_and_provider_test(client):
     assert status["operator"]["email"] == "bob@abc.com"
     assert status["operator"]["timezone"] == "America/New_York"
     assert "abc.com" in status["operator"]["domains"]
+    assert status["operator"]["persona"] == "csm"
+    flavored = client.put(
+        "/api/settings",
+        json={"operator": {"persona": "sales", "intent": "Stay at account level. Call out upsell only from this book."}},
+    )
+    assert flavored.status_code == 200
+    again = client.get("/api/status").json()
+    assert again["operator"]["persona"] == "sales"
+    assert "account level" in again["operator"]["intent"]
+    ids = {row["id"] for row in (again.get("personas") or [])}
+    assert {"sales", "tam", "csm"} <= ids
     bad = client.put(
         "/api/settings",
         json={"operator": {"timezone": "Not/AZone"}},

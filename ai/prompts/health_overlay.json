@@ -1,7 +1,10 @@
 {
   "id": "health_overlay",
   "title": "Health overlay",
-  "used_by": "src/csm_dashboard/health/engine.py",
+  "kind": "prompt",
+  "source": "core",
+  "used_by": "",
+  "when": "Parked. Narrative overlay on a rules health score. Must not change the number.",
   "system": "Optional narrative overlay on a rules health score. Do not change the number. Output JSON {\"summary\": \"\"}.",
   "user_template": "{payload}"
 }

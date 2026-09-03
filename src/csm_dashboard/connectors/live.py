@@ -9,6 +9,18 @@ from csm_dashboard.credentials import connector_auth, connector_cred_name, oauth
 from csm_dashboard.storage.repo import utcnow
 
 
+LOOKBACK_CHOICES = (14, 90, 365)
+
+
+def lookback_days(account: dict | None, *, default: int = 14) -> int:
+    raw = ((account or {}).get("coverage") or {}).get("lookback_days")
+    try:
+        days = int(raw)
+    except (TypeError, ValueError):
+        days = default
+    return days if days in LOOKBACK_CHOICES else default
+
+
 def since_iso(since: str | None, *, days: int = 14) -> str:
     raw = str(since or "").strip()
     if raw:

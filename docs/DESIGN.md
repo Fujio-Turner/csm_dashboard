@@ -6,9 +6,9 @@
 | **Author** | Fujio Turner |
 | **Date** | 2026-08-17 |
 | **Status** | Draft |
-| **Version (product)** | 0.1.0 first-ship lock · **living desk is 0.1.96** — see [`ROADMAP.md`](ROADMAP.md) |
+| **Version (product)** | 0.1.0 first-ship lock · **living desk is 0.1.126** — see [`ROADMAP.md`](ROADMAP.md) |
 | **License** | Apache License, Version 2.0 (Copyright 2026 Fujio Turner; contact mail@fuj.io) |
-| **Repo (locked)** | `/Users/fujioturner/Documents/git_folders/fujio-turner/csm_dashboard` |
+| **Repo (locked)** | this repository (standalone; not a mode of another product) |
 | **Not** | A Salesforce / Gainsight replacement. Local single-operator desk. |
 
 ---
@@ -19,25 +19,32 @@ Customer Success Managers live in five tabs — Jira, Gmail / Outlook, Slack, Ca
 
 **csm_dashboard** is a laptop product: one operator, one process, one Couchbase Lite Community 4.0.3 file. Stack: Python 3.11+, FastAPI, vanilla IIFE JS, ctypes `libcblite`, Grok at `https://api.x.ai/v1`, Apache License 2.0. Official Couchbase Lite has no Python SDK — the ctypes wrapper lives in this repo (`src/csm_dashboard/storage/cblite.py`). Do not add Enterprise vector-index binds (Community pin).
 
-v0.1 shipped a working desk on **seed fixtures + connector stubs**. **Living product (0.1.94):** live Jira / Slack / Teams / Gmail / Calendar, SMTP send after confirm, Agenda Day/Week/Month, timeline Now, slack / teams tab, Tagify chips on multi-value fields, inbox **Me / Us / Them / All / ?? / n/a** stamps, store paging (`COUNT` + `LIMIT`, slim list DTOs), a soft periwinkle desk chrome (Quicksand, pastel avatars, bubble chat), and Help as searchable group tiles. IMAP / Zendesk / Pydantic AI still sit on [`ROADMAP.md`](ROADMAP.md). This file remains the original v0.1 design lock — where it says send is `409 send_disabled_v0_1`, the desk now uses `send_not_configured` when SMTP is off and delivers when SMTP is live. See **Living desk overlay** below for what landed after the lock.
+v0.1 shipped a working desk on **seed fixtures + connector stubs**. **Living product (0.1.126):** live Jira / Slack / Teams / Gmail / Calendar, Gmail send + Gmail Drafts (and SMTP when that connector is live) after confirm, Agenda Day/Week/Month, timeline Now, slack / teams tab, Tagify chips on multi-value fields, inbox **Me / Us / Them / All / ?? / n/a** stamps, store paging (`COUNT` + `LIMIT`, slim list DTOs), a soft periwinkle desk chrome (Quicksand, pastel avatars, bubble chat), Help as searchable group tiles, desk-chat `/people` + `/ticket` bounds, Settings persona + intent on every AI prompt, slim Reply AI Suggest, optional auto-draft to Gmail Drafts, and people-tab badges that match the list. IMAP / Zendesk / Pydantic AI still sit on [`ROADMAP.md`](ROADMAP.md). This file remains the original v0.1 design lock — where it says send is `409 send_disabled_v0_1`, the desk now uses `send_not_configured` / `google_send_reconnect` when a send path is off and delivers when Gmail or SMTP is live. See **Living desk overlay** below for what landed after the lock.
 
-### Living desk overlay (0.1.94)
+### Living desk overlay (0.1.126)
 
 The sections below stay the v0.1 lock. These are the post-lock facts agents should follow:
 
 | Area | Now |
 | --- | --- |
-| **Send** | SMTP after confirm. `409 send_not_configured` when SMTP is off. Bcc + attachments (5 MB × 8) ride with send. |
-| **Compose** | One `.mail-composer` for Compose, thread Reply, and New task: Tagify To / Cc / Bcc, Attach, **AI Suggest**, Save draft, Send. |
+| **Send** | Gmail after confirm when `gmail.send` is granted; else SMTP. `409 google_send_reconnect` / `send_not_configured` when the path is off. Bcc + attachments (5 MB × 8) ride with send. Save draft also writes Gmail Drafts when `gmail.compose` is granted. |
+| **Compose** | One `.mail-composer` for Compose, thread Reply, and New task: Tagify To / Cc / Bcc, Attach, **AI Suggest**, Save draft, Send. In-sheet `.mail-status`. AI Suggest shows **Drafting…** plus a spinner until Grok returns. |
 | **Multi-value fields** | Tagify chips (`mountTagifyMulti`): person Projects / Functions, project tags, compose Tickets, company domains / connector lists. Search-select is **single-value** only (timezone, Kind, Reports to, Thread, Task name). |
 | **Inbox who-stamp** | Far right of each Agenda inbox row: **Me** / **Us** / **Them** / **All** / **??** / **n/a** (`inbox_audience` in `repo.py`, `.agenda-who` in CSS). Computed at read time from To/Cc/Bcc + people/domains, or from Slack/Teams channel vs DM. Not a stored field. |
 | **Store paging** | `storage/paging.py` + `CBLStore`/`MemoryStore.page_account` / `count_account`. Lists use `WHERE` + `ORDER BY` + `LIMIT`. Do **not** `SELECT *` a whole book then slice in Python. Timeline already did this; mail, chat, tickets, calendar, and tab counts follow. |
 | **Slim lists** | `GET /api/emails` omits `body_text`. `GET /api/tickets` omits `comments`. Thread `?include=messages` and `GET` by id still return the full doc. Inbox/home agenda use snippets only. |
-| **Cached rollups** | `accounts.stats` and `accounts.input_counts` are caches (`refreshed_at`), never SoT. Seed uses `begin_bulk` / `end_bulk`. Live ingest calls `_touch_rollup` (COUNT + stats) when the account exists. |
+| **Cached rollups** | `accounts.stats` and `accounts.input_counts` are caches (`refreshed_at`), never SoT. Seed uses `begin_bulk` / `end_bulk`. Live ingest, person create/patch, and project create/delete call `_touch_rollup`. `expand_account` recomputes counts and persists if a badge is stale. |
 | **`/api/status`** | 5 s in-process memo; invalidate on settings/keys writes. |
-| **CDN** | Quicksand + Tagify `@yaireo/tagify@4.32.2`. Still no Leaflet, ECharts, or a second email-composer kit. |
+| **CDN** | Quicksand + Tagify `@yaireo/tagify@4.32.2` + Fuse.js 7.x for Help. Still no Leaflet, ECharts, or a second email-composer kit. |
 | **Desk chrome** | Pale page, white floating cards, periwinkle `--accent` `#7d80f5`, selected tabs match the primary, people/mail rows use initials avatars, desk chat is bubble-shaped. Night keeps the same primary. |
-| **Help** | `#help-search` filters. Groups are 2-col tiles. Questions are How-do-I with `.help-sub` headings and bullets (`blocks` in `prompts/help.json`). `#help/{id}` highlights. |
+| **Help** | `#help-search` filters with Fuse.js (typo-tolerant). Groups are 2-col tiles. Questions are How-do-I with `.help-sub` headings and bullets (`blocks` in `ai/prompts/help.json`). Matches wrap in `mark.help-mark`. `#help/{id}` highlights. |
+| **Desk chat tags** | `#ACME` picks a company on **Home only**. Book chat stays on that account — `#` does not list other books. `/people bob` and `/ticket ACME-12` **bound** a question and **chain**. `@bob` is talk-to. Type `#` / `@` / `/` for autocomplete (`.chat-mention-menu`). Parser: `chat/mentions.py` (`parse_slash_bounds`, `#name` plus legacy `#{ACME}`). |
+| **Operator persona** | Settings → You: `#op-persona` + `#op-intent`. Presets in `ai/prompts/operator_persona.json`. Saved intent is appended to every `prompt_system()` (chat, compose, task assist, weekly report). `{operator_name}` / `{operator_email}` inject from the CBL operator profile, then `config.json` seed. `?` `.field-tip` explains that this customizes AI answers. |
+| **Reply AI Suggest** | `POST /api/threads/{id}/suggest-reply` builds `mode=reply` compose context: this thread (newest tail), inbound last message, health score/status, open tickets/people/actions. No Slack/Teams/calendar dump, no team/contract blob. Cap `REPLY_MAX_CHARS` (8k). Returns `context_chars`. |
+| **Auto-draft** | `coverage.auto_draft_replies` (default false). Inbound To: operator, not Cc-only, not noreply → Grok reply saved as a Gmail Draft. Never sends. |
+| **Inbox Me stamp** | Who-stamp **Me** uses `--low` (red), not `--accent`. |
+| **Remove confirm** | Company / project Remove is type-to-confirm (`#confirm-box`), not `window.confirm`. |
+| **GET /api/people** | `account_id` **optional**. Omit to list people on every book (Home chat `@` / `/people`). |
 | **Desk chat targets** | Operator questions + bubble actions (Open, Compose To/Cc, Add note, Add person, title sniff): [`AI_CHAT_IDEAS.md`](AI_CHAT_IDEAS.md). |
 
 Files: `storage/paging.py`, `tests/test_paging.py`, `tests/test_inbox_audience.py`.
@@ -63,7 +70,7 @@ This is a **post-sale** desk. A field-sales finder (zip / map / motions / `place
 1. **Context switching.** Color chip + 2–6 char `abbr` on every row so the operator never replies to ACME from a NORTHWIND thread.
 2. **Blind compose.** Drafts are built from ticket summaries + thread tail + Slack snippets + recent calendar, not from memory.
 3. **Invisible follow-ups.** Action items are first-class (`action_items`), not regex on notes (sales_ops constraint 7: “Do not grow CRM on note regex”).
-4. **Friday reports.** `prompts/weekly_report.json` + archived `reports` docs.
+4. **Friday reports.** `ai/prompts/weekly_report.json` + archived `reports` docs.
 
 ### Bind address
 
@@ -81,7 +88,7 @@ Listen on **`127.0.0.1:8788`**. Database file: `data/csm_dashboard.cblite2`.
 - CBL CE 4.0.3 via a **copied** ctypes wrapper (`src/csm_dashboard/storage/cblite.py` + `cbl_store.py` + `errors.py` + `memory.py`). Pin Community in `cblite_config.json`.
 - JSON Schema 2020-12 under `schema/`. Hand-maintained OpenAPI 3.1 at `docs/openapi.yaml`.
 - Connector **protocol + stub/fixture pull**. Seed 3 fake enterprise accounts with tickets, threads, Slack, calendar, a PS project, people, and actions.
-- Grok surfaces behind `prompts/*.json`. If `XAI_API_KEY` is absent, compose/report use template fallbacks; chat streams a static SSE fallback and still writes a `chats` doc (not HTTP 400).
+- Grok surfaces behind `ai/prompts/*.json` (see `ai/prompts/CATALOG.md`). If `XAI_API_KEY` is absent, compose/report use template fallbacks; chat streams a static SSE fallback and still writes a `chats` doc (not HTTP 400).
 - First-party operator fields (`unread`, `triage`, `pin`, `prep_note`) are **writable** via `PATCH /api/.../operator` in v0.1.
 - Drafts persist; **v0.1 lock:** send returns `409`. **Living desk:** SMTP after confirm; `409 send_not_configured` when SMTP is off.
 - Default listen **`127.0.0.1:8788`**. `make ci` = `compileall` + `node --check` + pytest.
@@ -132,7 +139,7 @@ CsmRepo  (Store Protocol)
     └── MemoryStore (unit tests; same Protocol)
 ```
 
-One process owns the `.cblite2` file. Writes are serialized with `threading.RLock` exactly as [`CBLStore`](/Users/fujioturner/Documents/git_folders/fujio-turner/sales_ops/src/sales_ops/storage/cbl_store.py) does. Lists and filters are **SQL++** (`WHERE` + `ORDER BY` + interpolated `LIMIT`/`OFFSET`). Parameterized `LIMIT` fails on this CE build — sales_ops already clamps ints and inlines them; copy that rule.
+One process owns the `.cblite2` file. Writes are serialized with `threading.RLock` exactly as the `CBLStore` in the separate `sales_ops` desk does. Lists and filters are **SQL++** (`WHERE` + `ORDER BY` + interpolated `LIMIT`/`OFFSET`). Parameterized `LIMIT` fails on this CE build — sales_ops already clamps ints and inlines them; copy that rule.
 
 ```mermaid
 flowchart LR
@@ -208,7 +215,8 @@ csm_dashboard/
   guides/SCHEMA.md
   guides/LOGGING.md
   schema/*.schema.json
-  prompts/*.json
+  prompts/*.json              # legacy; loader prefers ai/prompts/
+  ai/prompts/*.json           # Grok system text, Help UI, operator personas
   fixtures/seed/              # ACME, NORTHWIND, GLOBEX
   src/csm_dashboard/
     __init__.py               # __version__ = "0.1.0"
@@ -277,7 +285,7 @@ csm_dashboard/
 
 ### Boot
 
-Pattern [`sales_ops/src/sales_ops/__main__.py`](/Users/fujioturner/Documents/git_folders/fujio-turner/sales_ops/src/sales_ops/__main__.py) + [`web/app.py` `lifespan`](/Users/fujioturner/Documents/git_folders/fujio-turner/sales_ops/src/sales_ops/web/app.py):
+Pattern from the separate `sales_ops` desk (`__main__.py` + `web/app.py` lifespan):
 
 ```python
 # src/csm_dashboard/__main__.py
@@ -354,7 +362,8 @@ Same split as sales_ops `config.py` (`load_settings` / `load_secrets` / `save_se
 | Env | secrets.json key | Purpose |
 | --- | --- | --- |
 | `XAI_API_KEY` | `xai_api_key` | Grok |
-| `CSM_DASHBOARD_PORT` | — | override port |
+| `CSM_DASHBOARD_PORT` | — | listen port (Docker: 5000 inside the container) |
+| `CSM_DASHBOARD_PUBLIC_PORT` | — | browser / OAuth callback port when it differs from listen (Docker: 5001 on the laptop) |
 | `CSM_DASHBOARD_BIND` | — | override `server.host`. Default `127.0.0.1`. Set `0.0.0.0` to listen on LAN (logged, no auth). |
 | `CSM_DASHBOARD_DB_PATH` | — | override db path |
 | `CSM_DASHBOARD_SECRETS` | — | override secrets path |
@@ -431,7 +440,7 @@ Locked methods (add helpers only if a new collection lands):
 
 ### Docker
 
-Clone [`sales_ops/Dockerfile`](/Users/fujioturner/Documents/git_folders/fujio-turner/sales_ops/Dockerfile) + [`docker-compose.yml`](/Users/fujioturner/Documents/git_folders/fujio-turner/sales_ops/docker-compose.yml):
+Clone the `sales_ops` desk `Dockerfile` + `docker-compose.yml` (separate repo):
 
 - `FROM python:3.12-slim`
 - Read `cblite_config.json` (`version=4.0.3`, `edition=community`, `platform=linux-x86_64`)
@@ -439,9 +448,9 @@ Clone [`sales_ops/Dockerfile`](/Users/fujioturner/Documents/git_folders/fujio-tu
 - `CBLITE_LIB_PATH=/opt/cblite/lib/x86_64-linux-gnu/libcblite.so`
 - `CSM_DASHBOARD_DB_PATH=/data/csm_dashboard.cblite2`
 - **Also `COPY`** (sales_ops Dockerfile omits fixtures — do not clone that gap): `COPY fixtures /app/fixtures`, `COPY prompts /app/prompts`, plus `src`, `schema`, `docs`, `guides`, `config.example.json`, `cblite_config.json`
-- `EXPOSE 8788`
+- `EXPOSE 5000`
 - `CMD ["python", "-m", "csm_dashboard"]`
-- compose: `platform: linux/amd64`, publish **`127.0.0.1:${CSM_DASHBOARD_PORT:-8788}:8788`** (not `8788:8788` — that would expose PII on the LAN), volume `./data:/data`, `config.json` ro-mount, healthcheck `urllib.request.urlopen('http://127.0.0.1:8788/healthz')`
+- compose: `platform: linux/amd64`, publish **`127.0.0.1:${CSM_DASHBOARD_PUBLIC_PORT:-5001}:${CSM_DASHBOARD_PORT:-5000}`** (loopback only — not `5001:5000` on `0.0.0.0`, that would expose PII on the LAN). `CSM_DASHBOARD_PORT` is the listen port inside the container; `CSM_DASHBOARD_PUBLIC_PORT` is the laptop browser / OAuth callback port. Volume `./data:/data`, `config.json` ro-mount, `__local/credentials.json` → `/app/credentials.json`, healthcheck hits `127.0.0.1:$CSM_DASHBOARD_PORT/healthz`.
 - Resolve trees at runtime from `ROOT` (same as sales_ops finds `docs/openapi.yaml`): `prompts_dir()` / `fixtures_dir()` walk parents or honor `CSM_DASHBOARD_PROMPTS` / `CSM_DASHBOARD_FIXTURES`. Do not rely on setuptools package-data for fixtures/prompts.
 
 Apple Silicon runs amd64 because Community libcblite is x86_64 (sales_ops README).
@@ -1197,17 +1206,19 @@ Writes stay inside `CBLStore._lock`. Sync is **in-process** (FastAPI threadpool 
 
 ## AI surfaces (Grok)
 
-Copy the sales_ops prompt loader ([`sales_ops/src/sales_ops/prompts.py`](/Users/fujioturner/Documents/git_folders/fujio-turner/sales_ops/src/sales_ops/prompts.py)): `load_prompt(name)`, mtime cache, `CSM_DASHBOARD_PROMPTS` override, `{operator_name}` / `{operator_email}` injection from config. Same walk-parents pattern for `fixtures_dir()` (`CSM_DASHBOARD_FIXTURES`).
+Copy the sales_ops prompt loader (`prompts.py` in that separate repo): `load_prompt(name)`, mtime cache, `CSM_DASHBOARD_PROMPTS` override, `{operator_name}` / `{operator_email}` injection from config. Same walk-parents pattern for `fixtures_dir()` (`CSM_DASHBOARD_FIXTURES`).
 
 | File | Used by |
 | --- | --- |
-| `prompts/email_draft.json` | Compose |
-| `prompts/next_steps.json` | Account → Propose next steps |
-| `prompts/action_items.json` | Extract actions from context → `action_items` (operator confirms) |
-| `prompts/weekly_report.json` | Reports generate |
-| `prompts/desk_chat.json` | Account coach + Home welcome copy (`/api/status`) |
-| `prompts/help.json` | Help page (`kind: ui`, groups like sales_ops) |
-| `prompts/health_overlay.json` | Optional rescore |
+| `ai/prompts/*.json` | Canonical Grok / Help files. Catalog: [`ai/prompts/CATALOG.md`](../ai/prompts/CATALOG.md) |
+| `ai/prompts/email_draft.json` | Compose |
+| `ai/prompts/next_steps.json` | Parked — propose next steps |
+| `ai/prompts/action_items.json` | Parked — extract actions |
+| `ai/prompts/weekly_report.json` | Reports generate |
+| `ai/prompts/desk_chat.json` | Account coach + Home welcome copy (`/api/status`) |
+| `ai/prompts/desk_tools.json` | Desk-chat function tools |
+| `ai/prompts/help.json` | Help page (`kind: ui`) |
+| `ai/prompts/health_overlay.json` | Parked — optional rescore |
 
 Prompt JSON shape (sales_ops `chat.json`):
 
@@ -1287,7 +1298,7 @@ Never `innerHTML` Grok/report/help HTML. `reports.body_md` and chat tokens rende
 
 ## Operator UI
 
-One page, hash routes, sales_ops chrome: sidebar + workspace + lightbox + toasts. Guides: copy [`sales_ops/guides/HTML_CSS.md`](/Users/fujioturner/Documents/git_folders/fujio-turner/sales_ops/guides/HTML_CSS.md) with CSM names.
+One page, hash routes, sales_ops chrome: sidebar + workspace + lightbox + toasts. Guides: copy `sales_ops/guides/HTML_CSS.md` (separate repo) with CSM names.
 
 ### Views
 
@@ -1383,7 +1394,7 @@ Opening a thread calls `PATCH /api/threads/{id}/operator` `{ "unread": false }`.
 
 ## API / Interface Changes
 
-New product — there is no “before.” Hand-maintained [`docs/openapi.yaml`](docs/openapi.yaml) is SoT (sales_ops [`guides/OPENAPI.md`](/Users/fujioturner/Documents/git_folders/fujio-turner/sales_ops/guides/OPENAPI.md)). FastAPI `/docs` is secondary; if they disagree, **fix the handler**.
+New product — there is no “before.” Hand-maintained [`docs/openapi.yaml`](docs/openapi.yaml) is SoT (see also `guides/OPENAPI.md`). FastAPI `/docs` is secondary; if they disagree, **fix the handler**.
 
 Conventions: prefix `/api/…`, health `/healthz`, spec `/openapi.yaml`. `operationId` camelCase. Lists `{ "items": [...], "total"?: n }`. Errors `{ "detail": "..." }` — 400 validation, 404 missing, 409 conflict (`send_not_configured`, abbr clash), 502 upstream (xAI / SMTP). Do not version URLs (`/api/v2`) until 1.0.
 
@@ -1394,7 +1405,7 @@ Conventions: prefix `/api/…`, health `/healthz`, spec `/openapi.yaml`. `operat
 | GET | `/healthz` | `healthz` | `{ ok, version, cblite: "community" }` |
 | GET | `/openapi.yaml` | `getOpenApiYaml` | file from repo |
 | GET | `/` | — | `index.html`, replace `{{ version }}` |
-| GET | `/api/status` | `getStatus` | version, keys present, models, operator, connector enablement, desk copy |
+| GET | `/api/status` | `getStatus` | version, keys present, models, operator (incl. `persona` / `intent`), `personas` presets, connector enablement, desk copy |
 | GET | `/api/help` | `getHelp` | `help_public()` |
 | PUT | `/api/settings` | `putSettings` | non-secrets only |
 | PUT | `/api/settings/keys` | `putKeys` | `data/secrets.json` |
@@ -1408,7 +1419,7 @@ Conventions: prefix `/api/…`, health `/healthz`, spec `/openapi.yaml`. `operat
 | PATCH | `/api/accounts/{account_id}` | `patchAccount` | first-party fields only; **409** if `slug` changes |
 | POST | `/api/accounts/{account_id}/rescore` | `rescoreAccount` | rules + optional Grok |
 | GET | `/api/accounts/{account_id}/timeline` | `listTimeline` | `since`, `kind`, `limit`, `offset` |
-| GET | `/api/people` | `listPeople` | `account_id` required |
+| GET | `/api/people` | `listPeople` | `account_id` optional (omit = every book) |
 | POST | `/api/people` | `createPerson` | |
 | PATCH | `/api/people/{person_id}` | `patchPerson` | |
 | GET | `/api/projects` | `listProjects` | `account_id` |
@@ -1574,7 +1585,7 @@ Correct if this becomes a team product. v1 load (one writer, hundreds of MB) doe
 | Threat | Severity | Mitigation |
 | --- | --- | --- |
 | OAuth tokens / SMTP passwords in CBL (and later, in a replicator) | **High** | Secrets only in `.env` / `data/secrets.json`. Never on account/ticket/email docs. Never in OpenAPI examples. `PUT /api/settings/keys` writes the file, logs **field names** only (`csm.settings.keys_updated fields=xai_api_key`). |
-| Customer PII in local `.cblite2` (emails, Slack, names) | **High** | Single-operator laptop. `.gitignore` the db. **Default bind `127.0.0.1`.** LAN listen only via `CSM_DASHBOARD_BIND=0.0.0.0` + `csm.boot.bind host=0.0.0.0 auth=none`. Compose publishes `127.0.0.1:8788:8788`. `data/secrets.json` mode `0600`. Community CBL does **not** encrypt the file — FileVault is the disk story; do not imply Lite encryption. Reset endpoint. v0.1 **no auth**. |
+| Customer PII in local `.cblite2` (emails, Slack, names) | **High** | Single-operator laptop. `.gitignore` the db. **Default bind `127.0.0.1`.** LAN listen only via `CSM_DASHBOARD_BIND=0.0.0.0` + `csm.boot.bind host=0.0.0.0 auth=none`. Compose publishes `127.0.0.1:5001:5000`. `data/secrets.json` mode `0600`. Community CBL does **not** encrypt the file — FileVault is the disk story; do not imply Lite encryption. Reset endpoint. v0.1 **no auth**. |
 | Grok / xAI sees customer mail and tickets | **High** | Per-slice caps (500 / 160 chars); 200 KiB bodies never leave the store toward xAI. `redact.py` strips key-like strings. Operator accepts xAI ToS; Settings shows “prompts leave this machine.” No per-account opt-out in v0.1. Log token counts, not bodies. |
 | Accidental send (wrong account, wrong To:) | **High** | Confirm modal (chip + To). SMTP off → `409 send_not_configured`. No auto-send. |
 | Connector rate limits / token revoke | **Med** | Jobs record `error` without response bodies. Backoff in live connectors (roadmap). Stubs never hit the network. |
@@ -1659,7 +1670,7 @@ This is a **standalone repo**.
 | Decision | Rationale |
 | --- | --- |
 | Standalone repo | This is the CSM desk, not a mode of another product. |
-| Port **8788** | Local desk; default bind `127.0.0.1`. |
+| Port **8788** (`make run`); Docker **5000** in-container / **5001** on the laptop | Local desk; default bind `127.0.0.1`. OAuth uses the browser port. |
 | CBL CE 4.0.3 ctypes, Community pin | Later Capella replicator without remodel; no Python SDK; no EE vector. |
 | `account_id` on every customer-owned doc; id format `acct:{slug}` | One join key. Color/abbr are display, not foreign keys. |
 | Color + abbr are data on `accounts`, not CSS themes | 25 books cannot get 25 stylesheets. Chip is a swatch + text. |

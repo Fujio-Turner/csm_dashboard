@@ -71,7 +71,7 @@ def apply_seed_logos(repo: CsmRepo, seed_dir: str | Path) -> int:
 
 
 def apply_seed_today_meetings(repo: CsmRepo, seed_dir: str | Path) -> int:
-    """Copy the packed demo-day calendar onto today so Lab seed fills Home agenda."""
+    """Copy the demo-day calendar onto today so Lab seed fills Home agenda."""
     today = utcnow()[:10]
     if today == SEED_DEMO_DAY:
         return 0
@@ -116,11 +116,12 @@ def apply_seed(repo: CsmRepo, seed_dir: str | Path) -> dict[str, int]:
     return counts
 
 
-def apply_sync_event(repo: CsmRepo, event: dict) -> None:
+def apply_sync_event(repo: CsmRepo, event: dict) -> dict | None:
     kind = event.get("kind")
     payload = dict(event.get("payload") or {})
     if event.get("account_id") and not payload.get("account_id"):
         payload["account_id"] = event["account_id"]
+    saved = None
     if kind == "ticket":
         saved = repo.upsert_ticket(payload)
         emit_ticket_activity(repo, saved, verb="updated")
@@ -142,6 +143,7 @@ def apply_sync_event(repo: CsmRepo, event: dict) -> None:
     elif kind == "calendar_event":
         saved = repo.upsert_calendar(payload)
         emit_calendar_activity(repo, saved)
+    return saved
 
 
 def _upsert(repo: CsmRepo, collection: str, row: dict) -> None:

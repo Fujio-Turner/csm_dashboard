@@ -4,8 +4,9 @@ The browser opens the vendor SSO page, lands on the loopback callback,
 and we store refresh/access (or Slack bot/user) tokens in the
 ``credentials`` collection. Never return those values on GET.
 
-Google uses ``http://localhost:<port>/oauth2callback``. Other vendors stay on
-``/api/oauth/<vendor>/callback``.
+Google uses ``http://localhost:<public_port>/oauth2callback``. Other vendors stay on
+``/api/oauth/<vendor>/callback``. ``public_port`` is the browser port (Docker host
+map); the process may listen on a different ``port`` inside the container.
 """
 
 from __future__ import annotations
@@ -37,7 +38,7 @@ VENDORS = ("okta", "google", "microsoft", "slack", "salesforce")
 
 def redirect_uri(vendor: str, port: int | None = None) -> str:
     settings = load_settings()
-    use_port = int(port or settings.port or 8788)
+    use_port = int(port or settings.public_port or settings.port or 8788)
     if vendor == "google":
         return f"http://localhost:{use_port}/oauth2callback"
     return f"http://127.0.0.1:{use_port}/api/oauth/{vendor}/callback"
@@ -239,7 +240,7 @@ def start_url(vendor: str, repo, *, login_hint: str = "", org_url: str = "") -> 
             "client_id": client_id,
             "redirect_uri": redirect,
             "response_type": "code",
-            "scope": "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar.readonly",
+            "scope": "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.compose https://www.googleapis.com/auth/calendar.readonly",
             "access_type": "offline",
             "prompt": "consent",
             "code_challenge": challenge,

@@ -27,11 +27,11 @@ def prompts_dir() -> Path:
         return Path(env).expanduser()
     here = Path(__file__).resolve()
     for parent in here.parents:
-        cand = parent / "prompts"
-        if cand.is_dir() and any(cand.glob("*.json")):
-            return cand
+        for cand in (parent / "ai" / "prompts", parent / "prompts"):
+            if cand.is_dir() and any(cand.glob("*.json")):
+                return cand
     raise FileNotFoundError(
-        "No prompts/ folder found. Create prompts/*.json or set CSM_DASHBOARD_PROMPTS."
+        "No ai/prompts/ folder found. Create ai/prompts/*.json or set CSM_DASHBOARD_PROMPTS."
     )
 
 
@@ -72,6 +72,7 @@ def save_secrets(updates: dict) -> dict:
 class Settings:
     host: str = "127.0.0.1"
     port: int = 8788
+    public_port: int = 8788
     db_path: str = str(ROOT / "data" / "csm_dashboard.cblite2")
     xai_base_url: str = "https://api.x.ai/v1"
     xai_default_model: str = "grok-4.6"
@@ -120,6 +121,7 @@ def _settings_stamp() -> tuple:
         os.environ.get("XAI_API_KEY") or "",
         os.environ.get("CSM_DASHBOARD_DB_PATH") or "",
         os.environ.get("CSM_DASHBOARD_PORT") or "",
+        os.environ.get("CSM_DASHBOARD_PUBLIC_PORT") or "",
         os.environ.get("CSM_DASHBOARD_BIND") or "",
     )
 
@@ -152,6 +154,9 @@ def load_settings(*, force: bool = False) -> Settings:
 
     bind = os.environ.get("CSM_DASHBOARD_BIND") or server.get("host") or "127.0.0.1"
     port = int(os.environ.get("CSM_DASHBOARD_PORT") or server.get("port") or 8788)
+    public_port = int(
+        os.environ.get("CSM_DASHBOARD_PUBLIC_PORT") or server.get("public_port") or port
+    )
     models = xai.get("models") or ["grok-4.6", "grok-4.5", "grok-4-fast"]
     if isinstance(models, str):
         models = [m.strip() for m in models.split(",") if m.strip()]
@@ -159,6 +164,7 @@ def load_settings(*, force: bool = False) -> Settings:
     loaded = Settings(
         host=str(bind),
         port=port,
+        public_port=public_port,
         db_path=str(db),
         xai_base_url=str(xai.get("base_url") or "https://api.x.ai/v1"),
         xai_default_model=str(xai.get("default_model") or "grok-4.6"),

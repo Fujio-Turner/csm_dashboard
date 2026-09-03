@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Body, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -16,8 +17,11 @@ from csm_dashboard.chat.desk_answer import answer_desk
 from csm_dashboard.chat.format import humanize_chat_text
 from csm_dashboard.chat.mentions import resolve_account
 from csm_dashboard.chat.providers import provider_spec, resolve_ai_client, selected_provider
+from csm_dashboard.compose.auto_draft import backfill_account as backfill_auto_drafts
 from csm_dashboard.compose.context import build_compose_context
+from csm_dashboard.compose.gmail_draft import sync_gmail_draft as _sync_gmail_draft
 from csm_dashboard.compose.grok import (
+    as_addr_list,
     assist_task_with_grok,
     compose_with_grok,
     fallback_draft,
@@ -40,13 +44,24 @@ from csm_dashboard.credentials import (
 )
 from csm_dashboard.ingest.activities import emit_email_activity
 from csm_dashboard.ingest.route import route_event
-from csm_dashboard.prompts import help_public, prompt_system
+from csm_dashboard.prompts import help_public, load_prompt, operator_personas, prompt_system
 from csm_dashboard.seed.load import apply_seed, apply_sync_event
 from csm_dashboard.sso import public_sso
 from csm_dashboard.storage.errors import CouchbaseLiteNotAvailable
 from csm_dashboard.storage.repo import TASK_KINDS, CsmRepo, utcnow
 
 log = logging.getLogger(__name__)
+
+
+def _typed_confirm(typed: str, *needles: str) -> bool:
+    got = str(typed or "").strip().casefold()
+    if not got:
+        return False
+    for raw in needles:
+        want = str(raw or "").strip().casefold()
+        if want and got == want:
+            return True
+    return False
 
 HERE = Path(__file__).resolve().parent
 _INDEX_HTML: str | None = None
@@ -69,6 +84,7 @@ def _send_mail(
     body: str,
     bcc_addrs: list | None = None,
     attachments: list | None = None,
+    gmail_draft_id: str = "",
 ) -> dict:
     try:
         files = parse_attachments(attachments)
@@ -81,14 +97,26 @@ def _send_mail(
             subject=subject,
             body=body,
             attachments=files,
+            gmail_draft_id=gmail_draft_id,
         )
     except SendNotConfigured as exc:
+        log.info("csm.mail.send_blocked reason=%s", exc)
         raise HTTPException(409, str(exc) or "send_not_configured") from exc
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
     except SendFailed as exc:
         log.warning("csm.mail.send_failed err=%s", exc.message)
         raise HTTPException(502, "send_failed") from exc
+
+
+def _kick_auto_drafts(repo, account_id: str) -> None:
+    def _run() -> None:
+        try:
+            backfill_auto_drafts(repo, account_id)
+        except Exception as exc:
+            log.warning("csm.auto_draft.backfill_failed account_id=%s err=%s", account_id, exc)
+
+    threading.Thread(target=_run, daemon=True).start()
 
 
 def _settings() -> Settings:
@@ -113,15 +141,24 @@ async def lifespan(app: FastAPI):
         if settings.host == "0.0.0.0":
             log.warning("csm.boot.bind host=0.0.0.0 auth=none")
         log.info(
-            "csm.boot version=%s db=%s host=%s accounts=%s",
+            "csm.boot version=%s db=%s host=%s port=%s public_port=%s accounts=%s",
             __version__,
             settings.db_path,
             settings.host,
+            settings.port,
+            settings.public_port,
             app.state.repo.store.count("accounts"),
         )
+    stop_poller = None
+    if injected is None:
+        from csm_dashboard.connectors.refresh import start_poller
+
+        stop_poller = start_poller(lambda: getattr(app.state, "repo", None))
     try:
         yield
     finally:
+        if stop_poller is not None:
+            stop_poller()
         if store is not None:
             store.close()
 
@@ -217,8 +254,10 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
             "version": __version__,
             "host": settings.host,
             "port": settings.port,
+            "public_port": settings.public_port,
             "tagline": settings.tagline,
             "operator": repo.operator_profile(doc),
+            "personas": operator_personas(),
             "world_clock": repo.world_clock(doc),
             "preferences": repo.preferences(doc),
             "models": spec["models"],
@@ -395,6 +434,76 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
             raise HTTPException(404, "not found")
         return repo_obj().expand_account(doc)
 
+    @app.post("/api/accounts/{account_id}/reprocess")
+    def reprocess_account(account_id: str, body: dict | None = None):
+        body = body or {}
+        repo = repo_obj()
+        acct = repo.get_account(account_id)
+        if not acct:
+            raise HTTPException(404, "not found")
+        patch: dict = {}
+        if "domains" in body:
+            patch["domains"] = body.get("domains")
+        if "coverage" in body and isinstance(body.get("coverage"), dict):
+            cov = dict(acct.get("coverage") or {})
+            incoming = body.get("coverage") or {}
+            cov.update({k: incoming[k] for k in incoming if k in {"lookback_days", "feeds", "mode", "viewer_kind", "previous_owner_email", "until", "mine_people", "refresh_minutes", "auto_draft_replies"}})
+            patch["coverage"] = cov
+        if patch:
+            try:
+                acct = repo.patch_account(account_id, patch)
+            except ValueError as exc:
+                raise HTTPException(409, str(exc)) from exc
+        reattached = repo.reattach_unassigned(account_id)
+        feeds = body.get("feeds")
+        if not isinstance(feeds, list):
+            feeds = list((acct.get("coverage") or {}).get("feeds") or [])
+        jobs = []
+        for name in feeds:
+            if name not in PULL_CONNECTORS:
+                continue
+            if connector_mode(name, repo.get_settings()) != "live":
+                jobs.append(
+                    {
+                        "connector": name,
+                        "account_id": account_id,
+                        "status": "skipped",
+                        "error": "connector_disabled",
+                        "fetched": 0,
+                        "routed": 0,
+                        "unassigned": 0,
+                    }
+                )
+                continue
+            jobs.append(run_sync(name, {"account_id": account_id}))
+        try:
+            repo.refresh_account_stats(account_id)
+            repo.score_account(account_id)
+        except KeyError:
+            pass
+        log.info(
+            "csm.account.reprocessed account_id=%s feeds=%s emails=%s",
+            account_id,
+            ",".join(str(j.get("connector") or "") for j in jobs),
+            reattached.get("emails"),
+        )
+        return {
+            "account": repo.get_account(account_id),
+            "reattached": reattached,
+            "jobs": jobs,
+        }
+
+    @app.get("/api/accounts/{account_id}/people-mine")
+    def mine_account_people(account_id: str):
+        repo = repo_obj()
+        acct = repo.get_account(account_id)
+        if not acct:
+            raise HTTPException(404, "not found")
+        from csm_dashboard.ingest.people import mine_account_people as mine
+
+        items = mine(repo, acct)
+        return {"items": items, "total": len(items)}
+
     @app.post("/api/accounts/{account_id}/rescore")
     def rescore_account(account_id: str):
         try:
@@ -458,8 +567,11 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
 
     @app.patch("/api/accounts/{account_id}")
     def patch_account(account_id: str, body: dict):
+        repo = repo_obj()
+        before = repo.get_account(account_id) or {}
+        was_auto = bool((before.get("coverage") or {}).get("auto_draft_replies"))
         try:
-            doc = repo_obj().patch_account(account_id, body)
+            doc = repo.patch_account(account_id, body)
         except PermissionError:
             raise HTTPException(409, "slug_immutable") from None
         except KeyError:
@@ -467,10 +579,19 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         except ValueError as exc:
             raise HTTPException(409, str(exc)) from exc
         log.info("csm.account.updated account_id=%s changed_fields=%s", account_id, ",".join(body.keys()))
+        now_auto = bool((doc.get("coverage") or {}).get("auto_draft_replies"))
+        if now_auto and not was_auto:
+            _kick_auto_drafts(repo, account_id)
         return doc
 
     @app.delete("/api/accounts/{account_id}")
-    def delete_account(account_id: str):
+    def delete_account(account_id: str, body: dict | None = Body(default=None)):
+        acct = repo_obj().get_account(account_id)
+        if not acct:
+            raise HTTPException(404, "not found")
+        token = str(acct.get("abbr") or acct.get("name") or "").strip()
+        if not _typed_confirm(str((body or {}).get("confirm") or ""), acct.get("abbr"), acct.get("name")):
+            raise HTTPException(400, f"type {token or 'the company abbreviation'} to confirm")
         try:
             doc = repo_obj().remove_account(account_id)
         except KeyError:
@@ -508,7 +629,7 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
 
     @app.get("/api/people")
     def list_people(
-        account_id: str,
+        account_id: str | None = None,
         kind: str | None = None,
         q: str | None = None,
         project_id: str | None = None,
@@ -529,7 +650,7 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         log.info(
             "csm.person.saved account_id=%s fields=%s",
             doc.get("account_id"),
-            "name,email,location,title,project_ids,functions",
+            "name,email,location,title,phone,group,job_description,project_ids,functions",
         )
         return doc
 
@@ -586,7 +707,13 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         return doc
 
     @app.delete("/api/projects/{project_id}")
-    def delete_project(project_id: str):
+    def delete_project(project_id: str, body: dict | None = Body(default=None)):
+        proj = repo_obj().get_project(project_id)
+        if not proj:
+            raise HTTPException(404, "not found")
+        token = str(proj.get("name") or "").strip()
+        if not _typed_confirm(str((body or {}).get("confirm") or ""), proj.get("name")):
+            raise HTTPException(400, f"type {token or 'the project name'} to confirm")
         try:
             doc = repo_obj().delete_project(project_id)
         except KeyError:
@@ -652,9 +779,17 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         acct = repo_obj().get_account(account_id)
         if not acct:
             raise HTTPException(404, "account not found")
-        msgs, _ = repo_obj().page_emails(account_id, thread_id=thread_id, limit=50)
-        last = msgs[-1] if msgs else None
-        ctx = build_compose_context(repo_obj(), account_id, thread_id=thread_id)
+        msgs, _ = repo_obj().page_emails(account_id, thread_id=thread_id, limit=1, desc=True, slim=False)
+        last = msgs[0] if msgs else None
+        operator = repo_obj().operator_profile()
+        ctx = build_compose_context(
+            repo_obj(),
+            account_id,
+            thread_id=thread_id,
+            inbound=last,
+            operator=operator,
+            mode="reply",
+        )
         settings = _settings()
         result = "fallback"
         model = ""
@@ -662,12 +797,14 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         client = ai_client()
         if client:
             try:
-                drafted, model = compose_with_grok(client, ctx, settings)
+                drafted, model = compose_with_grok(
+                    client, ctx, settings, operator=operator
+                )
                 draft_body = {**draft_body, **drafted}
                 result = selected_provider(repo_obj().get_settings())
             except Exception as exc:
                 log.warning("csm.draft.suggest_reply result=fallback err=%s", exc)
-        to_addrs = draft_body.get("to") or []
+        to_addrs = as_addr_list(draft_body.get("to"))
         if last and last.get("from_addr") and last.get("from_addr") not in to_addrs:
             to_addrs = [last["from_addr"], *to_addrs]
         saved = repo_obj().create_draft(
@@ -676,6 +813,7 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
                 "subject": draft_body.get("subject") or "",
                 "body": draft_body.get("body") or "",
                 "to_addrs": to_addrs,
+                "cc_addrs": as_addr_list(draft_body.get("cc")),
                 "prompt_name": "email_draft",
                 "model": model,
                 "created_by": "grok" if result != "fallback" else "you",
@@ -684,7 +822,13 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
                 "channel": "email",
             }
         )
-        log.info("csm.draft.suggest_reply result=%s thread_id=%s draft_id=%s", result, thread_id, saved.get("_id"))
+        log.info(
+            "csm.draft.suggest_reply result=%s thread_id=%s draft_id=%s chars=%s",
+            result,
+            thread_id,
+            saved.get("_id"),
+            len(ctx.serialized()),
+        )
         return {
             "account_id": account_id,
             "thread_id": thread_id,
@@ -692,8 +836,11 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
             "subject": saved.get("subject") or "",
             "body": saved.get("body") or "",
             "to_addrs": saved.get("to_addrs") or to_addrs,
+            "cc_addrs": saved.get("cc_addrs") or as_addr_list(draft_body.get("cc")),
             "result": result,
             "model": model,
+            "context_chars": len(ctx.serialized()),
+            "context_truncated": bool(ctx.truncated),
         }
 
     @app.patch("/api/threads/{thread_id}/operator")
@@ -707,8 +854,9 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         return doc
 
     @app.get("/api/emails")
-    def list_emails(account_id: str, thread_id: str | None = None):
-        items, total = repo_obj().page_emails(account_id, thread_id=thread_id)
+    def list_emails(account_id: str, thread_id: str | None = None, limit: int = 50):
+        lim = min(max(int(limit or 50), 1), 200)
+        items, total = repo_obj().page_emails(account_id, thread_id=thread_id, limit=lim, desc=True)
         return {"items": items, "total": total}
 
     @app.get("/api/emails/{email_id}")
@@ -774,7 +922,9 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         client = ai_client()
         if client:
             try:
-                drafted, _model = assist_task_with_grok(client, hint, settings)
+                drafted, _model = assist_task_with_grok(
+                    client, hint, settings, operator=repo_obj().operator_profile()
+                )
                 result = selected_provider(repo_obj().get_settings())
             except Exception as exc:
                 log.warning("csm.task.assist result=fallback err=%s", exc)
@@ -1020,7 +1170,7 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
     def create_draft(body: dict):
         doc = repo_obj().create_draft(body)
         log.info("csm.draft.created account_id=%s", doc.get("account_id"))
-        return doc
+        return _sync_gmail_draft(repo_obj(), doc)
 
     @app.post("/api/drafts/compose")
     def compose_draft(body: dict):
@@ -1028,12 +1178,14 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         acct = repo_obj().get_account(account_id)
         if not acct:
             raise HTTPException(404, "account not found")
+        operator = repo_obj().operator_profile()
         ctx = build_compose_context(
             repo_obj(),
             account_id,
             thread_id=body.get("thread_id"),
             ticket_ids=body.get("ticket_ids") or [],
             slack_refs=body.get("slack_refs") or [],
+            operator=operator,
         )
         settings = _settings()
         result = "fallback"
@@ -1042,11 +1194,13 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         client = ai_client()
         if client:
             try:
-                draft_body, model = compose_with_grok(client, ctx, settings)
+                draft_body, model = compose_with_grok(
+                    client, ctx, settings, operator=operator
+                )
                 result = selected_provider(repo_obj().get_settings())
             except Exception as exc:
                 log.warning("csm.draft.compose result=fallback err=%s", exc)
-        to_addrs = draft_body.get("to") or []
+        to_addrs = as_addr_list(draft_body.get("to"))
         if not to_addrs:
             people = repo_obj().list_people(account_id, kind="customer")
             champ = next((p for p in people if p.get("role") == "champion"), None)
@@ -1058,7 +1212,7 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
                 "subject": draft_body.get("subject") or "",
                 "body": draft_body.get("body") or "",
                 "to_addrs": to_addrs,
-                "cc_addrs": draft_body.get("cc") or [],
+                "cc_addrs": as_addr_list(draft_body.get("cc")),
                 "prompt_name": "email_draft",
                 "model": model,
                 "created_by": "grok" if result == "grok" else "you",
@@ -1070,8 +1224,21 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
                 "status": "ready",
             }
         )
-        log.info("csm.draft.compose result=%s prompt_name=email_draft account_id=%s", result, account_id)
-        return {**doc, "next_steps": draft_body.get("next_steps") or [], "risks": draft_body.get("risks") or [], "result": result}
+        log.info(
+            "csm.draft.compose result=%s prompt_name=email_draft account_id=%s chars=%s",
+            result,
+            account_id,
+            len(ctx.serialized()),
+        )
+        doc = _sync_gmail_draft(repo_obj(), doc)
+        return {
+            **doc,
+            "next_steps": draft_body.get("next_steps") or [],
+            "risks": draft_body.get("risks") or [],
+            "result": result,
+            "context_chars": len(ctx.serialized()),
+            "context_truncated": bool(ctx.truncated),
+        }
 
     @app.get("/api/drafts/{draft_id}")
     def get_draft(draft_id: str):
@@ -1087,7 +1254,7 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
         except KeyError:
             raise HTTPException(404, "not found") from None
         log.info("csm.draft.updated draft_id=%s", draft_id)
-        return doc
+        return _sync_gmail_draft(repo_obj(), doc)
 
     @app.post("/api/drafts/{draft_id}/send")
     def send_draft(draft_id: str, body: dict | None = None):
@@ -1106,6 +1273,7 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
                 doc = repo.patch_draft(draft_id, patch)
             except KeyError:
                 raise HTTPException(404, "not found") from None
+        doc = _sync_gmail_draft(repo, doc)
         me = str(repo.operator_profile().get("email") or "").strip()
         to_addrs = [addr for addr in (doc.get("to_addrs") or []) if addr]
         try:
@@ -1118,6 +1286,7 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
                 subject=str(doc.get("subject") or ""),
                 body=str(doc.get("body") or ""),
                 attachments=body.get("attachments") or [],
+                gmail_draft_id=str(doc.get("gmail_draft_id") or ""),
             )
         except HTTPException as exc:
             if exc.status_code == 502:
@@ -1139,7 +1308,7 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
                 "sent_at": out.get("sent_at") or utcnow(),
                 "message_id": f"<draft.{draft_id.split(':')[-1]}@csm.local>",
                 "operator": {"unread": False},
-                "sources": {"smtp": {"draft_id": draft_id}},
+                "sources": {str(sent.get("via") or "smtp"): {"draft_id": draft_id}},
             }
         )
         emit_email_activity(repo, outbound)
@@ -1173,7 +1342,7 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
             try:
                 data, model = client.complete_json(
                     [
-                        {"role": "system", "content": prompt_system("weekly_report")},
+                        {"role": "system", "content": prompt_system("weekly_report", operator=repo_obj().operator_profile())},
                         {"role": "user", "content": ctx.serialized()},
                     ]
                 )
@@ -1250,9 +1419,10 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
                 log.info("csm.chat.turn result=fallback account_id=%s", account_id)
                 yield f"event: done\ndata: {json.dumps({'result': 'fallback', 'chat_id': chat_id, 'account_id': account_id})}\n\n"
                 return
+            brief = str(load_prompt("desk_chat").get("brief_prefix") or "Local brief:\n")
             sys = [
-                {"role": "system", "content": prompt_system("desk_chat")},
-                {"role": "system", "content": "Local brief:\n" + local_reply},
+                {"role": "system", "content": prompt_system("desk_chat", operator=repo_obj().operator_profile())},
+                {"role": "system", "content": brief + local_reply},
             ]
             try:
                 text, model, working = client.complete(sys + messages, repo_obj(), account_id)
@@ -1421,42 +1591,34 @@ def create_app(repo: CsmRepo | None = None) -> FastAPI:
 
     @app.post("/api/connectors/{name}/sync")
     def run_sync(name: str, body: dict | None = None):
+        from csm_dashboard.connectors.refresh import run_connector_sync
+
         if name not in PULL_CONNECTORS:
             raise HTTPException(404, "unknown connector")
-        mode = connector_mode(name, repo_obj().get_settings())
-        if mode != "live":
-            raise HTTPException(409, "connector_disabled")
         body = body or {}
-        account_id = body.get("account_id")
-        account = repo_obj().get_account(account_id) if account_id else None
-        job = repo_obj().save_job(
-            {"connector": name, "account_id": account_id or "", "status": "running", "since": body.get("since") or "", "fetched": 0, "upserted": 0, "skipped": 0, "error": ""}
-        )
-        log.info("csm.sync.started connector=%s", name)
         try:
-            events = get_connector(name, repo_obj()).pull(body.get("since"), account)
-            accounts = repo_obj().list_accounts(include_hidden=True)
-            upserted = 0
-            ours = repo_obj().operator_domains()
-            for event in events:
-                aid = route_event(accounts, event, operator_domains=ours)
-                event["account_id"] = aid
-                if aid:
-                    payload = dict(event.get("payload") or {})
-                    payload["account_id"] = aid
-                    event["payload"] = payload
-                apply_sync_event(repo_obj(), event)
-                upserted += 1
-            if account_id:
-                repo_obj().refresh_account_stats(account_id)
-                repo_obj().score_account(account_id)
-            job = repo_obj().save_job({**job, "status": "done", "fetched": len(events), "upserted": upserted}, job_id=job["_id"])
-            log.info("csm.sync.finished connector=%s fetched=%s upserted=%s", name, len(events), upserted)
-            return job
-        except Exception as exc:
-            job = repo_obj().save_job({**job, "status": "error", "error": str(exc)}, job_id=job["_id"])
-            log.error("csm.sync.failed connector=%s err=%s", name, exc)
-            return job
+            return run_connector_sync(
+                repo_obj(),
+                name,
+                account_id=str(body.get("account_id") or ""),
+                since=str(body.get("since") or ""),
+            )
+        except RuntimeError as exc:
+            if str(exc) == "connector_disabled":
+                raise HTTPException(409, "connector_disabled") from exc
+            raise
+
+    @app.post("/api/sync/refresh")
+    def refresh_google(body: dict | None = None):
+        from csm_dashboard.connectors.refresh import GOOGLE_REFRESH, run_google_refresh
+
+        body = body or {}
+        names = body.get("connectors")
+        if not isinstance(names, list):
+            names = list(GOOGLE_REFRESH)
+        jobs = run_google_refresh(repo_obj(), connectors=[str(n) for n in names])
+        log.info("csm.refresh.manual connectors=%s jobs=%s", ",".join(str(n) for n in names), len(jobs))
+        return {"jobs": jobs}
 
     @app.get("/api/sync/jobs")
     def list_sync_jobs():

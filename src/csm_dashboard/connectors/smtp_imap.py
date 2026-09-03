@@ -184,9 +184,20 @@ def deliver_mail(
     subject: str,
     body: str,
     attachments: list | None = None,
+    gmail_draft_id: str = "",
 ) -> dict:
+    from csm_dashboard.connectors.google_mail import google_send_ready, send_via_gmail
+
     secret = smtp_secret(repo)
-    if not send_configured(repo):
+    gmail_ok = google_send_ready(repo)
+    smtp_ok = send_configured(repo)
+    if not gmail_ok and not smtp_ok:
+        if repo is not None:
+            from csm_dashboard.credentials import oauth_connected
+
+            google = repo.get_credential_secret("connector", "google")
+            if oauth_connected(google):
+                raise SendNotConfigured("google_send_reconnect")
         raise SendNotConfigured("send_not_configured")
     sender = str(from_addr or secret.get("username") or "").strip()
     to = [addr for addr in to_addrs if addr]
@@ -205,6 +216,15 @@ def deliver_mail(
         body=body,
         attachments=files,
     )
+    if gmail_ok:
+        return send_via_gmail(
+            repo,
+            msg,
+            from_addr=sender,
+            to_addrs=to,
+            attach_count=len(files),
+            gmail_draft_id=gmail_draft_id,
+        )
     host = send_via_smtp(secret, msg)
     log.info(
         "csm.mail.sent via=smtp host=%s to_count=%s attach_count=%s",

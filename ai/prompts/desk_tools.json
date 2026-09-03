@@ -1,0 +1,100 @@
+{
+  "id": "desk_tools",
+  "title": "Desk chat tools",
+  "kind": "tools",
+  "source": "core",
+  "used_by": "src/csm_dashboard/chat/grok.py",
+  "when": "Attached to every Grok desk-chat completion so the model can read the open book. Not a super-prompt — tool descriptions stay short; source-specific briefs belong in their own files.",
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_account",
+        "description": "Get the current account profile",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "list_tickets",
+        "description": "List open tickets for the account",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "list_emails",
+        "description": "List recent emails for the account",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "list_actions",
+        "description": "List open action items",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "add_note",
+        "description": "Add an operator note",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "body": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "body"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "create_action",
+        "description": "Create a follow-up action (does not send mail)",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string"
+            },
+            "due_on": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "title"
+          ]
+        }
+      }
+    }
+  ]
+}

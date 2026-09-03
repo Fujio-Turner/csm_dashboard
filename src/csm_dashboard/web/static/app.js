@@ -7,6 +7,14 @@
   var homeChatId = "";
   var chatScope = "";
   var chatBookmarked = false;
+  var chatMentionHi = 0;
+  var chatMentionItems = [];
+  var chatMentionToken = null;
+  var chatMentionGen = 0;
+  var chatBooksList = null;
+  var chatPeopleAll = null;
+  var chatPeopleByBook = {};
+  var chatTicketsByBook = {};
   var pendingComposeSeed = null;
   var accountQ = "";
   var accountProject = "";
@@ -14,12 +22,13 @@
   var accountProjects = [];
   var searchTimer = null;
   var slashIndex = 0;
+  var personSuggestGen = 0;
   var notesDirty = false;
   var homeTab = "agenda";
   var agendaDay = "";
   var agendaCalView = "day";
   var agendaMeetings = [];
-  var agendaInboxFilter = "all";
+  var agendaInboxFilter = { kinds: [], audience: [], from: "", when: "any", fromDay: "", toDay: "" };
   var agendaInboxItems = [];
   var agendaProjFilter = "";
   var agendaProjOptions = [];
@@ -35,6 +44,7 @@
   var WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   var homeItems = null;
   var helpReady = false;
+  var helpFuse = null;
   var pickedConnector = "";
   var aiTestOk = {};
   var connTestOk = {};
@@ -54,6 +64,7 @@
     google_cal: "Google Calendar",
     m365_cal: "M365 Calendar",
   };
+  var FEED_NAMES = ["smtp_imap", "google_mail", "microsoft365", "jira", "slack", "teams", "salesforce", "google_cal", "m365_cal"];
   var TZ_FALLBACK = [
     "UTC",
     "America/New_York",
@@ -130,6 +141,7 @@
   }
 
   function $(id) {
+    if (!id) return null;
     return document.getElementById(id);
   }
 
@@ -151,13 +163,33 @@
 
   function toast(msg) {
     var box = $("toasts");
+    if (!box) return;
     var el = document.createElement("div");
     el.className = "toast";
     el.textContent = msg;
     box.appendChild(el);
     setTimeout(function () {
       el.remove();
-    }, 2800);
+    }, 4500);
+  }
+
+  function explainMailError(err) {
+    var raw = String((err && err.message) || err || "").trim();
+    if (raw.indexOf("{") === 0) {
+      try {
+        var parsed = JSON.parse(raw);
+        raw = String(parsed.detail || parsed.message || raw);
+      } catch (e) {}
+    }
+    var map = {
+      google_send_reconnect: "Google can read mail but cannot Send. Sign in with Google again and allow sending.",
+      google_draft_reconnect: "Sign in with Google again to save this into Gmail Drafts.",
+      send_not_configured: "Mail send is not set up. Sign in with Google (allow Send) or add SMTP in Settings.",
+      operator_email_required: "Add your email under Settings → You first.",
+      "to_addrs required": "Add at least one To address.",
+      send_failed: "Send failed. Try again.",
+    };
+    return map[raw] || raw;
   }
 
   function accountChip(acct) {
@@ -662,7 +694,7 @@
       var badge = $("app-version");
       if (badge) {
         badge.textContent = "v" + (s.version || "");
-        badge.title = "Listening on " + (s.host || "127.0.0.1") + ":" + (s.port || 8788);
+        badge.title = "Listening on " + (s.host || "127.0.0.1") + ":" + (s.public_port || s.port || 8788);
       }
       var tag = $("home-tagline");
       if (tag) tag.textContent = s.tagline || "";
@@ -1249,7 +1281,10 @@
       if (label) label.textContent = formatRangeLabel(agendaDay);
       syncAgendaViewChrome(pane);
       var inHead = pane.querySelectorAll(".agenda-col-head")[1];
-      if (inHead) ensureAgendaProjFilter(inHead, inList);
+      if (inHead) {
+        ensureAgendaProjFilter(inHead, inList);
+        ensureAgendaInboxFilter(inHead, inList);
+      }
       return fetchAgendaLists(calBoard, inList);
     }
     empty(pane);
@@ -1336,30 +1371,9 @@
     addTask.addEventListener("click", function () {
       openTaskForm(null);
     });
-    var filter = document.createElement("select");
-    filter.id = "agenda-inbox-filter";
-    filter.className = "toolbar-filter agenda-inbox-filter";
-    filter.setAttribute("aria-label", "Filter");
-    [
-      ["all", "All"],
-      ["email", "Email"],
-      ["slack", "Slack"],
-      ["task", "Tasks"],
-      ["teams", "Teams"],
-    ].forEach(function (pair) {
-      var opt = document.createElement("option");
-      opt.value = pair[0];
-      opt.textContent = pair[1];
-      filter.appendChild(opt);
-    });
-    filter.value = agendaInboxFilter;
-    filter.addEventListener("change", function () {
-      agendaInboxFilter = filter.value || "all";
-      renderAgendaInbox(inList, agendaInboxItems);
-    });
     inHead.appendChild(inTitle);
     ensureAgendaProjFilter(inHead, inList);
-    inHead.appendChild(filter);
+    ensureAgendaInboxFilter(inHead, inList);
     inHead.appendChild(addTask);
     var inList = document.createElement("div");
     inList.className = "agenda-list";
@@ -1525,15 +1539,335 @@
     if (!agendaProjBound) {
       agendaProjBound = true;
       document.addEventListener("click", function (ev) {
-        var root = $("agenda-proj-filter");
-        var openMenu = $("agenda-proj-menu");
-        if (root && root.contains(ev.target)) return;
-        if (openMenu && openMenu.contains(ev.target)) return;
+        if (ev.target && !document.body.contains(ev.target)) return;
+        var projRoot = $("agenda-proj-filter");
+        var projMenu = $("agenda-proj-menu");
+        var inboxRoot = $("agenda-inbox-filter");
+        var inboxMenu = $("agenda-inbox-menu");
+        if (projRoot && projRoot.contains(ev.target)) return;
+        if (projMenu && projMenu.contains(ev.target)) return;
+        if (inboxRoot && inboxRoot.contains(ev.target)) return;
+        if (inboxMenu && inboxMenu.contains(ev.target)) return;
         closeAgendaProjMenu();
+        closeAgendaInboxMenu();
       });
-      window.addEventListener("resize", placeAgendaProjMenu);
-      window.addEventListener("scroll", placeAgendaProjMenu, true);
+      window.addEventListener("resize", function () {
+        placeAgendaProjMenu();
+        placeAgendaInboxMenu();
+      });
+      window.addEventListener("scroll", function () {
+        placeAgendaProjMenu();
+        placeAgendaInboxMenu();
+      }, true);
     }
+  }
+
+  var INBOX_KIND_OPTS = [
+    { id: "email", label: "Email" },
+    { id: "slack", label: "Slack" },
+    { id: "teams", label: "Teams" },
+    { id: "task", label: "Tasks" },
+  ];
+  var INBOX_TO_OPTS = [
+    { id: "me", label: "Me" },
+    { id: "us", label: "Us" },
+    { id: "them", label: "Them" },
+    { id: "all", label: "All" },
+    { id: "unknown", label: "??" },
+  ];
+  var INBOX_WHEN_OPTS = [
+    { id: "any", label: "Any time" },
+    { id: "today", label: "Today" },
+    { id: "yesterday", label: "Yesterday" },
+    { id: "7d", label: "Last 7 days" },
+    { id: "custom", label: "Custom" },
+  ];
+
+  function emptyInboxFilter() {
+    return { kinds: [], audience: [], from: "", when: "any", fromDay: "", toDay: "" };
+  }
+
+  function toggleIn(list, id) {
+    var next = (list || []).slice();
+    var i = next.indexOf(id);
+    if (i >= 0) next.splice(i, 1);
+    else next.push(id);
+    return next;
+  }
+
+  function inboxFilterCount() {
+    var f = agendaInboxFilter || emptyInboxFilter();
+    var n = 0;
+    if ((f.kinds || []).length) n += 1;
+    if ((f.audience || []).length) n += 1;
+    if (String(f.from || "").trim()) n += 1;
+    if (f.when && f.when !== "any") n += 1;
+    return n;
+  }
+
+  function inboxFilterLabel() {
+    var n = inboxFilterCount();
+    return n ? "Filter · " + n : "Filter";
+  }
+
+  function closeAgendaInboxMenu() {
+    var menu = $("agenda-inbox-menu");
+    if (!menu) return;
+    menu.hidden = true;
+    menu.classList.add("hidden");
+  }
+
+  function placeAgendaInboxMenu() {
+    var menu = $("agenda-inbox-menu");
+    var btn = $("agenda-inbox-btn");
+    if (!menu || !btn || menu.hidden) return;
+    var w = Math.min(window.innerWidth - 16, 22 * 16);
+    var r = btn.getBoundingClientRect();
+    var top = r.bottom + 4;
+    var left = r.right - w;
+    if (left < 8) left = 8;
+    if (left + w > window.innerWidth - 8) left = Math.max(8, window.innerWidth - 8 - w);
+    menu.style.top = top + "px";
+    menu.style.left = left + "px";
+    menu.style.width = w + "px";
+  }
+
+  function inboxItemDay(item) {
+    if (!item || !item.at) return "";
+    var d = new Date(item.at);
+    if (isNaN(d.getTime())) return String(item.at).slice(0, 10);
+    return ymdInZone(d, operatorTz);
+  }
+
+  function inboxItemMatches(item) {
+    if (!item) return false;
+    var f = agendaInboxFilter || emptyInboxFilter();
+    var kinds = f.kinds || [];
+    if (kinds.length && kinds.indexOf(item.kind) < 0) return false;
+    var aud = f.audience || [];
+    if (aud.length) {
+      var key = AUDIENCE_STAMP[item.audience] ? item.audience : "unknown";
+      if (aud.indexOf(key) < 0) return false;
+    }
+    var fromQ = String(f.from || "").trim().toLowerCase();
+    if (fromQ) {
+      var blob = [item.from_name, item.title, item.body].join(" ").toLowerCase();
+      if (blob.indexOf(fromQ) < 0) return false;
+    }
+    if (agendaProjFilter) {
+      var aid = (item.account && item.account.account_id) || "";
+      var pid = item.project_id || "";
+      var parts = String(agendaProjFilter).split("|");
+      if (parts.length === 1) {
+        if (aid !== parts[0]) return false;
+      } else if (!(aid === parts[0] && pid === parts[1])) return false;
+    }
+    var when = f.when || "any";
+    if (when === "any") return true;
+    var day = inboxItemDay(item);
+    if (!day) return false;
+    var today = todayYmd();
+    if (when === "today") return day === today;
+    if (when === "yesterday") return day === shiftYmd(today, -1);
+    if (when === "7d") return day <= today && day >= shiftYmd(today, -6);
+    if (when === "custom") {
+      var a = f.fromDay || "";
+      var b = f.toDay || "";
+      if (!a && !b) return true;
+      if (a && day < a) return false;
+      if (b && day > b) return false;
+    }
+    return true;
+  }
+
+  function uniqueInboxFroms(items) {
+    var counts = {};
+    (items || []).forEach(function (item) {
+      var name = String(item.from_name || "").trim();
+      if (!name) return;
+      counts[name] = (counts[name] || 0) + 1;
+    });
+    return Object.keys(counts).sort(function (a, b) {
+      return counts[b] - counts[a] || a.localeCompare(b);
+    }).slice(0, 12);
+  }
+
+  function paintInboxFilterBtn() {
+    var btn = $("agenda-inbox-btn");
+    if (!btn) return;
+    btn.textContent = inboxFilterLabel();
+    btn.classList.toggle("is-on", inboxFilterCount() > 0);
+  }
+
+  function paintInboxFilterMenu() {
+    var menu = $("agenda-inbox-menu");
+    if (!menu) return;
+    empty(menu);
+    var f = agendaInboxFilter || emptyInboxFilter();
+
+    function legend(text) {
+      var el = document.createElement("div");
+      el.className = "agenda-filter-legend";
+      el.textContent = text;
+      menu.appendChild(el);
+    }
+    function chips(opts, selected, multi, onPick) {
+      var row = document.createElement("div");
+      row.className = "agenda-filter-row";
+      opts.forEach(function (opt) {
+        var b = document.createElement("button");
+        b.type = "button";
+        var on = multi ? selected.indexOf(opt.id) >= 0 : selected === opt.id;
+        b.className = "agenda-filter-chip" + (on ? " is-on" : "");
+        b.textContent = opt.label;
+        b.addEventListener("click", function (ev) {
+          ev.stopPropagation();
+          onPick(opt.id);
+        });
+        row.appendChild(b);
+      });
+      menu.appendChild(row);
+    }
+
+    legend("To");
+    chips(INBOX_TO_OPTS, f.audience || [], true, function (id) {
+      agendaInboxFilter.audience = toggleIn(agendaInboxFilter.audience, id);
+      paintInboxFilterMenu();
+      paintInboxFilterBtn();
+      renderAgendaInbox(agendaInboxList(), agendaInboxItems);
+    });
+    legend("Type");
+    chips(INBOX_KIND_OPTS, f.kinds || [], true, function (id) {
+      agendaInboxFilter.kinds = toggleIn(agendaInboxFilter.kinds, id);
+      paintInboxFilterMenu();
+      paintInboxFilterBtn();
+      renderAgendaInbox(agendaInboxList(), agendaInboxItems);
+    });
+    legend("From");
+    var fromIn = document.createElement("input");
+    fromIn.type = "search";
+    fromIn.className = "search";
+    fromIn.id = "agenda-inbox-from";
+    fromIn.placeholder = "name or email";
+    fromIn.setAttribute("aria-label", "Filter by from");
+    fromIn.value = f.from || "";
+    fromIn.addEventListener("input", function () {
+      agendaInboxFilter.from = fromIn.value;
+      paintInboxFilterBtn();
+      renderAgendaInbox(agendaInboxList(), agendaInboxItems);
+      paintFromChips();
+    });
+    menu.appendChild(fromIn);
+    var fromChips = document.createElement("div");
+    fromChips.className = "agenda-filter-row";
+    fromChips.id = "agenda-inbox-from-chips";
+    menu.appendChild(fromChips);
+    function paintFromChips() {
+      empty(fromChips);
+      var q = String(agendaInboxFilter.from || "").trim().toLowerCase();
+      uniqueInboxFroms(agendaInboxItems).forEach(function (name) {
+        if (q && name.toLowerCase().indexOf(q) < 0) return;
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "agenda-filter-chip" + (String(agendaInboxFilter.from || "") === name ? " is-on" : "");
+        b.textContent = name;
+        b.title = name;
+        b.addEventListener("click", function () {
+          agendaInboxFilter.from = agendaInboxFilter.from === name ? "" : name;
+          fromIn.value = agendaInboxFilter.from;
+          paintInboxFilterMenu();
+          paintInboxFilterBtn();
+          renderAgendaInbox(agendaInboxList(), agendaInboxItems);
+        });
+        fromChips.appendChild(b);
+      });
+    }
+    paintFromChips();
+
+    legend("When");
+    chips(INBOX_WHEN_OPTS, f.when || "any", false, function (id) {
+      agendaInboxFilter.when = id;
+      paintInboxFilterMenu();
+      paintInboxFilterBtn();
+      renderAgendaInbox(agendaInboxList(), agendaInboxItems);
+    });
+    if ((f.when || "any") === "custom") {
+      var dates = document.createElement("div");
+      dates.className = "agenda-filter-dates";
+      var start = document.createElement("input");
+      start.type = "date";
+      start.setAttribute("aria-label", "From date");
+      start.value = f.fromDay || "";
+      start.addEventListener("change", function () {
+        agendaInboxFilter.fromDay = start.value;
+        paintInboxFilterBtn();
+        renderAgendaInbox(agendaInboxList(), agendaInboxItems);
+      });
+      var end = document.createElement("input");
+      end.type = "date";
+      end.setAttribute("aria-label", "To date");
+      end.value = f.toDay || "";
+      end.addEventListener("change", function () {
+        agendaInboxFilter.toDay = end.value;
+        paintInboxFilterBtn();
+        renderAgendaInbox(agendaInboxList(), agendaInboxItems);
+      });
+      dates.appendChild(start);
+      dates.appendChild(end);
+      menu.appendChild(dates);
+    }
+    var clear = document.createElement("button");
+    clear.type = "button";
+    clear.className = "btn";
+    clear.textContent = "Clear filters";
+    clear.addEventListener("click", function () {
+      agendaInboxFilter = emptyInboxFilter();
+      paintInboxFilterMenu();
+      paintInboxFilterBtn();
+      renderAgendaInbox(agendaInboxList(), agendaInboxItems);
+    });
+    menu.appendChild(clear);
+    placeAgendaInboxMenu();
+  }
+
+  function ensureAgendaInboxFilter(inHead, inList) {
+    if ($("agenda-inbox-filter")) {
+      paintInboxFilterBtn();
+      return;
+    }
+    var wrap = document.createElement("div");
+    wrap.className = "agenda-inbox-filter";
+    wrap.id = "agenda-inbox-filter";
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "toolbar-filter agenda-inbox-btn";
+    btn.id = "agenda-inbox-btn";
+    btn.textContent = inboxFilterLabel();
+    btn.setAttribute("aria-haspopup", "dialog");
+    btn.setAttribute("aria-label", "Filter mail, chat, and tasks");
+    var menu = document.createElement("div");
+    menu.className = "agenda-proj-menu agenda-inbox-menu hidden";
+    menu.id = "agenda-inbox-menu";
+    menu.hidden = true;
+    menu.addEventListener("click", function (ev) { ev.stopPropagation(); });
+    btn.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      if (!menu.hidden) {
+        closeAgendaInboxMenu();
+        return;
+      }
+      closeAgendaProjMenu();
+      menu.hidden = false;
+      menu.classList.remove("hidden");
+      paintInboxFilterMenu();
+      var fromIn = $("agenda-inbox-from");
+      if (fromIn) fromIn.focus();
+    });
+    wrap.appendChild(btn);
+    document.body.appendChild(menu);
+    var addTask = $("btn-add-task");
+    if (addTask && addTask.parentNode === inHead) inHead.insertBefore(wrap, addTask);
+    else inHead.appendChild(wrap);
   }
 
   function meetingLengthMins(start, end) {
@@ -1880,25 +2214,12 @@
 
   function renderAgendaInbox(root, items) {
     empty(root);
-    var want = agendaInboxFilter || "all";
-    var shown = (items || []).filter(function (item) {
-      if (want !== "all" && item.kind !== want) return false;
-      if (!agendaProjFilter) return true;
-      var aid = (item.account && item.account.account_id) || "";
-      var pid = item.project_id || "";
-      var parts = String(agendaProjFilter).split("|");
-      if (parts.length === 1) return aid === parts[0];
-      return aid === parts[0] && pid === parts[1];
-    });
+    var shown = (items || []).filter(inboxItemMatches);
     if (!shown.length) {
       var p = document.createElement("p");
       p.className = "muted";
       var emptyMsg = "No new email, chat, or tasks.";
-      if (want === "email") emptyMsg = "No new email.";
-      else if (want === "slack") emptyMsg = "No new Slack.";
-      else if (want === "teams") emptyMsg = "No new Teams.";
-      else if (want === "task") emptyMsg = "No tasks.";
-      if (agendaProjFilter) emptyMsg = "Nothing for that company or project.";
+      if (inboxFilterCount() || agendaProjFilter) emptyMsg = "Nothing matches those filters.";
       p.textContent = emptyMsg;
       root.appendChild(p);
       return;
@@ -1922,7 +2243,7 @@
       body.textContent = item.body || "";
       var when = document.createElement("div");
       when.className = "row-meta";
-      when.textContent = formatWhen(item.at);
+      when.textContent = (item.from_name ? item.from_name + " · " : "") + formatWhen(item.at);
       bodyWrap.appendChild(title);
       bodyWrap.appendChild(body);
       bodyWrap.appendChild(when);
@@ -2110,6 +2431,7 @@
           });
           refreshPreview();
           toast(doc.result === "grok" ? "Drafted with Grok" : "Template draft");
+          return doc;
         });
       },
       onSave: function (snap) {
@@ -2328,13 +2650,13 @@
     if (title) title.textContent = onBook ? ((acct && acct.abbr) || "Account") + " chat" : "Desk chat";
     if (sub) {
       sub.textContent = onBook
-        ? "This thread stays on " + ((acct && acct.name) || "this account") + "."
-        : "Tag a book with #{ACME} or a person with @bob";
+        ? "This thread stays on " + ((acct && acct.name) || "this account") + ". /people and /ticket bound a question. @ talks to someone."
+        : "Type # for a company. /people and /ticket bound a question. @ talks to someone.";
     }
     if (input) {
       input.placeholder = onBook
-        ? "Ask about " + ((acct && acct.name) || "this account") + "…"
-        : "Is there any issue with #{ACME}?";
+        ? "what was /people bob response to /ticket ACME-12?"
+        : "Is there any issue with #ACME?";
     }
     renderChatSuggest(scope);
   }
@@ -2345,14 +2667,17 @@
     empty(box);
     var samples = scope && scope !== "desk"
       ? [
-          "What is at risk?",
+          "Which tasks need to be done today?",
+          "What tasks are due this week?",
+          "What was /people bob response to /ticket ACME-12?",
           "Who is on the open projects?",
           "Any open tickets I should see?",
         ]
       : [
+          "Which tasks need to be done today?",
           "What tasks are due this week?",
-          "Is there any issue with #{ACME}?",
-          "Did @bob from #{ACME} reply to my last email?",
+          "Is there any issue with #ACME?",
+          "Did /people bob on #ACME reply to my last email?",
         ];
     samples.forEach(function (text) {
       var b = document.createElement("button");
@@ -2368,11 +2693,398 @@
     });
   }
 
+  function chatOnBook() {
+    return !!(chatScope && chatScope !== "desk");
+  }
+
+  function resetChatMentionCache() {
+    chatBooksList = null;
+    chatPeopleAll = null;
+    chatPeopleByBook = {};
+    chatTicketsByBook = {};
+    hideChatMentions();
+  }
+
+  function hideChatMentions() {
+    var menu = $("chat-mention-menu");
+    if (menu) {
+      menu.hidden = true;
+      menu.classList.add("hidden");
+      empty(menu);
+    }
+    chatMentionToken = null;
+    chatMentionItems = [];
+    chatMentionHi = 0;
+  }
+
+  function chatMentionAt(text, caret) {
+    var src = String(text || "");
+    var pos = caret == null ? src.length : caret;
+    var left = src.slice(0, pos);
+    var slash = left.match(/(^|[^A-Za-z0-9._])(\/)([A-Za-z]*)(?:(\s+)([A-Za-z0-9._-]{0,32}))?$/);
+    if (slash) {
+      var cmd = slash[3] || "";
+      var space = slash[4] || "";
+      var rest = slash[5] || "";
+      var start = left.length - 1 - cmd.length - space.length - rest.length;
+      return {
+        kind: "/",
+        cmd: cmd.toLowerCase(),
+        query: space ? rest : cmd,
+        rest: rest,
+        hasSpace: !!space,
+        start: start,
+        end: pos,
+      };
+    }
+    var m = left.match(/(^|[^A-Za-z0-9._])([#@])([A-Za-z0-9._-]{0,32})$/);
+    if (!m) return null;
+    var kind = m[2];
+    var query = m[3] || "";
+    var start = left.length - kind.length - query.length;
+    return { kind: kind, query: query, cmd: "", rest: "", hasSpace: false, start: start, end: pos };
+  }
+
+  function personHandle(person) {
+    var email = String((person && person.email) || "");
+    var local = email.split("@")[0] || "";
+    var firstLocal = local.split(/[._-]/)[0] || "";
+    var name = String((person && person.name) || "").trim();
+    var first = (name.split(/\s+/)[0] || "").toLowerCase();
+    var handle = (first || firstLocal || local || "person").toLowerCase();
+    return handle.replace(/[^a-z0-9._-]/g, "") || "person";
+  }
+
+  function loadChatBooks() {
+    if (homeItems && homeItems.length) return Promise.resolve(homeItems);
+    if (chatBooksList) return Promise.resolve(chatBooksList);
+    return api("/api/accounts").then(function (data) {
+      chatBooksList = data.items || [];
+      return chatBooksList;
+    }).catch(function () {
+      return [];
+    });
+  }
+
+  function loadChatTickets() {
+    if (!(chatOnBook() && currentAccount && currentAccount.account_id)) {
+      return Promise.resolve([]);
+    }
+    var aid = currentAccount.account_id;
+    if (chatTicketsByBook[aid]) return Promise.resolve(chatTicketsByBook[aid]);
+    return api("/api/tickets?account_id=" + encodeURIComponent(aid)).then(function (data) {
+      chatTicketsByBook[aid] = data.items || [];
+      return chatTicketsByBook[aid];
+    }).catch(function () {
+      return [];
+    });
+  }
+
+  function loadChatPeople() {
+    if (chatOnBook() && currentAccount && currentAccount.account_id) {
+      var aid = currentAccount.account_id;
+      if (chatPeopleByBook[aid]) return Promise.resolve(chatPeopleByBook[aid]);
+      return api("/api/people?account_id=" + encodeURIComponent(aid)).then(function (data) {
+        var abbr = currentAccount.abbr || "";
+        var rows = (data.items || []).map(function (p) {
+          return Object.assign({}, p, { _abbr: abbr, _book: currentAccount.name || abbr });
+        });
+        chatPeopleByBook[aid] = rows;
+        return rows;
+      }).catch(function () {
+        return [];
+      });
+    }
+    if (chatPeopleAll) return Promise.resolve(chatPeopleAll);
+    return Promise.all([loadChatBooks(), api("/api/people")]).then(function (parts) {
+      var books = parts[0] || [];
+      var byId = {};
+      books.forEach(function (a) {
+        byId[a.account_id] = a;
+      });
+      var rows = ((parts[1] && parts[1].items) || []).map(function (p) {
+        var a = byId[p.account_id] || {};
+        return Object.assign({}, p, { _abbr: a.abbr || "", _book: a.name || a.abbr || "" });
+      });
+      chatPeopleAll = rows;
+      return rows;
+    }).catch(function () {
+      return [];
+    });
+  }
+
+  function mapPeopleItems(people, query, insertKind) {
+    var q = String(query || "").toLowerCase();
+    return (people || []).filter(function (p) {
+      if (!q) return true;
+      var handle = personHandle(p);
+      var blob = (handle + " " + (p.name || "") + " " + (p.email || "") + " " + (p._abbr || "")).toLowerCase();
+      return blob.indexOf(q) >= 0;
+    }).slice(0, 12).map(function (p) {
+      var handle = personHandle(p);
+      var hint = chatOnBook()
+        ? (p.title || p.email || "")
+        : ((p._abbr ? "#" + p._abbr : "") + (p.title ? " · " + p.title : ""));
+      var insert = insertKind === "/" ? "/people " + handle : "@" + handle;
+      return {
+        kind: insertKind,
+        insert: insert,
+        title: p.name || handle,
+        hint: hint,
+        value: handle,
+        abbr: p._abbr || "",
+      };
+    });
+  }
+
+  function mentionItems(tok) {
+    tok = tok || {};
+    var kind = tok.kind || "";
+    var q = String(tok.query || "").toLowerCase();
+    if (kind === "#") {
+      if (chatOnBook()) return Promise.resolve([]);
+      return loadChatBooks().then(function (books) {
+        return (books || []).filter(function (a) {
+          if (!q) return true;
+          var blob = ((a.abbr || "") + " " + (a.name || "") + " " + (a.slug || "")).toLowerCase();
+          return blob.indexOf(q) >= 0;
+        }).slice(0, 12).map(function (a) {
+          return {
+            kind: "#",
+            insert: "#" + (a.abbr || a.slug || ""),
+            title: a.abbr || a.slug || "Book",
+            hint: a.name || "",
+            abbr: a.abbr || "",
+          };
+        });
+      });
+    }
+    if (kind === "/") {
+      var cmd = String(tok.cmd || "").toLowerCase();
+      var peopleExact = cmd === "people";
+      var ticketExact = cmd === "ticket";
+      if (!tok.hasSpace && !peopleExact && !ticketExact) {
+        return Promise.resolve(SLASH.filter(function (s) {
+          if (s.hidden) return false;
+          if (!cmd) return true;
+          return s.cmd.indexOf(cmd) === 0;
+        }).map(function (s) {
+          return {
+            kind: "/",
+            insert: "/" + s.cmd + " ",
+            title: s.label,
+            hint: s.example,
+            value: s.cmd,
+            slashCmd: true,
+          };
+        }));
+      }
+      if (peopleExact) {
+        return loadChatPeople().then(function (people) {
+          return mapPeopleItems(people, tok.hasSpace ? tok.rest : "", "/");
+        });
+      }
+      if (ticketExact) {
+        return loadChatTickets().then(function (rows) {
+          var needle = String(tok.hasSpace ? tok.rest : "").toLowerCase();
+          return (rows || []).filter(function (t) {
+            if (!needle) return true;
+            var blob = ((t.key || "") + " " + (t.summary || "")).toLowerCase();
+            return blob.indexOf(needle) >= 0;
+          }).slice(0, 12).map(function (t) {
+            return {
+              kind: "/",
+              insert: "/ticket " + (t.key || ""),
+              title: t.key || "Ticket",
+              hint: t.summary || "",
+              value: t.key || "",
+            };
+          });
+        });
+      }
+      return Promise.resolve([]);
+    }
+    return loadChatPeople().then(function (people) {
+      return mapPeopleItems(people, q, "@");
+    });
+  }
+
+  function insertChatMention(item) {
+    var input = $("home-chat-input");
+    var tok = chatMentionToken;
+    if (!input || !item) return;
+    var text = input.value || "";
+    var start = tok ? tok.start : input.selectionStart || 0;
+    var end = tok ? tok.end : input.selectionEnd || start;
+    var token = item.insert;
+    if (token.charAt(token.length - 1) !== " ") token += " ";
+    input.value = text.slice(0, start) + token + text.slice(end);
+    var caret = start + token.length;
+    input.focus();
+    if (input.setSelectionRange) input.setSelectionRange(caret, caret);
+    hideChatMentions();
+    if (item.slashCmd) refreshChatMentions();
+  }
+
+  function mentionKicker(tok) {
+    tok = tok || {};
+    if (tok.kind === "@") return chatOnBook() ? "Talk to someone on this book" : "Talk to someone";
+    if (tok.kind === "/") {
+      if (tok.cmd === "people") return "Bound: person";
+      if (tok.cmd === "ticket") return "Bound: ticket";
+      return "Bound this question";
+    }
+    return "Companies";
+  }
+
+  function appendMentionOpts(box, items, hi, onPick) {
+    items.forEach(function (it, idx) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "search-opt" + (idx === hi ? " is-on" : "");
+      if (it.value && (it.kind === "@" || String(it.insert || "").indexOf("/people") === 0)) {
+        b.setAttribute("data-handle", it.value);
+      }
+      if (it.slashCmd) b.setAttribute("data-cmd", it.value || "");
+      var cmd = document.createElement("span");
+      cmd.className = "search-opt-cmd";
+      cmd.textContent = it.insert;
+      var label = document.createElement("span");
+      label.className = "search-opt-label";
+      label.textContent = it.title;
+      b.appendChild(cmd);
+      b.appendChild(label);
+      if (it.hint) {
+        var ex = document.createElement("span");
+        ex.className = "search-opt-ex";
+        ex.textContent = it.hint;
+        b.appendChild(ex);
+      }
+      b.addEventListener("mousedown", function (ev) {
+        ev.preventDefault();
+      });
+      b.addEventListener("click", function () {
+        onPick(it);
+      });
+      box.appendChild(b);
+    });
+  }
+
+  function paintChatMentionMenu(items) {
+    var menu = $("chat-mention-menu");
+    if (!menu) return;
+    empty(menu);
+    chatMentionItems = items || [];
+    if (chatMentionHi >= chatMentionItems.length) chatMentionHi = Math.max(0, chatMentionItems.length - 1);
+    var kicker = document.createElement("div");
+    kicker.className = "chat-mention-kicker";
+    kicker.textContent = mentionKicker(chatMentionToken);
+    menu.appendChild(kicker);
+    if (!chatMentionItems.length) {
+      var p = document.createElement("p");
+      p.className = "muted";
+      var emptyMsg = "No match.";
+      if (chatMentionToken && chatMentionToken.kind === "@") emptyMsg = "No matching person.";
+      else if (chatMentionToken && chatMentionToken.kind === "#") emptyMsg = "No matching company.";
+      else if (chatMentionToken && chatMentionToken.cmd === "ticket") emptyMsg = chatOnBook() ? "No matching ticket." : "Open a book to bound a ticket.";
+      else if (chatMentionToken && chatMentionToken.cmd === "people") emptyMsg = "No matching person.";
+      p.textContent = emptyMsg;
+      menu.appendChild(p);
+    } else {
+      appendMentionOpts(menu, chatMentionItems, chatMentionHi, insertChatMention);
+    }
+    menu.hidden = false;
+    menu.classList.remove("hidden");
+  }
+
+  function refreshChatMentions() {
+    var input = $("home-chat-input");
+    if (!input) return;
+    var tok = chatMentionAt(input.value, input.selectionStart);
+    if (!tok || (tok.kind === "#" && chatOnBook())) {
+      hideChatMentions();
+      return;
+    }
+    chatMentionToken = tok;
+    chatMentionHi = 0;
+    var gen = ++chatMentionGen;
+    mentionItems(tok).then(function (items) {
+      if (gen !== chatMentionGen) return;
+      var nowTok = chatMentionAt(input.value, input.selectionStart);
+      if (!nowTok || (nowTok.kind === "#" && chatOnBook())) {
+        hideChatMentions();
+        return;
+      }
+      if (!items.length && nowTok.kind === "/" && nowTok.hasSpace && nowTok.cmd !== "people" && nowTok.cmd !== "ticket") {
+        hideChatMentions();
+        return;
+      }
+      paintChatMentionMenu(items);
+    });
+  }
+
+  function chatMentionMenuOpen() {
+    var menu = $("chat-mention-menu");
+    return !!(menu && !menu.hidden);
+  }
+
+  function bindChatMentions() {
+    var input = $("home-chat-input");
+    if (!input || input._mentionBound) return;
+    input._mentionBound = true;
+    input.addEventListener("focus", function () {
+      loadChatBooks();
+      loadChatPeople();
+      loadChatTickets();
+    });
+    input.addEventListener("input", refreshChatMentions);
+    input.addEventListener("click", refreshChatMentions);
+    input.addEventListener("keydown", function (ev) {
+      if (!chatMentionMenuOpen()) return;
+      if (ev.key === "Escape") {
+        ev.preventDefault();
+        hideChatMentions();
+        return;
+      }
+      if (ev.key === "ArrowDown") {
+        ev.preventDefault();
+        chatMentionHi = Math.min(chatMentionItems.length - 1, chatMentionHi + 1);
+        paintChatMentionMenu(chatMentionItems);
+        return;
+      }
+      if (ev.key === "ArrowUp") {
+        ev.preventDefault();
+        chatMentionHi = Math.max(0, chatMentionHi - 1);
+        paintChatMentionMenu(chatMentionItems);
+        return;
+      }
+      if (ev.key === "Enter" || ev.key === "Tab") {
+        if (!chatMentionItems.length) return;
+        ev.preventDefault();
+        insertChatMention(chatMentionItems[chatMentionHi] || chatMentionItems[0]);
+      }
+    });
+    input.addEventListener("blur", function () {
+      setTimeout(function () {
+        if (document.activeElement === input) return;
+        hideChatMentions();
+      }, 120);
+    });
+    document.addEventListener("click", function (ev) {
+      var menu = $("chat-mention-menu");
+      if (!menu || menu.hidden) return;
+      if (menu.contains(ev.target) || ev.target === input) return;
+      hideChatMentions();
+    });
+  }
+
   function syncChatScope(scope) {
     scope = scope || "desk";
+    hideChatMentions();
     updateChatChrome(scope);
     if (scope === chatScope) return;
     chatScope = scope;
+    chatPeopleAll = null;
     homeChatId = "";
     setBookmarkUi(false);
     var log = $("home-chat-log");
@@ -2512,7 +3224,8 @@
   function parseChatDraft(text) {
     var out = { abbr: "", to: [], cc: [], emails: [], tickets: [], titleHint: "", subject: "" };
     var t = String(text || "");
-    var book = t.match(/#\{([A-Za-z0-9][A-Za-z0-9._-]{0,15})\}/);
+    var book = t.match(/#\{([A-Za-z0-9][A-Za-z0-9._-]{0,31})\}/)
+      || t.match(/(?:^|[^A-Za-z0-9])#(?!\{)(?!(?:account|compose|help|home|settings|actions|reports)\b)([A-Za-z][A-Za-z0-9_]{1,31})(?!-\d)(?![A-Za-z0-9_])/i);
     if (book) out.abbr = book[1];
     function lineList(label) {
       var re = new RegExp("(?:^|\\n)\\s*" + label + "\\s*:\\s*(.+)$", "im");
@@ -2582,6 +3295,15 @@
       location.hash = "#account/" + abbr + "/" + ((spec && spec.tab) || "timeline");
       return;
     }
+    if (kind === "person") {
+      var handle = String(val || "").replace(/^@/, "");
+      if (!abbr) return;
+      accountQ = "@" + handle;
+      var peopleQ = $("account-q");
+      if (peopleQ) peopleQ.value = accountQ;
+      location.hash = "#account/" + abbr + "/people";
+      return;
+    }
     if (kind === "mail" && currentAccount) {
       openPersonForm(currentAccount, { email: val, name: "", title: "" });
     }
@@ -2591,7 +3313,7 @@
     empty(el);
     var raw = String(text || "");
     if (!raw) return;
-    var re = /#\{[A-Za-z0-9][A-Za-z0-9._-]{0,15}\}|#(?:account|compose|help|home|settings)\/[^\s)\]>]+|\/(?:ticket|project|people|email|chat|slack|teams|calendar|sf)\s+[^\s,;]+|\b[A-Z]{2,6}-\d+\b|[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/gi;
+    var re = /#\{[A-Za-z0-9][A-Za-z0-9._-]{0,31}\}|#(?:account|compose|help|home|settings)\/[^\s)\]>]+|#(?!\{)(?!(?:account|compose|help|home|settings|actions|reports)\b)[A-Za-z][A-Za-z0-9_]{1,31}(?!-\d)(?![A-Za-z0-9_])|\/(?:ticket|project|people|email|chat|slack|teams|calendar|sf)\s+[^\s,;]+|\b[A-Z]{2,6}-\d+\b|[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}|(?<![A-Za-z0-9._])@[A-Za-z][A-Za-z0-9._-]*/gi;
     var last = 0;
     var m;
     while ((m = re.exec(raw))) {
@@ -2599,10 +3321,14 @@
       var tok = m[0];
       if (tok.charAt(0) === "#" && tok.charAt(1) === "{") {
         el.appendChild(chatLinkEl(tok, "book", tok.slice(2, -1)));
+      } else if (tok.charAt(0) === "#" && tok.indexOf("/") < 0) {
+        el.appendChild(chatLinkEl(tok, "book", tok.slice(1)));
       } else if (tok.charAt(0) === "#") {
         el.appendChild(chatLinkEl(tok, "hash", tok));
       } else if (tok.charAt(0) === "/") {
         el.appendChild(chatLinkEl(tok, "slash", tok));
+      } else if (tok.charAt(0) === "@") {
+        el.appendChild(chatLinkEl(tok, "person", tok.replace(/^@/, "")));
       } else if (tok.indexOf("@") >= 0) {
         el.appendChild(chatLinkEl(tok, "mail", tok));
       } else {
@@ -3013,8 +3739,8 @@
     var cmd = (space < 0 ? t.slice(1) : t.slice(1, space)).toLowerCase();
     var rest = space < 0 ? "" : t.slice(space + 1);
     var matches = cmd
-      ? SLASH.filter(function (s) { return s.cmd.indexOf(cmd) === 0; })
-      : SLASH.slice();
+      ? SLASH.filter(function (s) { return !s.hidden && s.cmd.indexOf(cmd) === 0; })
+      : SLASH.filter(function (s) { return !s.hidden; });
     var exact = null;
     SLASH.forEach(function (s) {
       if (s.cmd === cmd) exact = s;
@@ -3030,7 +3756,16 @@
     };
   }
 
+  function atPersonState(raw) {
+    var t = String(raw || "");
+    var m = t.match(/^@([A-Za-z0-9._-]*)\s*(.*)$/);
+    if (!m) return { open: false, handle: "", rest: t };
+    return { open: true, handle: m[1] || "", rest: (m[2] || "").trim() };
+  }
+
   function searchNeedle() {
+    var at = atPersonState(accountQ);
+    if (at.open) return at.handle || at.rest || "";
     var s = slashState(accountQ);
     if (accountQ.charAt(0) === "/") return s.exact ? s.rest : "";
     return accountQ;
@@ -3050,18 +3785,79 @@
     if (qEl) qEl.value = accountQ;
     hideSlashSuggest();
     applyAccountSearch(true);
+    if (cmd === "people") {
+      renderPersonSuggest(true, "");
+    }
     if (qEl) qEl.focus();
+  }
+
+  function pickPerson(handle, asSlash) {
+    var qEl = $("account-q");
+    var name = String(handle || "").replace(/^@/, "");
+    accountQ = asSlash ? "/people " + name : "@" + name;
+    if (qEl) qEl.value = accountQ;
+    hideSlashSuggest();
+    applyAccountSearch(true);
+    if (qEl) qEl.focus();
+  }
+
+  function renderPersonSuggest(asSlash, handle) {
+    var box = $("account-suggest");
+    if (!box) return;
+    var q = handle || "";
+    if (!asSlash) {
+      var at = atPersonState(accountQ);
+      if (!at.open) {
+        hideSlashSuggest();
+        return;
+      }
+      q = at.handle;
+    }
+    var gen = ++personSuggestGen;
+    mentionItems({ kind: asSlash ? "/" : "@", cmd: asSlash ? "people" : "", query: q, rest: q, hasSpace: true }).then(function (items) {
+      if (gen !== personSuggestGen) return;
+      empty(box);
+      slashIndex = 0;
+      var kicker = document.createElement("div");
+      kicker.className = "chat-mention-kicker";
+      kicker.textContent = asSlash ? "People" : "Talk to";
+      box.appendChild(kicker);
+      if (!items.length) {
+        var p = document.createElement("p");
+        p.className = "muted";
+        p.textContent = "No matching person.";
+        box.appendChild(p);
+      } else {
+        appendMentionOpts(box, items, 0, function (it) {
+          pickPerson(it.value, asSlash);
+        });
+      }
+      box.hidden = false;
+      box.classList.remove("hidden");
+    });
   }
 
   function renderSlashSuggest() {
     var box = $("account-suggest");
     if (!box) return;
+    if (atPersonState(accountQ).open) {
+      renderPersonSuggest(false);
+      return;
+    }
     var s = slashState(accountQ);
+    if (s.exact && s.cmd === "people") {
+      renderPersonSuggest(true, s.rest);
+      return;
+    }
     if (!s.open || s.exact && accountQ.indexOf(" ") >= 0) {
       hideSlashSuggest();
       return;
     }
-    var rows = s.matches.length ? s.matches : SLASH;
+    var rows = s.matches.length ? s.matches : SLASH.filter(function (row) { return !row.hidden; });
+    if (!rows.length) {
+      hideSlashSuggest();
+      return;
+    }
     empty(box);
     slashIndex = 0;
     rows.forEach(function (row, i) {
@@ -3092,6 +3888,17 @@
 
   function applyAccountSearch(forceTab) {
     if (!currentAccount) return;
+    var at = atPersonState(accountQ);
+    if (at.open) {
+      if ((forceTab || at.handle) && currentTab !== "people") {
+        location.hash = "#account/" + currentAccount.abbr + "/people";
+        return;
+      }
+      if (currentTab === "people") {
+        renderPane(currentAccount, "people");
+        return;
+      }
+    }
     var s = slashState(accountQ);
     if (s.exact && s.cmd === "project" && String(s.rest || "").trim().toLowerCase() === "all") {
       peopleAllProjects = true;
@@ -3662,6 +4469,99 @@
     return sheet;
   }
 
+  function closeConfirm() {
+    var box = $("confirm-box");
+    if (!box) return;
+    box.hidden = true;
+    box.classList.add("hidden");
+    empty(box);
+  }
+
+  function confirmDanger(opts) {
+    opts = opts || {};
+    var box = $("confirm-box");
+    if (!box) return;
+    box.hidden = false;
+    box.classList.remove("hidden");
+    empty(box);
+    var sheet = document.createElement("article");
+    sheet.className = "sheet sheet-confirm";
+    var head = document.createElement("header");
+    var h = document.createElement("h2");
+    h.textContent = opts.title || "Confirm";
+    var close = document.createElement("button");
+    close.type = "button";
+    close.className = "btn btn-ghost sheet-close";
+    close.setAttribute("aria-label", "Close");
+    close.textContent = "×";
+    close.addEventListener("click", closeConfirm);
+    head.appendChild(h);
+    head.appendChild(close);
+    sheet.appendChild(head);
+    var p = document.createElement("p");
+    p.textContent = opts.body || "";
+    sheet.appendChild(p);
+    var lab = document.createElement("label");
+    var hint = document.createElement("span");
+    hint.textContent = "Type ";
+    var token = document.createElement("strong");
+    token.className = "confirm-token";
+    token.textContent = opts.token || "";
+    lab.appendChild(hint);
+    lab.appendChild(token);
+    lab.appendChild(document.createTextNode(" to confirm"));
+    var input = document.createElement("input");
+    input.type = "text";
+    input.autocomplete = "off";
+    input.spellcheck = false;
+    input.setAttribute("aria-label", "Type " + (opts.token || "") + " to confirm");
+    lab.appendChild(input);
+    sheet.appendChild(lab);
+    var foot = document.createElement("div");
+    foot.className = "sheet-foot";
+    var cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.className = "btn";
+    cancel.textContent = "Cancel";
+    cancel.addEventListener("click", closeConfirm);
+    var go = document.createElement("button");
+    go.type = "button";
+    go.className = "btn btn-cancel";
+    go.textContent = opts.confirmLabel || "Remove";
+    go.disabled = true;
+    function matches() {
+      return input.value.trim().toLowerCase() === String(opts.token || "").trim().toLowerCase();
+    }
+    function sync() {
+      go.disabled = !matches();
+    }
+    input.addEventListener("input", sync);
+    input.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        if (matches()) go.click();
+      }
+      if (ev.key === "Escape") closeConfirm();
+    });
+    go.addEventListener("click", function () {
+      if (!matches()) return;
+      var typed = input.value.trim();
+      closeConfirm();
+      if (opts.onConfirm) opts.onConfirm(typed);
+    });
+    foot.appendChild(cancel);
+    foot.appendChild(go);
+    sheet.appendChild(foot);
+    box.appendChild(sheet);
+    box.addEventListener("click", function onBackdrop(ev) {
+      if (ev.target === box) {
+        box.removeEventListener("click", onBackdrop);
+        closeConfirm();
+      }
+    });
+    setTimeout(function () { input.focus(); }, 0);
+  }
+
   function openCalendarLightbox(ev) {
     if (!ev) return;
     var sheet = openSheet(ev.title || "Meeting");
@@ -4091,7 +4991,7 @@
     sh.textContent = "Reply";
     var hint = document.createElement("p");
     hint.className = "muted";
-    hint.textContent = "Uses this thread plus the account (tickets, people, projects).";
+    hint.textContent = "This thread plus a short book brief (tickets, people). Not the whole mailbox.";
     suggest.appendChild(sh);
     suggest.appendChild(hint);
     var savedDraftId = "";
@@ -4118,6 +5018,7 @@
             body: doc.body || "",
           });
           toast(doc.result === "grok" ? "Drafted with Grok" : "Template draft");
+          return doc;
         });
       },
       onSave: function (snap) {
@@ -4137,7 +5038,7 @@
           : api("/api/drafts", { method: "POST", body: JSON.stringify(payload) });
         return req.then(function (doc) {
           if (doc && doc._id) savedDraftId = doc._id;
-          toast("Draft saved");
+          return doc;
         });
       },
       onSend: function (snap, attachments) {
@@ -4632,17 +5533,29 @@
       rm.className = "btn btn-cancel";
       rm.textContent = "Remove";
       rm.addEventListener("click", function () {
-        if (!window.confirm("Remove project " + (proj.name || "") + "?")) return;
-        api("/api/projects/" + encodeURIComponent(proj._id), { method: "DELETE" }).then(function () {
-          toast("Project removed");
-          closeDetail();
-          return api("/api/projects?account_id=" + encodeURIComponent(acct.account_id));
-        }).then(function (data) {
-          accountProjects = (data && data.items) || [];
-          fillProjectSelect();
-          renderPane(acct, "projects");
-        }).catch(function (err) {
-          toast(String(err.message || err));
+        var token = String(proj.name || "").trim();
+        if (!token) return;
+        confirmDanger({
+          title: "Remove project",
+          body: "This archives the project on this book. Type the project name. Quiet is not available here — Cancel if you clicked by mistake.",
+          token: token,
+          confirmLabel: "Remove project",
+          onConfirm: function (typed) {
+            api("/api/projects/" + encodeURIComponent(proj._id), {
+              method: "DELETE",
+              body: JSON.stringify({ confirm: typed }),
+            }).then(function () {
+              toast("Project removed");
+              closeDetail();
+              return api("/api/projects?account_id=" + encodeURIComponent(acct.account_id));
+            }).then(function (data) {
+              accountProjects = (data && data.items) || [];
+              fillProjectSelect();
+              renderPane(acct, "projects");
+            }).catch(function (err) {
+              toast(String(err.message || err));
+            });
+          },
         });
       });
       actions.appendChild(rm);
@@ -4699,7 +5612,9 @@
   function personRow(item, acct) {
     var mid = item.name || "";
     if (item.title) mid += " · " + item.title;
+    if (item.group) mid += " · " + item.group;
     var right = item.email || "";
+    if (item.phone) right = (right ? right + " · " : "") + item.phone;
     if (item.location) right = (right ? right + " · " : "") + item.location;
     var row = rowEl(item.role || item.kind || "", mid, right);
     row.classList.add("is-click", "has-avatar");
@@ -4754,6 +5669,7 @@
     search.id = "people-q";
     search.placeholder = "Search people";
     search.setAttribute("aria-label", "Search people");
+    search.value = searchNeedle();
     left.appendChild(search);
     var add = document.createElement("button");
     add.type = "button";
@@ -4787,6 +5703,9 @@
             item.name,
             item.email,
             item.title,
+            item.phone,
+            item.group,
+            item.job_description,
             item.role,
             item.kind,
             item.location,
@@ -5024,9 +5943,56 @@
     });
   }
 
-  function fieldLabel(text, node) {
+  var _tipSeq = 0;
+
+  function fieldTipButton(ariaLabel, text) {
+    _tipSeq += 1;
+    var id = "field-tip-" + _tipSeq;
+    var wrap = document.createElement("span");
+    wrap.className = "field-tip-wrap";
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "field-tip";
+    btn.setAttribute("aria-label", ariaLabel || "About this field");
+    btn.setAttribute("aria-describedby", id);
+    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("aria-hidden", "true");
+    var circ = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    circ.setAttribute("cx", "12");
+    circ.setAttribute("cy", "12");
+    circ.setAttribute("r", "9");
+    var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", "M12 10.5v5M12 7.5h.01");
+    svg.appendChild(circ);
+    svg.appendChild(path);
+    btn.appendChild(svg);
+    var pop = document.createElement("span");
+    pop.id = id;
+    pop.className = "field-tip-pop";
+    pop.setAttribute("role", "tooltip");
+    pop.textContent = text;
+    wrap.appendChild(btn);
+    wrap.appendChild(pop);
+    return wrap;
+  }
+
+  function fieldLabel(text, node, opts) {
+    opts = opts || {};
     var lab = document.createElement("label");
-    lab.textContent = text;
+    lab.className = "field-block";
+    var title = document.createElement("span");
+    title.className = "field-label";
+    title.appendChild(document.createTextNode(text));
+    if (opts.required) {
+      var req = document.createElement("abbr");
+      req.className = "field-req";
+      req.title = "Required";
+      req.textContent = "*";
+      title.appendChild(req);
+    }
+    if (opts.tip) title.appendChild(fieldTipButton(opts.tipLabel || ("About " + text), opts.tip));
+    lab.appendChild(title);
     lab.appendChild(node);
     return lab;
   }
@@ -5083,6 +6049,14 @@
     location.value = (person && person.location) || "";
     var title = document.createElement("input");
     title.value = (person && person.title) || "";
+    var phone = document.createElement("input");
+    phone.type = "tel";
+    phone.value = (person && person.phone) || "";
+    var group = document.createElement("input");
+    group.value = (person && person.group) || "";
+    var job = document.createElement("textarea");
+    job.rows = 3;
+    job.value = (person && person.job_description) || "";
     var kindPick = mountSearchSelect({
       items: [
         { value: "customer", label: "Customer" },
@@ -5137,6 +6111,9 @@
     form.appendChild(lab("Name", name));
     form.appendChild(lab("Email", email));
     form.appendChild(lab("Title", title));
+    form.appendChild(lab("Phone", phone));
+    form.appendChild(lab("Group", group));
+    form.appendChild(lab("Job description", job, true));
     form.appendChild(lab("Location", location));
     form.appendChild(lab("Kind", kindPick.el));
     form.appendChild(lab("Reports to", reportsPick.el));
@@ -5179,6 +6156,9 @@
         email: email.value,
         location: location.value,
         title: title.value,
+        phone: phone.value,
+        group: group.value,
+        job_description: job.value,
         kind: kindPick.get() || "customer",
         reports_to: reportsPick.get() || "",
         project_ids: allProj.checked ? [] : (projPick.get() || []),
@@ -5330,18 +6310,145 @@
     });
   }
 
+  function helpEscapeRe(s) {
+    return String(s || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  function unmarkHelp(root) {
+    if (!root) return;
+    root.querySelectorAll("mark.help-mark").forEach(function (el) {
+      var parent = el.parentNode;
+      if (!parent) return;
+      while (el.firstChild) parent.insertBefore(el.firstChild, el);
+      parent.removeChild(el);
+      parent.normalize();
+    });
+  }
+
+  function helpMarkEl(root, terms) {
+    if (!root || !terms || !terms.length) return;
+    var unique = [];
+    terms.forEach(function (raw) {
+      var t = String(raw || "").trim();
+      if (t.length < 2 || t.length > 40) return;
+      var low = t.toLowerCase();
+      if (unique.indexOf(low) < 0) unique.push(low);
+    });
+    unique.sort(function (a, b) { return b.length - a.length; });
+    if (!unique.length) return;
+    var re = new RegExp("\\b(" + unique.map(helpEscapeRe).join("|") + ")\\b", "gi");
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    var nodes = [];
+    var node;
+    while ((node = walker.nextNode())) {
+      if (!node.nodeValue || !node.parentNode) continue;
+      if (node.parentNode.closest && node.parentNode.closest("mark.help-mark")) continue;
+      re.lastIndex = 0;
+      if (re.test(node.nodeValue)) nodes.push(node);
+    }
+    nodes.forEach(function (textNode) {
+      var text = textNode.nodeValue;
+      re.lastIndex = 0;
+      var parts = text.split(re);
+      if (parts.length < 2) return;
+      var frag = document.createDocumentFragment();
+      parts.forEach(function (part, i) {
+        if (!part) return;
+        if (i % 2 === 1) {
+          var mark = document.createElement("mark");
+          mark.className = "help-mark";
+          mark.textContent = part;
+          frag.appendChild(mark);
+        } else {
+          frag.appendChild(document.createTextNode(part));
+        }
+      });
+      textNode.parentNode.replaceChild(frag, textNode);
+    });
+  }
+
+  function helpSliceWord(value, start, end) {
+    var s = String(value || "");
+    var i = Math.max(0, start);
+    var j = Math.min(s.length, end);
+    var word = function (ch) { return /[A-Za-z0-9]/.test(ch); };
+    while (i > 0 && word(s.charAt(i - 1))) i -= 1;
+    while (j < s.length && word(s.charAt(j))) j += 1;
+    return s.slice(i, j);
+  }
+
+  function helpEditDist(a, b) {
+    a = String(a || "");
+    b = String(b || "");
+    if (a === b) return 0;
+    var m = a.length;
+    var n = b.length;
+    if (!m) return n;
+    if (!n) return m;
+    var prev = [];
+    var i;
+    var j;
+    for (j = 0; j <= n; j++) prev[j] = j;
+    for (i = 1; i <= m; i++) {
+      var cur = [i];
+      for (j = 1; j <= n; j++) {
+        var cost = a.charAt(i - 1) === b.charAt(j - 1) ? 0 : 1;
+        cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost);
+      }
+      prev = cur;
+    }
+    return prev[n];
+  }
+
+  function helpCloseToQuery(word, q) {
+    var w = String(word || "").toLowerCase();
+    var query = String(q || "").toLowerCase();
+    if (w.length < 2 || query.length < 2) return false;
+    if (w === query) return true;
+    if (query.length >= 3 && w.indexOf(query) === 0 && w.length - query.length <= 3) return true;
+    if (query.length < 4) return false;
+    if (w.slice(0, 3) !== query.slice(0, 3)) return false;
+    if (Math.abs(w.length - query.length) > 2) return false;
+    return helpEditDist(w, query) <= (query.length <= 5 ? 1 : 2);
+  }
+
+  function helpFuseHits(q) {
+    if (!q || !helpFuse || q.length < 2) return null;
+    var ids = {};
+    var terms = [q];
+    helpFuse.search(q).forEach(function (hit) {
+      var id = hit && hit.item && hit.item.id;
+      if (id) ids[id] = true;
+      (hit.matches || []).forEach(function (m) {
+        (m.indices || []).forEach(function (pair) {
+          var word = helpSliceWord(m.value, pair[0], pair[1] + 1);
+          if (helpCloseToQuery(word, q)) terms.push(word);
+        });
+      });
+    });
+    return { ids: ids, terms: terms };
+  }
+
   function filterHelp(raw) {
     var box = $("help-body");
     var emptyEl = $("help-empty");
     var chips = $("help-chips");
     if (!box) return;
-    var q = String(raw || "").toLowerCase().trim();
+    var q = String(raw || "").trim();
+    var qLow = q.toLowerCase();
+    var hits = helpFuseHits(q);
+    var ids = hits && hits.ids;
     var any = false;
+    unmarkHelp(box);
     box.querySelectorAll(".help-group").forEach(function (sec) {
-      var titleHit = !q || (sec.getAttribute("data-title") || "").indexOf(q) >= 0;
+      var titleHit = !q || (sec.getAttribute("data-title") || "").indexOf(qLow) >= 0;
       var shown = 0;
       sec.querySelectorAll(".help-item").forEach(function (item) {
-        var hit = !q || titleHit || (item.getAttribute("data-search") || "").indexOf(q) >= 0;
+        var key = (item.id || "").replace(/^help-/, "");
+        var hit;
+        if (!q) hit = true;
+        else if (ids) hit = !!ids[key];
+        else hit = titleHit || (item.getAttribute("data-search") || "").indexOf(qLow) >= 0;
         item.hidden = !!q && !hit;
         if (hit) shown += 1;
       });
@@ -5354,6 +6461,12 @@
       if (chip) chip.hidden = !vis;
     });
     if (emptyEl) emptyEl.hidden = any;
+    if (q && any) {
+      var terms = hits ? hits.terms : [q];
+      box.querySelectorAll(".help-item:not([hidden])").forEach(function (item) {
+        helpMarkEl(item, terms);
+      });
+    }
   }
 
   function applyHelpTopic(topic) {
@@ -5392,6 +6505,7 @@
     if (!box) return;
     empty(box);
     if (chips) empty(chips);
+    var fuseRows = [];
     (data.groups || []).forEach(function (g) {
       var gid = g.id || "";
       var items = g.items || [];
@@ -5425,6 +6539,12 @@
         wrap.id = "help-" + (item.id || "");
         wrap.setAttribute("data-search", helpBlob(g.title, helpTextOf(item)));
         groupSearch.push(helpTextOf(item));
+        fuseRows.push({
+          id: item.id || "",
+          question: item.h || "",
+          answer: helpTextOf(item),
+          group: g.title || "",
+        });
         var q = document.createElement("h3");
         q.className = "help-q";
         var qText = document.createElement("span");
@@ -5442,6 +6562,19 @@
       sec.setAttribute("data-search", helpBlob.apply(null, groupSearch));
       box.appendChild(sec);
     });
+    helpFuse = typeof Fuse === "function"
+      ? new Fuse(fuseRows, {
+          keys: [
+            { name: "question", weight: 0.55 },
+            { name: "answer", weight: 0.35 },
+            { name: "group", weight: 0.1 },
+          ],
+          includeMatches: true,
+          threshold: 0.38,
+          ignoreLocation: true,
+          minMatchCharLength: 2,
+        })
+      : null;
     bindHelpSearch();
     filterHelp(($("help-search") && $("help-search").value) || "");
   }
@@ -5465,6 +6598,407 @@
 
   function connectorLabel(name) {
     return CONN_LABELS[name] || String(name || "");
+  }
+
+  function syncToast(name, doc) {
+    if (!doc) return connectorLabel(name) + " sync";
+    if (doc.error) return connectorLabel(name) + " sync " + (doc.status || "error") + " · " + doc.error;
+    var routed = Number(doc.routed || 0);
+    var unmatched = Number(doc.unassigned || 0);
+    var fetched = Number(doc.fetched || 0);
+    return (
+      connectorLabel(name) +
+      " sync " +
+      (doc.status || "done") +
+      " · " +
+      fetched +
+      " pulled · " +
+      routed +
+      " on a book · " +
+      unmatched +
+      " unmatched"
+    );
+  }
+
+  function attachLiveGoogle(accountId, feeds) {
+    var want = feeds && feeds.length ? feeds : ["google_mail", "google_cal"];
+    var live = ((status && status.connectors) || []).filter(function (c) {
+      return want.indexOf(c.name) >= 0 && c.mode === "live" && (c.connected || c.ok);
+    });
+    var jobs = [];
+    var chain = Promise.resolve();
+    live.forEach(function (c) {
+      chain = chain.then(function () {
+        return api("/api/connectors/" + encodeURIComponent(c.name) + "/sync", {
+          method: "POST",
+          body: JSON.stringify({ account_id: accountId }),
+        }).then(function (doc) {
+          toast(syncToast(c.name, doc));
+          jobs.push(doc);
+          return doc;
+        }).catch(function (err) {
+          var failed = { connector: c.name, status: "error", error: String(err.message || err), fetched: 0, routed: 0, unassigned: 0 };
+          jobs.push(failed);
+          toast(syncToast(c.name, failed));
+        });
+      });
+    });
+    return chain.then(function () {
+      loadHome(true);
+      return jobs;
+    });
+  }
+
+  function reportFeeds(acct) {
+    var feeds = ((acct && acct.coverage) || {}).feeds || [];
+    feeds = feeds.filter(Boolean);
+    if (feeds.length) return feeds;
+    var live = [];
+    ((status && status.connectors) || []).forEach(function (c) {
+      if (c.mode === "live" && (c.connected || c.ok) && FEED_NAMES.indexOf(c.name) >= 0) live.push(c.name);
+    });
+    return live;
+  }
+
+  function latestJobsForAccount(aid, jobs) {
+    if (jobs && jobs.length) return Promise.resolve(jobs);
+    return api("/api/sync/jobs").then(function (data) {
+      var latest = {};
+      (data.items || []).forEach(function (j) {
+        if ((j.account_id || "") !== aid) return;
+        var name = j.connector;
+        if (!name) return;
+        if (!latest[name] || String(j.updated_at || "") > String(latest[name].updated_at || "")) latest[name] = j;
+      });
+      return Object.keys(latest).map(function (k) { return latest[k]; });
+    });
+  }
+
+  function openProcessingReport(acct, jobs) {
+    var box = $("detail-box");
+    if (!box || !acct || !acct.account_id) return Promise.resolve();
+    var aid = acct.account_id;
+    var domains = ((acct.domains || []).slice()).map(function (d) {
+      return String(d || "").trim().toLowerCase().replace(/^@/, "");
+    }).filter(Boolean);
+    box.hidden = false;
+    box.classList.remove("hidden");
+    empty(box);
+    var sheet = document.createElement("article");
+    sheet.className = "sheet sheet-company sheet-wizard";
+    var head = document.createElement("header");
+    var h = document.createElement("h2");
+    h.textContent = "Processing report";
+    var close = document.createElement("button");
+    close.type = "button";
+    close.className = "btn btn-ghost sheet-close";
+    close.textContent = "×";
+    close.addEventListener("click", function () {
+      closeDetail();
+      loadSettings();
+      loadHome(true);
+    });
+    head.appendChild(h);
+    head.appendChild(close);
+    var body = document.createElement("div");
+    body.className = "form-grid";
+    var wait = document.createElement("p");
+    wait.className = "muted";
+    wait.textContent = "Counting what landed on " + (acct.name || "this book") + "…";
+    body.appendChild(wait);
+    var err = document.createElement("p");
+    err.className = "muted";
+    err.style.color = "var(--low)";
+    err.hidden = true;
+    var foot = document.createElement("div");
+    foot.className = "sheet-foot";
+    sheet.appendChild(head);
+    sheet.appendChild(body);
+    sheet.appendChild(err);
+    sheet.appendChild(foot);
+    box.appendChild(sheet);
+
+    function setError(msg) {
+      err.hidden = !msg;
+      err.textContent = msg || "";
+    }
+
+    function loadCounts() {
+      return api("/api/accounts/" + encodeURIComponent(aid)).then(function (account) {
+        var counts = account.input_counts || {};
+        return Promise.all([
+          api("/api/emails?account_id=" + encodeURIComponent(aid) + "&limit=200"),
+          api("/api/people?account_id=" + encodeURIComponent(aid)),
+          api("/api/accounts/" + encodeURIComponent(aid) + "/people-mine"),
+        ]).then(function (rows) {
+          return { emails: rows[0], people: rows[1], mined: rows[2], account: account, counts: counts };
+        });
+      });
+    }
+
+    function jobFor(name, list) {
+      var found = null;
+      (list || []).forEach(function (j) {
+        if ((j.connector || j.name) === name) found = j;
+      });
+      return found;
+    }
+
+    function paintReport(pack, jobList) {
+      empty(body);
+      empty(foot);
+      setError("");
+      var h3 = document.createElement("h3");
+      h3.textContent = (acct.name || "Company") + " · inputs";
+      body.appendChild(h3);
+      var intro = document.createElement("p");
+      intro.className = "muted";
+      intro.textContent = "What landed on this book. Tickets and Slack stay 0 until those feeds are live and ticked. If a domain was mistyped, fix it below and reprocess.";
+      body.appendChild(intro);
+      var table = document.createElement("table");
+      table.className = "wizard-report";
+      var thead = document.createElement("thead");
+      var hr = document.createElement("tr");
+      ["Feed", "Status", "Pulled", "On this book", "Unmatched"].forEach(function (label) {
+        var th = document.createElement("th");
+        th.textContent = label;
+        hr.appendChild(th);
+      });
+      thead.appendChild(hr);
+      table.appendChild(thead);
+      var tb = document.createElement("tbody");
+      var selected = reportFeeds(pack.account || acct);
+      if (!selected.length) selected = FEED_NAMES.slice();
+      selected.forEach(function (name) {
+        var j = jobFor(name, jobList) || {};
+        var tr = document.createElement("tr");
+        if (j.status === "error" || j.error) tr.className = "is-error";
+        function td(text) {
+          var cell = document.createElement("td");
+          cell.textContent = text;
+          tr.appendChild(cell);
+        }
+        td(connectorLabel(name));
+        td(j.status || "not run");
+        td(j.fetched != null ? String(j.fetched) : "—");
+        td(j.routed != null ? String(j.routed) : "—");
+        td(j.unassigned != null ? String(j.unassigned) : "—");
+        if (j.error) tr.title = j.error;
+        tb.appendChild(tr);
+      });
+      table.appendChild(tb);
+      body.appendChild(table);
+      var counts = pack.counts || {};
+      var emTotal = pack.emails && pack.emails.total != null ? pack.emails.total : ((pack.emails && pack.emails.items) || []).length;
+      var totals = document.createElement("p");
+      totals.textContent =
+        "On the book now: " +
+        emTotal + " emails · " +
+        (counts.calendar || 0) + " meetings · " +
+        (counts.tickets || 0) + " tickets · " +
+        (counts.slack || 0) + " Slack · " +
+        (counts.teams || 0) + " Teams · " +
+        ((pack.people && pack.people.items) || []).length + " people.";
+      body.appendChild(totals);
+
+      var domainHolder = document.createElement("div");
+      body.appendChild(fieldLabel("Customer domain(s)", domainHolder, {
+        tip: "Mail and meetings attach when From / To / Cc or attendees match. Add acme.co.uk, or fix a typo like accme.com, then Reprocess.",
+      }));
+      var domainBox = document.createElement("div");
+      domainBox.className = "wizard-domain-edit";
+      var chips = document.createElement("div");
+      chips.className = "wizard-domain-chips";
+      function paintChips() {
+        empty(chips);
+        domains.forEach(function (d, i) {
+          var chip = document.createElement("button");
+          chip.type = "button";
+          chip.className = "wizard-domain-chip";
+          chip.textContent = "@" + String(d).replace(/^@/, "") + " ×";
+          chip.addEventListener("click", function () {
+            domains.splice(i, 1);
+            paintChips();
+          });
+          chips.appendChild(chip);
+        });
+      }
+      paintChips();
+      var addRow = document.createElement("div");
+      addRow.className = "wizard-domain-add";
+      var addIn = document.createElement("input");
+      addIn.type = "text";
+      addIn.placeholder = "acme.co.uk";
+      var addBtn = document.createElement("button");
+      addBtn.type = "button";
+      addBtn.className = "btn";
+      addBtn.textContent = "Add domain";
+      function addDomain() {
+        var v = String(addIn.value || "").trim().toLowerCase().replace(/^@/, "");
+        if (!v || domains.indexOf(v) >= 0) return;
+        domains.push(v);
+        addIn.value = "";
+        paintChips();
+      }
+      addBtn.addEventListener("click", addDomain);
+      addIn.addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter") {
+          ev.preventDefault();
+          addDomain();
+        }
+      });
+      addRow.appendChild(addIn);
+      addRow.appendChild(addBtn);
+      domainBox.appendChild(chips);
+      domainBox.appendChild(addRow);
+      domainHolder.appendChild(domainBox);
+
+      var rerun = document.createElement("div");
+      rerun.className = "wizard-rerun";
+      function runReprocess(names, btn) {
+        btn.disabled = true;
+        var prev = btn.textContent;
+        btn.textContent = "Pulling…";
+        api("/api/accounts/" + encodeURIComponent(aid) + "/reprocess", {
+          method: "POST",
+          body: JSON.stringify({ domains: domains, feeds: names }),
+        }).then(function (res) {
+          toast(names.length === 1 ? connectorLabel(names[0]) + " reprocessed" : "Reprocessed");
+          acct = res.account || acct;
+          jobList = res.jobs || jobList;
+          return loadCounts().then(function (next) { paintReport(next, jobList); });
+        }).catch(function (ex) {
+          setError(String(ex.message || ex));
+          btn.disabled = false;
+          btn.textContent = prev;
+        });
+      }
+      selected.forEach(function (name) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "btn";
+        b.textContent = "Reprocess " + connectorLabel(name);
+        b.addEventListener("click", function () { runReprocess([name], b); });
+        rerun.appendChild(b);
+      });
+      body.appendChild(rerun);
+
+      var mineOn = ((pack.account || acct).coverage || {}).mine_people !== false;
+      var mined = ((pack.mined && pack.mined.items) || []).slice();
+      var byEmail = {};
+      mined.forEach(function (row) {
+        if (row && row.email) byEmail[String(row.email).toLowerCase()] = row;
+      });
+      var peopleLead = document.createElement("p");
+      peopleLead.className = "muted";
+      peopleLead.textContent = mined.length
+        ? "Mined from mail, meetings, tickets, Slack, and Teams. De-duped by email. Tick who to add — we do not auto-create."
+        : "No customer people in this pull yet. Fix a domain and reprocess, or add people on the book later.";
+      body.appendChild(peopleLead);
+      var list = document.createElement("div");
+      list.className = "wizard-people";
+      mined.forEach(function (row) {
+        var lab = document.createElement("label");
+        lab.className = "wizard-person" + (row.existing_id ? " is-on-book" : "");
+        var cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.value = row.email;
+        cb.checked = mineOn && !row.existing_id;
+        if (row.existing_id) cb.disabled = true;
+        var copy = document.createElement("span");
+        var strong = document.createElement("strong");
+        strong.textContent = row.name || nameFromEmail(row.email);
+        copy.appendChild(strong);
+        var line = document.createElement("span");
+        line.className = "muted";
+        line.textContent = row.email + (row.existing_id ? " · already on the book" : "");
+        copy.appendChild(line);
+        var bits = [row.title, row.group, row.phone].filter(Boolean);
+        if (bits.length) {
+          var extra = document.createElement("span");
+          extra.className = "muted";
+          extra.textContent = bits.join(" · ");
+          copy.appendChild(extra);
+        }
+        if (row.job_description) {
+          var jobLine = document.createElement("span");
+          jobLine.className = "muted";
+          jobLine.textContent = row.job_description;
+          copy.appendChild(jobLine);
+        }
+        if ((row.sources || []).length) {
+          var src = document.createElement("span");
+          src.className = "muted";
+          src.textContent = "seen in " + row.sources.join(", ") + (row.hits ? " · " + row.hits + " hits" : "");
+          copy.appendChild(src);
+        }
+        lab.appendChild(cb);
+        lab.appendChild(copy);
+        list.appendChild(lab);
+      });
+      if (mined.length) body.appendChild(list);
+
+      var closeBtn = document.createElement("button");
+      closeBtn.type = "button";
+      closeBtn.className = "btn";
+      closeBtn.textContent = "Close";
+      closeBtn.addEventListener("click", function () {
+        closeDetail();
+        loadSettings();
+        loadHome(true);
+      });
+      var allBtn = document.createElement("button");
+      allBtn.type = "button";
+      allBtn.className = "btn";
+      allBtn.textContent = "Reprocess all feeds";
+      allBtn.addEventListener("click", function () { runReprocess(selected, allBtn); });
+      var done = document.createElement("button");
+      done.type = "button";
+      done.className = "btn btn-primary";
+      done.textContent = mined.length ? "Add selected people" : "Done";
+      done.addEventListener("click", function () {
+        var picked = [];
+        list.querySelectorAll("input:checked").forEach(function (cb) {
+          if (!cb.disabled) picked.push(cb.value);
+        });
+        var chain = Promise.resolve();
+        picked.forEach(function (email) {
+          var row = byEmail[String(email).toLowerCase()] || {};
+          chain = chain.then(function () {
+            return api("/api/people", {
+              method: "POST",
+              body: JSON.stringify({
+                account_id: aid,
+                kind: "customer",
+                name: row.name || nameFromEmail(email),
+                email: email,
+                title: row.title || "",
+                phone: row.phone || "",
+                group: row.group || "",
+                job_description: row.job_description || "",
+              }),
+            });
+          });
+        });
+        chain.then(function () {
+          toast(picked.length ? ("Added " + picked.length + " people") : "Company ready");
+          closeDetail();
+          loadSettings();
+          loadHome(true);
+        }).catch(function (ex) {
+          setError(String(ex.message || ex));
+        });
+      });
+      foot.appendChild(closeBtn);
+      foot.appendChild(allBtn);
+      foot.appendChild(done);
+    }
+
+    return latestJobsForAccount(aid, jobs).then(function (jobList) {
+      return loadCounts().then(function (pack) { paintReport(pack, jobList); });
+    }).catch(function (ex) {
+      setError(String(ex.message || ex));
+    });
   }
 
   function setStatePill(el, state) {
@@ -5661,7 +7195,15 @@
           : "Connect Microsoft (Chat.Read). That login also covers Outlook mail and calendar.";
       } else if (c.name === "jira") {
         note.textContent = "Create an Atlassian API token at id.atlassian.com. Site URL looks like https://your-company.atlassian.net.";
-      } else if (c.name === "google_mail" || c.name === "google_cal") {
+      } else if (c.name === "google_mail") {
+        note.textContent = c.connected
+          ? (c.send
+            ? (c.drafts
+              ? "Connected. Save draft writes Gmail Drafts. Send goes out through this Google account after you confirm."
+              : "Connected. Send works. Sign in with Google again to save Compose drafts into Gmail Drafts.")
+            : "Connected for read. Sign in with Google again to allow Send and Gmail Drafts.")
+          : "Click Sign in with Google on You. Add the redirect URI in Google Cloud if the browser says redirect_uri_mismatch.";
+      } else if (c.name === "google_cal") {
         note.textContent = c.connected
           ? "Connected. Tokens stay in the local store; this form never shows them."
           : "Click Sign in with Google on You (or Connect here). Add the redirect URI below in Google Cloud Console if the browser says redirect_uri_mismatch.";
@@ -5769,8 +7311,8 @@
     sync.textContent = "Sync";
     sync.addEventListener("click", function () {
       api("/api/connectors/" + encodeURIComponent(c.name) + "/sync", { method: "POST", body: "{}" }).then(function (doc) {
-        var extra = doc.error ? " · " + doc.error : "";
-        toast(connectorLabel(c.name) + " sync " + (doc.status || "done") + extra);
+        toast(syncToast(c.name, doc));
+        loadHome(true);
       }).catch(function (err) {
         toast(String(err.message || err));
       });
@@ -5790,12 +7332,61 @@
     renderConnectorDetail(current ? current.raw : null);
   }
 
+  function personaPreset(id) {
+    var rows = (status && status.personas) || [];
+    return rows.filter(function (p) { return p.id === id; })[0] || null;
+  }
+
+  function paintPersonaHint(id) {
+    var hint = $("op-persona-hint");
+    if (!hint) return;
+    var p = personaPreset(id);
+    hint.textContent = (p && p.hint) || "";
+  }
+
+  function fillOperatorPersona(op) {
+    op = op || {};
+    var sel = $("op-persona");
+    var ta = $("op-intent");
+    if (!sel) return;
+    var rows = (status && status.personas) || [];
+    if (!sel.options.length && rows.length) {
+      empty(sel);
+      rows.forEach(function (p) {
+        var opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = p.label || p.id;
+        sel.appendChild(opt);
+      });
+      if (!sel._personaBound) {
+        sel._personaBound = true;
+        sel.addEventListener("change", function () {
+          var p = personaPreset(sel.value);
+          paintPersonaHint(sel.value);
+          if (ta && p) ta.value = p.intent || "";
+        });
+      }
+    }
+    var id = op.persona || "csm";
+    if (sel.querySelector('option[value="' + id + '"]')) sel.value = id;
+    else if (sel.options.length) sel.value = sel.options[0].value;
+    paintPersonaHint(sel.value);
+    if (ta) {
+      if (op.intent) ta.value = op.intent;
+      else {
+        var preset = personaPreset(sel.value);
+        ta.value = (preset && preset.intent) || "";
+      }
+    }
+  }
+
   function loadSettings() {
     refreshStatus().then(function (s) {
       var op = s.operator || {};
       if ($("op-name")) $("op-name").value = op.name || "";
       if ($("op-phone")) $("op-phone").value = op.phone || "";
       if ($("op-email")) $("op-email").value = op.email || "";
+      fillOperatorPersona(op);
       fillTimezoneSelect(op.timezone);
       var ai = s.ai || {};
       if ($("ai-model")) $("ai-model").value = ai.model || s.default_model || "";
@@ -5816,7 +7407,7 @@
     if (!items.length) {
       var p = document.createElement("p");
       p.className = "muted";
-      p.textContent = "No companies yet. Add one or load seed data.";
+      p.textContent = "No companies yet. Add company opens a short onboarding train, or load seed data.";
       box.appendChild(p);
       return;
     }
@@ -5831,7 +7422,10 @@
       var meta = document.createElement("div");
       meta.className = "row-meta";
       var domains = (acct.domains || []).map(function (d) { return "@" + String(d).replace(/^@/, ""); }).join(" ");
-      meta.textContent = domains || "No customer domains";
+      var cov = coverageLabel(acct.coverage);
+      var look = (acct.coverage && acct.coverage.lookback_days) ? (acct.coverage.lookback_days + "d") : "";
+      var every = ((acct.coverage && acct.coverage.refresh_minutes) ? acct.coverage.refresh_minutes : 5) + "m";
+      meta.textContent = [cov, look, every, domains || "No customer domains"].filter(Boolean).join(" · ");
       mid.appendChild(title);
       mid.appendChild(meta);
       row.appendChild(mid);
@@ -5843,6 +7437,11 @@
         edit.className = "btn";
         edit.textContent = "Edit";
         edit.addEventListener("click", function () { openCompanyForm(acct); });
+        var inputs = document.createElement("button");
+        inputs.type = "button";
+        inputs.className = "btn";
+        inputs.textContent = "Inputs";
+        inputs.addEventListener("click", function () { openProcessingReport(acct, null); });
         var quiet = document.createElement("button");
         quiet.type = "button";
         quiet.className = "btn";
@@ -5862,14 +7461,29 @@
         rm.className = "btn btn-cancel";
         rm.textContent = "Remove";
         rm.addEventListener("click", function () {
-          if (!window.confirm("Remove " + (acct.name || acct.abbr) + " from the desk?")) return;
-          api("/api/accounts/" + encodeURIComponent(acct.account_id), { method: "DELETE" }).then(function () {
-            toast("Company removed");
-            loadSettings();
-            loadHome(true);
+          var token = String(acct.abbr || acct.name || "").trim();
+          if (!token) return;
+          confirmDanger({
+            title: "Remove company",
+            body: "Quiet hides the book from Home. Remove archives it. Type the abbreviation to archive " + (acct.name || token) + ".",
+            token: token,
+            confirmLabel: "Remove company",
+            onConfirm: function (typed) {
+              api("/api/accounts/" + encodeURIComponent(acct.account_id), {
+                method: "DELETE",
+                body: JSON.stringify({ confirm: typed }),
+              }).then(function () {
+                toast("Company removed");
+                loadSettings();
+                loadHome(true);
+              }).catch(function (err) {
+                toast(String(err.message || err));
+              });
+            },
           });
         });
         actions.appendChild(edit);
+        actions.appendChild(inputs);
         actions.appendChild(quiet);
         actions.appendChild(rm);
       }
@@ -5880,6 +7494,19 @@
 
   function csvList(text) {
     return String(text || "").split(/[\n,]/).map(function (s) { return s.trim(); }).filter(Boolean);
+  }
+
+  function asAddrList(raw) {
+    if (!raw) return [];
+    if (Array.isArray(raw)) {
+      var out = [];
+      raw.forEach(function (item) {
+        asAddrList(item).forEach(function (a) { out.push(a); });
+      });
+      return out;
+    }
+    if (typeof raw === "object") return asAddrList(raw.email || raw.value || raw.addr || "");
+    return csvList(raw);
   }
 
   function peopleAsTags(items) {
@@ -5921,7 +7548,8 @@
       inst = null;
     }
     function set(addrs) {
-      var tags = (addrs || []).map(function (addr) {
+      var list = asAddrList(addrs);
+      var tags = list.map(function (addr) {
         var want = String(addr || "").toLowerCase();
         var hit = (whitelist || []).filter(function (p) {
           return String(p.email || p.value || "").toLowerCase() === want;
@@ -5935,13 +7563,28 @@
         if (tags.length) inst.addTags(tags);
         return;
       }
-      input.value = (addrs || []).join(", ");
+      input.value = list.join(", ");
+    }
+    function tagAddr(t) {
+      if (!t) return "";
+      if (typeof t === "string") return t.trim();
+      var v = t.email || t.value || "";
+      if (v && typeof v === "object") v = v.email || v.value || "";
+      return String(v || "").trim();
     }
     function values() {
-      if (inst) {
-        return inst.value.map(function (t) { return t.value || t.email; }).filter(Boolean);
+      var fromInst = inst && Array.isArray(inst.value)
+        ? inst.value.map(tagAddr).filter(Boolean)
+        : [];
+      if (fromInst.length) return fromInst;
+      var raw = String(input.value || "").trim();
+      if (raw.charAt(0) === "[") {
+        try {
+          var parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) return parsed.map(tagAddr).filter(Boolean);
+        } catch (e) {}
       }
-      return csvList(input.value);
+      return csvList(raw);
     }
     function bind(list, addrs) {
       whitelist = list || [];
@@ -6088,6 +7731,31 @@
       toInput.readOnly = true;
       toInput.title = "Sends to you";
     }
+    var statusEl = document.createElement("p");
+    statusEl.className = "mail-status muted";
+    statusEl.hidden = true;
+    statusEl.setAttribute("aria-live", "polite");
+    function setMailStatus(text, kind, reconnect) {
+      empty(statusEl);
+      statusEl.hidden = !text;
+      statusEl.className = "mail-status" + (
+        kind === "err" ? " is-err" : kind === "ok" ? " is-ok" : kind === "busy" ? " is-busy" : " muted"
+      );
+      if (!text) return;
+      var span = document.createElement("span");
+      span.textContent = text;
+      statusEl.appendChild(span);
+      if (reconnect && window.CSM && window.CSM.startGoogleSignIn) {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "btn btn-ghost";
+        btn.textContent = "Sign in with Google";
+        btn.addEventListener("click", function () {
+          window.CSM.startGoogleSignIn();
+        });
+        statusEl.appendChild(btn);
+      }
+    }
     function snapshot() {
       return {
         to_addrs: toTags ? toTags.values() : csvList(toInput.value),
@@ -6098,42 +7766,89 @@
         attachment_names: files.map(function (f) { return f.name; }),
       };
     }
-    function busy(on) {
+    function formatContextNote(doc) {
+      var n = doc && Number(doc.context_chars);
+      if (!n) return "";
+      if (n >= 1000) return " · " + (Math.round(n / 100) / 10) + "k context";
+      return " · " + n + " chars context";
+    }
+    function busy(on, why) {
       suggest.disabled = !!on;
       save.disabled = !!on;
       send.disabled = !!on;
+      wrap.classList.toggle("is-busy", !!on);
+      if (why === "suggest") {
+        suggest.classList.toggle("is-wait", !!on);
+        suggest.textContent = on ? "Drafting…" : "AI Suggest";
+        if (on) suggest.setAttribute("aria-busy", "true");
+        else suggest.removeAttribute("aria-busy");
+      }
+    }
+    function showMailErr(err) {
+      var raw = String((err && err.message) || err || "");
+      var text = explainMailError(err);
+      setMailStatus(text, "err", raw === "google_send_reconnect" || raw === "google_draft_reconnect");
+      toast(text);
+    }
+    function applyDraftSaveStatus(doc) {
+      if (!doc) return;
+      var gmail = (doc && doc.gmail) || {};
+      if (gmail.ok) {
+        setMailStatus("Draft saved to Gmail", "ok");
+        toast("Draft saved to Gmail");
+        return;
+      }
+      if (gmail.reason === "google_draft_reconnect") {
+        setMailStatus("Saved on the desk. Sign in with Google again to keep it in Gmail Drafts.", "err", true);
+        toast("Saved on the desk. Sign in with Google to save Gmail Drafts.");
+        return;
+      }
+      setMailStatus("Draft saved", "ok");
+      toast("Draft saved");
     }
     suggest.addEventListener("click", function () {
       if (!opts.onSuggest) return;
-      busy(true);
-      Promise.resolve(opts.onSuggest(snapshot())).then(function () {
-        busy(false);
+      busy(true, "suggest");
+      setMailStatus("Drafting with Grok… this thread plus a short book brief, not the mailbox.", "busy");
+      Promise.resolve(opts.onSuggest(snapshot())).then(function (doc) {
+        busy(false, "suggest");
+        var result = doc && doc.result;
+        if (result === "grok") setMailStatus("Drafted with Grok" + formatContextNote(doc), "ok");
+        else if (result) setMailStatus("Template draft" + formatContextNote(doc), "ok");
+        else setMailStatus("", "");
       }).catch(function (err) {
-        busy(false);
-        toast(String(err.message || err));
+        busy(false, "suggest");
+        showMailErr(err);
       });
     });
     save.addEventListener("click", function () {
       if (!opts.onSave) return;
       busy(true);
-      Promise.resolve(opts.onSave(snapshot())).then(function () {
+      Promise.resolve(opts.onSave(snapshot())).then(function (doc) {
         busy(false);
+        applyDraftSaveStatus(doc);
       }).catch(function (err) {
         busy(false);
-        toast(String(err.message || err));
+        showMailErr(err);
       });
     });
     send.addEventListener("click", function () {
       if (!opts.onSend) return;
+      var snap = snapshot();
+      if (!(snap.to_addrs || []).length) {
+        showMailErr(new Error("to_addrs required"));
+        return;
+      }
       if (!window.confirm(opts.sendConfirm || "Send this email now?")) return;
       busy(true);
       filesToPayload(files).then(function (attachments) {
         return opts.onSend(snapshot(), attachments);
       }).then(function () {
         busy(false);
+        setMailStatus("Sent", "ok");
       }).catch(function (err) {
         busy(false);
-        toast(String(err.message || err));
+        showMailErr(err);
       });
     });
     foot.appendChild(suggest);
@@ -6144,6 +7859,7 @@
     foot.appendChild(save);
     foot.appendChild(send);
     wrap.appendChild(foot);
+    wrap.appendChild(statusEl);
     parent.appendChild(wrap);
     function applyPeople(list, keep) {
       whitelist = list || [];
@@ -6189,11 +7905,12 @@
           opts.cc = doc.cc_addrs || opts.cc;
           opts.bcc = doc.bcc_addrs || opts.bcc;
         }
-        if (doc.to_addrs && toTags) toTags.set(doc.to_addrs);
-        if (doc.cc_addrs && ccTags) ccTags.set(doc.cc_addrs);
+        if (doc.to_addrs && toTags) toTags.set(asAddrList(doc.to_addrs));
+        if (doc.cc_addrs && ccTags) ccTags.set(asAddrList(doc.cc_addrs));
         if (doc.bcc_addrs && bccTags) {
-          bccTags.set(doc.bcc_addrs);
-          if (doc.bcc_addrs.length) {
+          var bccList = asAddrList(doc.bcc_addrs);
+          bccTags.set(bccList);
+          if (bccList.length) {
             bccOn = true;
             bccRow.hidden = false;
             bccBtn.classList.add("is-on");
@@ -6523,8 +8240,658 @@
     });
   }
 
+  function slugFromName(name) {
+    return String(name || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 40);
+  }
+
+  function abbrFromName(name) {
+    var words = String(name || "").trim().split(/\s+/).filter(Boolean);
+    var out;
+    if (words.length >= 2) {
+      out = words.map(function (w) { return w.charAt(0); }).join("");
+    } else {
+      out = String(name || "");
+    }
+    return out.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 6);
+  }
+
+  function coverageLabel(cov) {
+    cov = cov || {};
+    var mode = cov.mode || "view";
+    if (mode === "new") return "Brand new";
+    if (mode === "takeover") return "Takeover";
+    if (mode === "covering") return "Covering";
+    var kind = cov.viewer_kind === "manager" ? "Manager" : cov.viewer_kind === "rep" ? "Rep" : "CSM";
+    return "View only · " + kind;
+  }
+
+  function nameFromEmail(email) {
+    var local = String(email || "").split("@")[0] || "Person";
+    local = local.replace(/[._-]+nd$/i, "").replace(/[._+\-]+/g, " ");
+    return local.replace(/\b\w/g, function (ch) { return ch.toUpperCase(); }).trim() || "Person";
+  }
+
+  function openCompanyWizard() {
+    var box = $("detail-box");
+    if (!box) return;
+    box.hidden = false;
+    box.classList.remove("hidden");
+    empty(box);
+    var state = {
+      step: 0,
+      mode: "new",
+      viewer_kind: "csm",
+      previous_owner_email: "",
+      until: "",
+      lookback_days: 14,
+      lookbackTouched: false,
+      name: "",
+      slug: "",
+      abbr: "",
+      color: "#0B3D91",
+      pendingLogo: "",
+      slugTouched: false,
+      abbrTouched: false,
+      feeds: {},
+      mine_people: true,
+      refresh_minutes: 5,
+      auto_draft_replies: false,
+    };
+    ((status && status.connectors) || []).forEach(function (c) {
+      if ((c.name === "google_mail" || c.name === "google_cal") && c.mode === "live" && c.connected) {
+        state.feeds[c.name] = true;
+      }
+    });
+    var STEPS = ["Role", "Book", "Domains", "Feeds", "Look back", "People", "Attach"];
+    var sheet = document.createElement("article");
+    sheet.className = "sheet sheet-company sheet-wizard";
+    var head = document.createElement("header");
+    var h = document.createElement("h2");
+    h.textContent = "Add company";
+    var close = document.createElement("button");
+    close.type = "button";
+    close.className = "btn btn-ghost sheet-close";
+    close.textContent = "×";
+    close.addEventListener("click", closeDetail);
+    head.appendChild(h);
+    head.appendChild(close);
+    sheet.appendChild(head);
+    var train = document.createElement("ol");
+    train.className = "wizard-train";
+    train.setAttribute("aria-label", "Onboarding steps");
+    var body = document.createElement("div");
+    body.className = "form-grid";
+    var domainsInput = null;
+    var err = document.createElement("p");
+    err.className = "muted";
+    err.style.color = "var(--low)";
+    err.hidden = true;
+    var foot = document.createElement("div");
+    foot.className = "sheet-foot";
+    sheet.appendChild(train);
+    sheet.appendChild(body);
+    sheet.appendChild(err);
+    sheet.appendChild(foot);
+    box.appendChild(sheet);
+
+    function setError(msg) {
+      err.hidden = !msg;
+      err.textContent = msg || "";
+    }
+
+    function defaultLookback() {
+      return state.mode === "takeover" || state.mode === "covering" ? 90 : 14;
+    }
+
+    function validate() {
+      if (state.step === 0) {
+        if (state.mode === "view" && !state.viewer_kind) return "Pick whether you are a manager, CSM, or rep.";
+        if (state.mode === "takeover" && state.previous_owner_email.indexOf("@") < 0) return "Previous CSM / rep email is required for takeover.";
+        if (state.mode === "covering") {
+          if (state.previous_owner_email.indexOf("@") < 0) return "The owner’s email is required for covering.";
+          if (!state.until) return "Covering needs an until date.";
+        }
+      }
+      if (state.step === 1) {
+        if (!String(state.name || "").trim()) return "Company name is required.";
+        if (!slugFromName(state.slug || state.name)) return "Slug is required.";
+        if (abbrFromName(state.abbr || state.name).length < 2) return "Abbreviation must be 2–6 letters or digits.";
+      }
+      if (state.step === 2) {
+        var doms = domainsInput ? domainsInput.values() : [];
+        if (!doms.length) return "Add at least one customer domain. That is how mail and meetings land on this book.";
+      }
+      if (state.step === 3) {
+        var anyFeed = FEED_NAMES.some(function (n) { return state.feeds[n]; });
+        if (!anyFeed) return "Pick at least one feed for this book. You can connect it in Settings later, then Sync.";
+      }
+      return "";
+    }
+
+    function paintTrain() {
+      empty(train);
+      STEPS.forEach(function (label, i) {
+        var li = document.createElement("li");
+        if (i < state.step) li.className = "is-done";
+        if (i === state.step) li.className = "is-current";
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "wizard-stop" + (i === state.step ? " is-current" : i < state.step ? " is-done" : "");
+        var dot = document.createElement("span");
+        dot.className = "dot";
+        dot.textContent = String(i + 1);
+        btn.appendChild(dot);
+        btn.appendChild(document.createTextNode(label));
+        btn.disabled = i > state.step;
+        btn.addEventListener("click", function () {
+          if (i <= state.step) {
+            state.step = i;
+            paint();
+          }
+        });
+        li.appendChild(btn);
+        train.appendChild(li);
+      });
+    }
+
+    function choice(title, blurb, on, onClick) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "wizard-choice" + (on ? " is-on" : "");
+      var strong = document.createElement("strong");
+      strong.textContent = title;
+      var span = document.createElement("span");
+      span.textContent = blurb;
+      btn.appendChild(strong);
+      btn.appendChild(span);
+      btn.addEventListener("click", onClick);
+      return btn;
+    }
+
+    function paintRole() {
+      var legend = document.createElement("p");
+      legend.className = "wizard-legend";
+      legend.appendChild(document.createTextNode("Fields marked "));
+      var star = document.createElement("abbr");
+      star.className = "field-req";
+      star.title = "Required";
+      star.textContent = "*";
+      legend.appendChild(star);
+      legend.appendChild(document.createTextNode(" are required."));
+      body.appendChild(legend);
+      var roleBox = document.createElement("div");
+      roleBox.appendChild(choice(
+        "Brand new account",
+        "You own this book. Nobody is handing it off. No previous CSM email. Default pull is the last 14 days.",
+        state.mode === "new",
+        function () {
+          state.mode = "new";
+          if (!state.lookbackTouched) state.lookback_days = defaultLookback();
+          paint();
+        }
+      ));
+      roleBox.appendChild(choice(
+        "View only",
+        "You watch the book. Mail still routes here. You do not take their tasks.",
+        state.mode === "view",
+        function () {
+          state.mode = "view";
+          if (!state.lookbackTouched) state.lookback_days = defaultLookback();
+          paint();
+        }
+      ));
+      roleBox.appendChild(choice(
+        "Takeover",
+        "You own the book now. Desk tasks transfer to you. Pull is still your mailbox, filtered by customer domain.",
+        state.mode === "takeover",
+        function () {
+          state.mode = "takeover";
+          if (!state.lookbackTouched) state.lookback_days = defaultLookback();
+          paint();
+        }
+      ));
+      roleBox.appendChild(choice(
+        "Covering (temp)",
+        "They still own it. You are added as co-owner until a date. Do not rewrite To:Me. Do not resend calendar as you.",
+        state.mode === "covering",
+        function () {
+          state.mode = "covering";
+          if (!state.lookbackTouched) state.lookback_days = defaultLookback();
+          paint();
+        }
+      ));
+      body.appendChild(fieldLabel("Your role on this book", roleBox, {
+        required: true,
+        tip: "Brand new = you own it, no handoff. View = watch. Takeover = you own it after someone else. Covering = temp co-owner while they are out. This is not a second Google login.",
+      }));
+      if (state.mode === "view") {
+        var viewer = document.createElement("select");
+        [["csm", "CSM"], ["manager", "Manager"], ["rep", "Rep"]].forEach(function (pair) {
+          var opt = document.createElement("option");
+          opt.value = pair[0];
+          opt.textContent = pair[1];
+          if (state.viewer_kind === pair[0]) opt.selected = true;
+          viewer.appendChild(opt);
+        });
+        viewer.addEventListener("change", function () { state.viewer_kind = viewer.value; });
+        body.appendChild(fieldLabel("You are a", viewer, {
+          required: true,
+          tip: "Manager, CSM, or sales rep. This labels how you sit on the book. It does not change the Google pull.",
+        }));
+      }
+      if (state.mode === "takeover" || state.mode === "covering") {
+        var prev = document.createElement("input");
+        prev.type = "email";
+        prev.required = true;
+        prev.placeholder = "jane.doe@yourcompany.com";
+        prev.value = state.previous_owner_email;
+        prev.addEventListener("input", function () { state.previous_owner_email = prev.value.trim(); });
+        body.appendChild(fieldLabel(state.mode === "covering" ? "Owner email" : "Previous CSM / rep email", prev, {
+          required: true,
+          tip: "Stored on the book. Gmail pull is still YOUR mailbox. We cannot open their inbox with Sign in with Google. Use their address so later task handoff knows who owned it.",
+        }));
+      }
+      if (state.mode === "covering") {
+        var until = document.createElement("input");
+        until.type = "date";
+        until.required = true;
+        until.value = state.until;
+        until.addEventListener("change", function () { state.until = until.value; });
+        body.appendChild(fieldLabel("Cover until", until, {
+          required: true,
+          tip: "When covering ends. They stay the owner. You stay co-owner until this date.",
+        }));
+      }
+    }
+
+    function paintBook() {
+      var name = document.createElement("input");
+      name.required = true;
+      name.placeholder = "Acme Inc";
+      name.value = state.name;
+      var slug = document.createElement("input");
+      slug.required = true;
+      slug.placeholder = "acme";
+      slug.value = state.slug;
+      var abbr = document.createElement("input");
+      abbr.required = true;
+      abbr.maxLength = 6;
+      abbr.placeholder = "ACME";
+      abbr.value = state.abbr;
+      name.addEventListener("input", function () {
+        state.name = name.value;
+        if (!state.slugTouched) {
+          state.slug = slugFromName(name.value);
+          slug.value = state.slug;
+        }
+        if (!state.abbrTouched) {
+          state.abbr = abbrFromName(name.value);
+          abbr.value = state.abbr;
+        }
+      });
+      slug.addEventListener("input", function () {
+        state.slugTouched = true;
+        state.slug = slug.value;
+      });
+      abbr.addEventListener("input", function () {
+        state.abbrTouched = true;
+        state.abbr = abbr.value;
+      });
+      body.appendChild(fieldLabel("Name", name, {
+        required: true,
+        tip: "The customer’s name as you say it. Shows on Home chips and the book header.",
+      }));
+      body.appendChild(fieldLabel("Slug", slug, {
+        required: true,
+        tip: "Permanent id: acct:{slug}. Lowercase letters, digits, hyphens. You cannot rename the slug later. Example: Acme Inc → acme → acct:acme.",
+      }));
+      body.appendChild(fieldLabel("Abbr", abbr, {
+        required: true,
+        tip: "2–6 letters or digits on every chip. Example: ACME. You can rename this later.",
+      }));
+      var color = document.createElement("input");
+      color.type = "color";
+      color.value = state.color;
+      var hex = document.createElement("input");
+      hex.type = "text";
+      hex.maxLength = 7;
+      hex.placeholder = "#0B3D91";
+      hex.value = state.color;
+      color.addEventListener("input", function () {
+        state.color = color.value;
+        hex.value = color.value;
+      });
+      hex.addEventListener("change", function () {
+        var v = hex.value.trim();
+        if (v.charAt(0) !== "#") v = "#" + v;
+        if (/^#[0-9A-Fa-f]{6}$/.test(v)) {
+          state.color = v;
+          color.value = v;
+          hex.value = v;
+        }
+      });
+      var colorRow = document.createElement("div");
+      colorRow.className = "color-row";
+      colorRow.appendChild(color);
+      colorRow.appendChild(hex);
+      body.appendChild(fieldLabel("Color", colorRow, {
+        required: true,
+        tip: "Chip color on Home and the book. Pick any hex. Example: #0B3D91.",
+      }));
+      var logoWrap = document.createElement("div");
+      logoWrap.className = "logo-edit";
+      var preview = document.createElement("div");
+      preview.className = "logo-preview";
+      preview.textContent = state.pendingLogo ? "" : "No logo";
+      if (state.pendingLogo) {
+        var img = document.createElement("img");
+        img.src = state.pendingLogo;
+        img.alt = "";
+        preview.appendChild(img);
+      }
+      var change = document.createElement("button");
+      change.type = "button";
+      change.className = "btn";
+      change.textContent = "Change logo";
+      change.addEventListener("click", function () {
+        openLogoCrop(function (dataUrl) {
+          state.pendingLogo = dataUrl;
+          paint();
+        });
+      });
+      logoWrap.appendChild(preview);
+      logoWrap.appendChild(change);
+      body.appendChild(fieldLabel("Logo", logoWrap, {
+        tip: "Optional. Square crop, PNG. Shows on Agenda cards and the book header.",
+      }));
+    }
+
+    function paintDomains() {
+      var hold = domainsInput ? domainsInput.values() : [];
+      domainsInput = makeTagInput("@acme.com", hold.map(function (d) {
+        return "@" + String(d).replace(/^@/, "");
+      }));
+      body.appendChild(fieldLabel("Customer domain(s)", domainsInput.el, {
+        required: true,
+        tip: "How mail and meetings attach to this book. From / To / Cc (mail) or attendees (calendar) must match. Not a people census — we will suggest people after the pull. Example: acme.com",
+      }));
+      domainsInput.bind();
+      var note = document.createElement("p");
+      note.className = "muted";
+      note.textContent = "Your own domain (from Settings → You) is skipped so internal mail does not become this book.";
+      body.appendChild(note);
+    }
+
+    function paintFeeds() {
+      var byName = {};
+      ((status && status.connectors) || []).forEach(function (c) { byName[c.name] = c; });
+      var grid = document.createElement("div");
+      grid.className = "wizard-feeds";
+      FEED_NAMES.forEach(function (name) {
+        var c = byName[name] || { name: name, mode: "disabled", connected: false };
+        var st = connectorStateOf(c);
+        var tile = document.createElement("button");
+        tile.type = "button";
+        tile.className = "wizard-feed" + (state.feeds[name] ? " is-on" : "");
+        var strong = document.createElement("strong");
+        strong.textContent = connectorLabel(name);
+        tile.appendChild(strong);
+        var pill = document.createElement("span");
+        setStatePill(pill, st);
+        tile.appendChild(pill);
+        tile.addEventListener("click", function () {
+          state.feeds[name] = !state.feeds[name];
+          paint();
+        });
+        grid.appendChild(tile);
+      });
+      body.appendChild(fieldLabel("Feeds for this book", grid, {
+        required: true,
+        tip: "Which systems should fill this customer. Tiles match Settings → Connectors. Active means you already connected it. Error / inactive still lets you mark the feed — connect it later, then Sync. Finish only pulls feeds that are live.",
+      }));
+      var note = document.createElement("p");
+      note.className = "muted";
+      note.textContent = "Gmail and Google Calendar are pre-ticked when they are connected. IMAP is the SMTP/IMAP card. Microsoft 365 is Outlook mail; M365 Calendar is the calendar side.";
+      body.appendChild(note);
+    }
+
+    function paintLookback() {
+      var lead = document.createElement("p");
+      lead.className = "muted";
+      lead.textContent = "This is the first-pull window for mail and calendar feeds you ticked. The desk searches YOUR connected mailbox and calendar for rows whose From / To / Cc or attendees match this company’s domain(s). It does not download the whole mailbox, and it cannot open another CSM’s inbox.";
+      body.appendChild(lead);
+      var box = document.createElement("div");
+      box.className = "wizard-lookback";
+      var opts = [
+        { n: 14, title: "14 days", blurb: "Last two weeks of mail plus meetings in that window and the next two weeks on the calendar. Fast. Best for view-only or a book you already know." },
+        { n: 90, title: "90 days", blurb: "Last quarter. Default for takeover and covering so you see recent threads and the next meetings. Still capped at 200 messages this pass." },
+        { n: 365, title: "365 days", blurb: "Last year. Slower. Same 200-message cap so a huge mailbox does not freeze the desk. Older mail stays in Gmail until you Sync again." },
+      ];
+      opts.forEach(function (opt) {
+        var lab = document.createElement("label");
+        if (state.lookback_days === opt.n) lab.className = "is-on";
+        var radio = document.createElement("input");
+        radio.type = "radio";
+        radio.name = "lookback";
+        radio.value = String(opt.n);
+        radio.checked = state.lookback_days === opt.n;
+        radio.addEventListener("change", function () {
+          state.lookbackTouched = true;
+          state.lookback_days = opt.n;
+          paint();
+        });
+        var copy = document.createElement("span");
+        var strong = document.createElement("strong");
+        strong.textContent = opt.title;
+        var blurb = document.createElement("span");
+        blurb.textContent = opt.blurb;
+        copy.appendChild(strong);
+        copy.appendChild(blurb);
+        lab.appendChild(radio);
+        lab.appendChild(copy);
+        box.appendChild(lab);
+      });
+      body.appendChild(fieldLabel("How far back", box, {
+        required: true,
+        tip: "Applies to Gmail, IMAP, Microsoft 365, Google Calendar, and M365 Calendar. Jira / Slack / Teams / Salesforce use their own incremental since. Home still only shows unread mail and meetings in the Agenda range — not 365 days on one screen.",
+      }));
+      var mins = document.createElement("input");
+      mins.type = "number";
+      mins.min = "1";
+      mins.max = "1440";
+      mins.step = "1";
+      mins.value = String(state.refresh_minutes || 5);
+      mins.addEventListener("change", function () {
+        var n = parseInt(mins.value, 10);
+        if (!n || n < 1) n = 5;
+        if (n > 1440) n = 1440;
+        state.refresh_minutes = n;
+        mins.value = String(n);
+      });
+      body.appendChild(fieldLabel("Auto-refresh every (minutes)", mins, {
+        required: true,
+        tip: "After the first pull, the desk one-shots Gmail and Calendar for new/changed/cancelled rows. Default 5. Uses a Couchbase Lite checkpoint, not a standing Google connection. Home → Refresh does the same pull now.",
+      }));
+      var autoDraft = document.createElement("input");
+      autoDraft.type = "checkbox";
+      autoDraft.checked = !!state.auto_draft_replies;
+      autoDraft.addEventListener("change", function () {
+        state.auto_draft_replies = !!autoDraft.checked;
+      });
+      var autoLab = document.createElement("div");
+      autoLab.className = "check-inline";
+      autoLab.appendChild(autoDraft);
+      autoLab.appendChild(document.createTextNode("On — draft a Grok reply to Gmail Drafts"));
+      body.appendChild(fieldLabel("AI Suggest Response to Draft", autoLab, {
+        tip: "When mail is addressed to you (To:), Grok drafts a reply from this book — tickets, Slack/Teams, people, past mail, and your intent — and saves it to Gmail Drafts. Off by default. Needs Gmail Drafts permission.",
+      }));
+    }
+
+    function paintAttach() {
+      var summary = document.createElement("dl");
+      summary.className = "sheet-kv";
+      function kv(k, v) {
+        var dt = document.createElement("dt");
+        dt.textContent = k;
+        var dd = document.createElement("dd");
+        dd.textContent = v;
+        summary.appendChild(dt);
+        summary.appendChild(dd);
+      }
+      kv("Role", coverageLabel(state));
+      kv("Book", (state.name || "—") + " · " + (state.abbr || "").toUpperCase());
+      kv("Domains", (domainsInput ? domainsInput.values() : []).map(function (d) {
+        return "@" + String(d).replace(/^@/, "");
+      }).join(" ") || "—");
+      kv("Look back", state.lookback_days + " days");
+      kv("Auto-refresh", "every " + (state.refresh_minutes || 5) + " min");
+      kv("AI Suggest Response to Draft", state.auto_draft_replies ? "On — To: you → Gmail Drafts" : "Off");
+      kv("Feeds", FEED_NAMES.filter(function (n) { return state.feeds[n]; }).map(connectorLabel).join(", ") || "—");
+      kv("People", state.mine_people ? "Mine after pull (you tick who to add)" : "Skip for now");
+      body.appendChild(summary);
+      var p = document.createElement("p");
+      p.className = "muted";
+      p.textContent = "Finish pulls the ticked live feeds, then shows a processing report. People are de-duped by email. We do not auto-create anyone.";
+      body.appendChild(p);
+    }
+
+    function paintPeople() {
+      var lead = document.createElement("p");
+      lead.className = "muted";
+      lead.textContent = "After the pull, mine customer people from mail, meetings, tickets, Slack, and Teams on this book. De-dupe by email. Last, First headers and first.last@domain become a proper name. Title, group, phone, and job description land when those feeds have them. You tick who to add — we do not auto-create a person for every address.";
+      body.appendChild(lead);
+      var box = document.createElement("div");
+      box.appendChild(choice(
+        "Mine people",
+        "Scan this book’s inputs, de-dupe, and list them on the processing report. Default. Already-on-book emails stay skipped.",
+        state.mine_people,
+        function () {
+          state.mine_people = true;
+          paint();
+        }
+      ));
+      box.appendChild(choice(
+        "Skip for now",
+        "Do not pre-tick anyone. You can still open Inputs later and mine.",
+        !state.mine_people,
+        function () {
+          state.mine_people = false;
+          paint();
+        }
+      ));
+      body.appendChild(fieldLabel("People on this book", box, {
+        required: true,
+        tip: "Mail often has Last, First or first.last@acme.com. Slack, Teams, and tickets add more hits on the same email so one person is created, not three.",
+      }));
+    }
+
+    function paint() {
+      setError("");
+      paintTrain();
+      empty(body);
+      if (state.step === 0) paintRole();
+      else if (state.step === 1) paintBook();
+      else if (state.step === 2) paintDomains();
+      else if (state.step === 3) paintFeeds();
+      else if (state.step === 4) paintLookback();
+      else if (state.step === 5) paintPeople();
+      else paintAttach();
+      empty(foot);
+      var back = document.createElement("button");
+      back.type = "button";
+      back.className = "btn";
+      back.textContent = "Back";
+      back.disabled = state.step === 0;
+      back.addEventListener("click", function () {
+        if (state.step > 0) {
+          state.step -= 1;
+          paint();
+        }
+      });
+      var next = document.createElement("button");
+      next.type = "button";
+      next.className = "btn btn-primary";
+      next.textContent = state.step === STEPS.length - 1 ? "Finish" : "Next";
+      next.addEventListener("click", function () {
+        var msg = validate();
+        if (msg) {
+          setError(msg);
+          return;
+        }
+        if (state.step < STEPS.length - 1) {
+          state.step += 1;
+          paint();
+          return;
+        }
+        finish();
+      });
+      foot.appendChild(back);
+      foot.appendChild(next);
+    }
+
+    function finish() {
+      var msg = validate();
+      if (msg) {
+        setError(msg);
+        return;
+      }
+      foot.querySelectorAll("button").forEach(function (b) { b.disabled = true; });
+      var payload = {
+        name: state.name.trim(),
+        slug: slugFromName(state.slug || state.name),
+        abbr: abbrFromName(state.abbr || state.name),
+        color: state.color,
+        domains: domainsInput ? domainsInput.values() : [],
+        coverage: {
+          mode: state.mode,
+          viewer_kind: state.viewer_kind,
+          previous_owner_email: state.previous_owner_email,
+          until: state.until,
+          lookback_days: state.lookback_days,
+          feeds: FEED_NAMES.filter(function (n) { return state.feeds[n]; }),
+          mine_people: !!state.mine_people,
+          refresh_minutes: state.refresh_minutes || 5,
+          auto_draft_replies: !!state.auto_draft_replies,
+        },
+      };
+      api("/api/accounts", { method: "POST", body: JSON.stringify(payload) }).then(function (doc) {
+        var chain = Promise.resolve(doc);
+        if (state.pendingLogo && doc && doc.account_id) {
+          chain = api("/api/accounts/" + encodeURIComponent(doc.account_id) + "/logo", {
+            method: "POST",
+            body: JSON.stringify({ image: state.pendingLogo }),
+          }).then(function () { return doc; });
+        }
+        return chain;
+      }).then(function (doc) {
+        toast("Company saved");
+        if (!doc || !doc.account_id) return doc;
+        var feeds = FEED_NAMES.filter(function (n) { return state.feeds[n]; });
+        var pullable = ((status && status.connectors) || []).filter(function (c) {
+          return feeds.indexOf(c.name) >= 0 && c.mode === "live" && (c.connected || c.ok);
+        });
+        var jobsP = pullable.length ? attachLiveGoogle(doc.account_id, feeds) : Promise.resolve([]);
+        return jobsP.then(function (jobs) {
+          return openProcessingReport(doc, jobs || []);
+        });
+      }).catch(function (ex) {
+        setError(String(ex.message || ex));
+      });
+    }
+
+    paint();
+  }
+
   function openCompanyForm(acct) {
     acct = acct || null;
+    if (!acct) {
+      openCompanyWizard();
+      return;
+    }
     var box = $("detail-box");
     if (!box) return;
     box.hidden = false;
@@ -6547,13 +8914,17 @@
     form.className = "form-grid";
     var name = document.createElement("input");
     name.required = true;
+    name.placeholder = "Acme Inc";
     name.value = (acct && acct.name) || "";
     var slug = document.createElement("input");
     slug.required = !acct;
+    slug.placeholder = "acme";
     slug.value = (acct && acct.slug) || "";
     slug.disabled = !!acct;
     var abbr = document.createElement("input");
     abbr.required = true;
+    abbr.maxLength = 6;
+    abbr.placeholder = "ACME";
     abbr.value = (acct && acct.abbr) || "";
     var color = document.createElement("input");
     color.type = "color";
@@ -6643,27 +9014,80 @@
       return "@" + String(d).replace(/^@/, "");
     });
     var conn = (acct && acct.connectors) || {};
-    var domains = makeTagInput("@def.com", domainVals);
-    var jira = makeTagInput("DEFUK", connectorList(conn, "jira", "project_keys"));
+    var domains = makeTagInput("@acme.com", domainVals);
+    var jira = makeTagInput("PROJ", connectorList(conn, "jira", "project_keys"));
     var slack = makeTagInput("C0XXXX", connectorList(conn, "slack", "channel_ids"));
     var teams = makeTagInput("19:channel", connectorList(conn, "teams", "channel_ids"));
     var sfdc = makeTagInput("001XXXX", connectorList(conn, "salesforce", "account_ids"));
-    form.appendChild(fieldLabel("Name", name));
-    form.appendChild(fieldLabel("Slug", slug));
-    form.appendChild(fieldLabel("Abbr", abbr));
-    form.appendChild(fieldLabel("Color", colorRow));
-    form.appendChild(fieldLabel("Logo", logoWrap));
-    form.appendChild(fieldLabel("Customer domains", domains.el));
-    form.appendChild(fieldLabel("Jira tags / project keys", jira.el));
-    form.appendChild(fieldLabel("Slack channels", slack.el));
-    form.appendChild(fieldLabel("Teams channels", teams.el));
-    form.appendChild(fieldLabel("Salesforce accounts", sfdc.el));
+    form.appendChild(fieldLabel("Name", name, {
+      required: true,
+      tip: "The customer’s name as you say it. Shows on Home chips and the book header.",
+    }));
+    form.appendChild(fieldLabel("Slug", slug, {
+      required: true,
+      tip: "Permanent id: acct:{slug}. You cannot rename the slug later.",
+    }));
+    form.appendChild(fieldLabel("Abbr", abbr, {
+      required: true,
+      tip: "2–6 letters or digits on every chip. You can rename this later. Example: HEALTH.",
+    }));
+    form.appendChild(fieldLabel("Color", colorRow, {
+      required: true,
+      tip: "Chip color on Home and the book. Example: #0B3D91.",
+    }));
+    form.appendChild(fieldLabel("Logo", logoWrap, {
+      tip: "Optional. Square crop. Shows on Agenda cards and the book header.",
+    }));
+    form.appendChild(fieldLabel("Customer domain(s)", domains.el, {
+      required: true,
+      tip: "From / To / Cc and calendar attendees must match a domain here or the row stays unassigned. Example: acme.com",
+    }));
+    var refreshMins = document.createElement("input");
+    refreshMins.type = "number";
+    refreshMins.min = "1";
+    refreshMins.max = "1440";
+    refreshMins.step = "1";
+    refreshMins.value = String(((acct && acct.coverage) || {}).refresh_minutes || 5);
+    form.appendChild(fieldLabel("Auto-refresh every (minutes)", refreshMins, {
+      required: true,
+      tip: "How often this book is willing to one-shot Gmail and Calendar for new mail and meetings. Default 5. The desk uses the shortest interval among your companies. Home → Refresh runs it now.",
+    }));
+    var autoDraft = document.createElement("input");
+    autoDraft.type = "checkbox";
+    autoDraft.checked = !!(((acct && acct.coverage) || {}).auto_draft_replies);
+    var autoLab = document.createElement("div");
+    autoLab.className = "check-inline";
+    autoLab.appendChild(autoDraft);
+    autoLab.appendChild(document.createTextNode("On — draft a Grok reply to Gmail Drafts"));
+    form.appendChild(fieldLabel("AI Suggest Response to Draft", autoLab, {
+      tip: "When mail is addressed to you (To:), Grok drafts a reply from this book — tickets, Slack/Teams, people, past mail, and your intent and style — and saves it to Gmail Drafts. Off by default. Needs Gmail Drafts (Sign in with Google and allow composing).",
+    }));
+    form.appendChild(fieldLabel("Jira tags / project keys", jira.el, {
+      tip: "Project keys on this book, for example PROJ or ACME. Used to route tickets.",
+    }));
+    form.appendChild(fieldLabel("Slack channels", slack.el, {
+      tip: "Channel ids (C…) so Slack history lands on this book.",
+    }));
+    form.appendChild(fieldLabel("Teams channels", teams.el, {
+      tip: "Teams thread or channel ids for this book.",
+    }));
+    form.appendChild(fieldLabel("Salesforce accounts", sfdc.el, {
+      tip: "Salesforce account ids (001…) when that connector is live.",
+    }));
     var foot = document.createElement("div");
     foot.className = "sheet-foot";
+    var reportBtn = document.createElement("button");
+    reportBtn.type = "button";
+    reportBtn.className = "btn";
+    reportBtn.textContent = "Inputs";
+    reportBtn.addEventListener("click", function () {
+      openProcessingReport(acct, null);
+    });
     var save = document.createElement("button");
     save.type = "submit";
     save.className = "btn btn-primary";
     save.textContent = "Save";
+    foot.appendChild(reportBtn);
     foot.appendChild(save);
     form.appendChild(foot);
     sheet.appendChild(form);
@@ -6684,12 +9108,19 @@
       if (acct && acct.connectors) {
         connectors = Object.assign({}, acct.connectors, connectors);
       }
+      var mins = parseInt(refreshMins.value, 10);
+      if (!mins || mins < 1) mins = 5;
+      if (mins > 1440) mins = 1440;
       var payload = {
         name: name.value,
         abbr: abbr.value,
         color: color.value,
         domains: domains.values(),
         connectors: connectors,
+        coverage: Object.assign({}, (acct && acct.coverage) || {}, {
+          refresh_minutes: mins,
+          auto_draft_replies: !!autoDraft.checked,
+        }),
       };
       var req = acct
         ? api("/api/accounts/" + encodeURIComponent(acct.account_id), { method: "PATCH", body: JSON.stringify(payload) })
@@ -6699,14 +9130,21 @@
           return api("/api/accounts/" + encodeURIComponent(doc.account_id) + "/logo", {
             method: "POST",
             body: JSON.stringify({ image: pendingLogo }),
-          });
+          }).then(function () { return doc; });
         }
         return doc;
-      }).then(function () {
-        closeDetail();
+      }).then(function (doc) {
         toast("Company saved");
         loadSettings();
         loadHome(true);
+        if (doc && doc.account_id) {
+          var feeds = ((doc.coverage || {}).feeds || []);
+          var pull = feeds.length ? attachLiveGoogle(doc.account_id, feeds) : Promise.resolve([]);
+          return pull.then(function (jobs) {
+            return openProcessingReport(doc, jobs || []);
+          });
+        }
+        closeDetail();
       }).catch(function (err) {
         toast(String(err.message || err));
       });
@@ -6749,7 +9187,9 @@
           if (open) {
             var on = box.querySelector(".search-opt.is-on") || box.querySelector(".search-opt");
             if (on) {
-              pickSlash(on.getAttribute("data-cmd"));
+              var handle = on.getAttribute("data-handle");
+              if (handle) pickPerson(handle, (accountQ || "").indexOf("/people") === 0);
+              else pickSlash(on.getAttribute("data-cmd"));
               return;
             }
           }
@@ -6757,7 +9197,8 @@
         }
       });
       qEl.addEventListener("focus", function () {
-        if ((qEl.value || "").charAt(0) === "/") renderSlashSuggest();
+        loadChatPeople();
+        renderSlashSuggest();
       });
     }
     document.addEventListener("click", function (ev) {
@@ -6837,12 +9278,35 @@
     if (chatForm) {
       chatForm.addEventListener("submit", function (ev) {
         ev.preventDefault();
+        hideChatMentions();
         sendHomeChat();
       });
     }
+    bindChatMentions();
     if ($("btn-chat-history")) $("btn-chat-history").addEventListener("click", toggleChatHistory);
     if ($("btn-chat-bookmark")) $("btn-chat-bookmark").addEventListener("click", toggleChatBookmark);
     if ($("btn-chat-new")) $("btn-chat-new").addEventListener("click", startNewChat);
+    if ($("btn-home-refresh")) {
+      $("btn-home-refresh").addEventListener("click", function () {
+        var btn = $("btn-home-refresh");
+        btn.disabled = true;
+        var prev = btn.textContent;
+        btn.textContent = "Refreshing…";
+        api("/api/sync/refresh", { method: "POST", body: "{}" }).then(function (data) {
+          var jobs = data.jobs || [];
+          if (!jobs.length) toast("Connect Gmail or Calendar in Settings, then Refresh");
+          jobs.forEach(function (j) { toast(syncToast(j.connector || j.name, j)); });
+          var home = loadHome(true);
+          var agenda = homeTab !== "companies" ? loadAgenda() : Promise.resolve();
+          return Promise.all([home, agenda]);
+        }).catch(function (err) {
+          toast(String(err.message || err));
+        }).then(function () {
+          btn.disabled = false;
+          btn.textContent = prev || "Refresh";
+        });
+      });
+    }
     $("btn-refresh-health").addEventListener("click", function () {
       api("/api/accounts").then(function (data) {
         var jobs = (data.items || []).map(function (a) {
@@ -6877,6 +9341,7 @@
         toast(String(err.message || err));
       });
     }
+    if (window.CSM) window.CSM.startGoogleSignIn = startGoogleSignIn;
     if ($("btn-google-signin")) {
       $("btn-google-signin").addEventListener("click", startGoogleSignIn);
     }
@@ -6890,6 +9355,8 @@
               phone: ($("op-phone") && $("op-phone").value) || "",
               email: ($("op-email") && $("op-email").value) || "",
               timezone: ($("op-timezone") && $("op-timezone").value) || "UTC",
+              persona: ($("op-persona") && $("op-persona").value) || "csm",
+              intent: ($("op-intent") && $("op-intent").value) || "",
             },
           }),
         }).then(function () {
@@ -7033,14 +9500,25 @@
     $("btn-seed").addEventListener("click", function () {
       api("/api/settings/seed", { method: "POST", body: "{}" }).then(function () {
         toast("Seed loaded");
+        resetChatMentionCache();
         loadHome(true);
       });
     });
     $("btn-reset").addEventListener("click", function () {
-      if (!window.confirm("Reset the store? Type was confirmed in UI.")) return;
-      api("/api/settings/reset", { method: "POST", body: JSON.stringify({ confirm: "RESET" }) }).then(function () {
-        toast("Store reset");
-        loadHome(true);
+      confirmDanger({
+        title: "Reset store",
+        body: "Wipes books and keeps your profile and world clock. Type RESET.",
+        token: "RESET",
+        confirmLabel: "Reset store",
+        onConfirm: function () {
+          api("/api/settings/reset", { method: "POST", body: JSON.stringify({ confirm: "RESET" }) }).then(function () {
+            toast("Store reset");
+            resetChatMentionCache();
+            loadHome(true);
+          }).catch(function (err) {
+            toast(String(err.message || err));
+          });
+        },
       });
     });
     window.addEventListener("message", function (ev) {

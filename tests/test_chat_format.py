@@ -18,7 +18,7 @@ def test_humanize_ticket_json():
 
 
 def test_humanize_leaves_prose():
-    src = "3 open tickets on #{ACME}."
+    src = "3 open tickets on #ACME."
     assert humanize_chat_text(src) == src
 
 
@@ -30,3 +30,9 @@ def test_desk_wide_without_book(repo):
     text = answer_desk(repo, "What tasks are due this week?", None)
     assert "Which book?" not in text
     assert "due this week" in text.lower()
+    today = answer_desk(repo, "Which tasks need to been done today?", None)
+    assert "Which book?" not in today
+    assert "task" in today.lower()
+    acme = next(a for a in repo.list_accounts() if a.get("abbr") == "ACME")
+    scoped = answer_desk(repo, "Which tasks need to be done today?", acme)
+    assert "ACME" in scoped

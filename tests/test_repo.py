@@ -15,7 +15,124 @@ def test_account_rows_skips_other_books(repo):
     assert only[0]["name"] == "Pat"
     counts = repo.account_input_counts("acct:acme")
     assert counts["people"] == 1
+    assert counts["orgchart"] == 1
     assert counts["chat"] == counts["slack"] + counts["teams"]
+
+
+def test_create_person_refreshes_people_badge(repo):
+    repo.create_account({"name": "Acme", "slug": "acme", "abbr": "ACME", "color": "#0B3D91"})
+    repo.refresh_input_counts("acct:acme")
+    assert repo.account_input_counts("acct:acme")["people"] == 0
+    repo.create_person({"account_id": "acct:acme", "name": "Pat Nguyen", "kind": "customer"})
+    counts = repo.account_input_counts("acct:acme")
+    assert counts["people"] == 1
+    assert counts["orgchart"] == 1
+    assert counts["accountteam"] == 0
+    repo.create_person(
+        {"account_id": "acct:acme", "name": "Jordan Lee", "kind": "account_team", "role": "csm"}
+    )
+    counts = repo.account_input_counts("acct:acme")
+    assert counts["people"] == 2
+    assert counts["orgchart"] == 1
+    assert counts["accountteam"] == 1
+
+
+def test_expand_account_heals_stale_people_badge(repo):
+    repo.create_account({"name": "Acme", "slug": "acme", "abbr": "ACME", "color": "#0B3D91"})
+    repo.refresh_input_counts("acct:acme")
+    repo.store.save(
+        "people",
+        "person:stale1",
+        {
+            "type": "person",
+            "account_id": "acct:acme",
+            "name": "Pat Nguyen",
+            "kind": "customer",
+            "role": "other",
+            "email": "pat@acme.com",
+        },
+    )
+    raw = repo.get_account("acct:acme") or {}
+    assert (raw.get("input_counts") or {}).get("people") == 0
+    expanded = repo.expand_account(raw)
+    assert expanded["input_counts"]["people"] == 1
+    assert expanded["input_counts"]["orgchart"] == 1
+    healed = repo.get_account("acct:acme") or {}
+    assert (healed.get("input_counts") or {}).get("people") == 1
+
+
+def test_coverage_defaults_and_takeover_requires_owner(repo):
+    from csm_dashboard.storage.repo import normalize_coverage
+
+    bare = repo.create_account({"name": "Acme", "slug": "acme", "abbr": "ACME", "color": "#0B3D91"})
+    assert bare["coverage"]["mode"] == "view"
+    assert bare["coverage"]["lookback_days"] == 14
+    taken = repo.create_account(
+        {
+            "name": "North",
+            "slug": "nwin",
+            "abbr": "NWIN",
+            "color": "#14532d",
+            "coverage": {
+                "mode": "takeover",
+                "previous_owner_email": "jane@example.com",
+                "lookback_days": 90,
+            },
+        }
+    )
+    assert taken["coverage"]["mode"] == "takeover"
+    assert taken["coverage"]["previous_owner_email"] == "jane@example.com"
+    assert taken["coverage"]["lookback_days"] == 90
+    assert taken["coverage"]["feeds"] == []
+    fed = repo.create_account(
+        {
+            "name": "Globex",
+            "slug": "globex",
+            "abbr": "GLX",
+            "color": "#7B1E3A",
+            "coverage": {"mode": "view", "feeds": ["google_mail", "google_cal", "nope"]},
+        }
+    )
+    assert fed["coverage"]["feeds"] == ["google_mail", "google_cal"]
+    fresh = repo.create_account(
+        {
+            "name": "Brand",
+            "slug": "brand",
+            "abbr": "BRAND",
+            "color": "#0B3D91",
+            "coverage": {"mode": "new"},
+        }
+    )
+    assert fresh["coverage"]["mode"] == "new"
+    assert fresh["coverage"]["lookback_days"] == 14
+    assert fresh["coverage"]["previous_owner_email"] == ""
+    assert fresh["coverage"]["mine_people"] is True
+    assert fresh["coverage"]["refresh_minutes"] == 5
+    with pytest.raises(ValueError, match="previous_owner_email"):
+        normalize_coverage({"mode": "takeover"}, require_owner=True)
+    with pytest.raises(ValueError, match="until"):
+        normalize_coverage(
+            {"mode": "covering", "previous_owner_email": "jane@example.com"},
+            require_owner=True,
+        )
+
+
+def test_reattach_unassigned_email_by_domain(repo):
+    repo.create_account({"name": "Acme", "slug": "acme", "abbr": "ACME", "color": "#0B3D91", "domains": ["acme.com"]})
+    repo.upsert_email(
+        {
+            "from_addr": "pat@acme.com",
+            "to_addrs": ["you@example.com"],
+            "subject": "Hello",
+            "body_text": "hi",
+            "message_id": "<unassigned-acme@test>",
+            "sent_at": "2026-09-01T12:00:00Z",
+        }
+    )
+    counts = repo.reattach_unassigned("acct:acme")
+    assert counts["emails"] == 1
+    rows, _ = repo.page_emails("acct:acme")
+    assert any(r.get("subject") == "Hello" for r in rows)
 
 
 def test_create_account_and_abbr_lookup(repo):

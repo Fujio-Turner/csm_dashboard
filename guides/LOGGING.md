@@ -49,14 +49,22 @@ Event names: `csm.<area>.<verb>`.
 | `csm.draft.sent` | SMTP delivered a draft; `draft_id`, `via` |
 | `csm.task.sent` | SMTP delivered a self-email task; `email_id`, `via` |
 | `csm.mail.sent` | SMTP accepted the message; `host`, `to_count`, `attach_count` (no addresses) |
+| `csm.auto_draft.created` | Auto Grok reply for To:you mail; `account_id`, `result`, `gmail` |
+| `csm.auto_draft.skipped` | `reason` (off, not_to_me, already, no_ai, …) |
+| `csm.auto_draft.failed` | Grok error; `err` |
+| `csm.auto_draft.batch` / `backfill` | `created`, `skipped` |
+| `csm.mail.draft_saved` | Gmail drafts.create / update |
+| `csm.mail.draft_failed` | Gmail draft write failed; `err` only |
+| `csm.mail.send_blocked` | Send 409; `reason` |
 | `csm.mail.send_failed` | SMTP raised; `err` only |
 | `csm.report.generated` | `kind`, `account_id` |
-| `csm.ai.complete` | `account_id`, `prompt_name`, `model`, token counts, `truncated` |
+| `csm.ai.complete` | `account_id`, `prompt_name`, `model`, token counts, `truncated`, `chars`, `mode` |
+| `csm.account.counts_healed` | Opening a book found stale `input_counts` and rewrote the cache |
 | `csm.chat.turn` | `model`, `tools=`, `result=` |
 | `csm.sync.started` / `finished` / `failed` | `connector`, counts, `err` |
 | `csm.route.ambiguous` | hint fields, candidate abbrs |
 | `csm.health.updated` | `account_id`, `score`, `scored_by` |
-| `csm.settings.updated` / `keys_updated` | field names |
+| `csm.settings.updated` / `keys_updated` | field names (operator persona/intent is `operator` on PUT `/api/settings`) |
 | `csm.seed.applied` | counts per collection |
 | `csm.store.reset` | |
 | `csm.query.fts_failed` | `err` |

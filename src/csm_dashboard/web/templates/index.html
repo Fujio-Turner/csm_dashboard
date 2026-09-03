@@ -50,6 +50,7 @@
             <nav class="crumb" id="home-crumb" aria-label="Breadcrumb"></nav>
             <div class="home-top-row" id="home-head">
               <div class="tabs" id="home-tabs"></div>
+              <button class="btn" type="button" id="btn-home-refresh">Refresh</button>
               <div class="home-company-tools" id="home-company-tools" hidden>
                 <input class="search" id="home-q" type="search" placeholder="Filter by name or abbr">
                 <button class="btn" type="button" id="btn-refresh-health">Refresh health</button>
@@ -75,7 +76,7 @@
             <div class="account-desk hidden" id="view-account" hidden>
               <header class="page-head account-head compact" id="account-head"></header>
               <div class="account-tools" id="account-tools">
-                <input class="search" id="account-q" type="search" placeholder="Search, or type / for types" autocomplete="off">
+                <input class="search" id="account-q" type="search" placeholder="Search, /people bob, or / for types" autocomplete="off">
                 <div class="search-suggest hidden" id="account-suggest" hidden></div>
                 <select class="toolbar-filter" id="account-project" hidden>
                   <option value="">All projects</option>
@@ -89,7 +90,7 @@
             <header class="home-chat-head">
               <div>
                 <h2 id="chat-title">Desk chat</h2>
-                <p class="muted" id="chat-sub">Tag a book with #{ACME} or a person with @bob</p>
+                <p class="muted" id="chat-sub">Type # for a company. /people and /ticket bound a question. @ talks to someone.</p>
               </div>
               <div class="chat-actions">
                 <button class="btn btn-icon" type="button" id="btn-chat-history" data-tip="History" title="History" aria-label="History">
@@ -107,7 +108,8 @@
             <div class="home-chat-log" id="home-chat-log"></div>
             <div class="home-chat-suggest" id="home-chat-suggest"></div>
             <form class="home-chat-form" id="home-chat-form">
-              <textarea id="home-chat-input" rows="3" placeholder="Is there any issue with #{ACME}?"></textarea>
+              <div id="chat-mention-menu" class="chat-mention-menu hidden" hidden></div>
+              <textarea id="home-chat-input" rows="3" placeholder="Is there any issue with #ACME?" autocomplete="off"></textarea>
               <button class="btn btn-primary" type="submit">Ask</button>
             </form>
           </aside>
@@ -151,7 +153,7 @@
         </header>
         <div class="help-page">
           <div class="help-search-row">
-            <input class="search" id="help-search" type="search" placeholder="Search help" autocomplete="off" aria-label="Search help">
+            <input class="search" id="help-search" type="search" placeholder="Search how-to — typos are fine" autocomplete="off" aria-label="Search help">
           </div>
           <div class="help-chips" id="help-chips"></div>
           <p class="muted help-empty" id="help-empty" hidden>No help matches.</p>
@@ -170,7 +172,7 @@
             <header class="settings-section-head">
               <div>
                 <h2>You</h2>
-                <p class="muted">Mail from your domain is treated as internal, not a customer book. Timezone pins You on the world clock.</p>
+                <p class="muted">Mail from your domain is treated as internal, not a customer book. Timezone pins You on the world clock. How you work flavors every AI reply.</p>
               </div>
             </header>
             <article class="card">
@@ -179,6 +181,33 @@
                 <label>Phone <input id="op-phone" type="tel" autocomplete="tel" placeholder="optional"></label>
                 <label>Email <input id="op-email" type="email" autocomplete="email" placeholder="bob@abc.com"></label>
                 <label>Timezone <input type="hidden" id="op-timezone"><span id="op-timezone-picker"></span></label>
+                <label class="settings-span">
+                  <span class="field-label">How you work
+                    <span class="field-tip-wrap">
+                      <button type="button" class="field-tip" aria-label="How this customizes AI answers" aria-describedby="op-work-tip">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 10.5v5M12 7.5h.01"/></svg>
+                      </button>
+                      <span id="op-work-tip" class="field-tip-pop" role="tooltip">
+                        This customizes every AI answer — desk chat, compose, task assist, and weekly report. Pick a persona, then edit the box. Sales stays account-level and only flags real openings to sell. A TAM gets more ticket and people detail. CSM leads with health and next actions. Support leads with the issue and who is waiting. The textarea is what the model reads. Save profile to apply. It will not invent tickets or pipeline.
+                      </span>
+                    </span>
+                  </span>
+                  <select id="op-persona" aria-label="How you work"></select>
+                </label>
+                <p class="muted settings-span" id="op-persona-hint"></p>
+                <label class="settings-span">
+                  <span class="field-label">Intent and style
+                    <span class="field-tip-wrap">
+                      <button type="button" class="field-tip" aria-label="About intent and style" aria-describedby="op-intent-tip">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 10.5v5M12 7.5h.01"/></svg>
+                      </button>
+                      <span id="op-intent-tip" class="field-tip-pop" role="tooltip">
+                        This text is sent with every AI request so answers match how you work. Edit the preset. A sales rep can still ask for TAM-level detail on P1s by writing that here.
+                      </span>
+                    </span>
+                  </span>
+                  <textarea id="op-intent" rows="6" placeholder="How you want AI to answer — altitude, tone, what to lead with."></textarea>
+                </label>
               </div>
               <p class="muted">Your email is a login hint so Google can pick the right account. It is not a password, and it is not the Google app client.</p>
               <div class="settings-actions">
@@ -234,7 +263,7 @@
             <header class="settings-section-head">
               <div>
                 <h2>Companies</h2>
-                <p class="muted">Quiet hides a book from Home. Remove archives it. Edit color, logo, domains, and Slack / Teams / Salesforce / Jira tags.</p>
+                <p class="muted">Add company is a seven-stop train (role, book, domain(s), feeds, look back, people, attach). Edit stays one sheet. Quiet hides a book from Home. Remove archives it — type the abbreviation first.</p>
               </div>
               <button class="btn btn-primary" type="button" id="btn-add-company">Add company</button>
             </header>
@@ -319,7 +348,7 @@
             <header class="settings-section-head">
               <div>
                 <h2>Lab</h2>
-                <p class="muted">Three demo books: ACME navy, NWIN forest, GLX burgundy — sample logos, full customer org charts, and a packed meeting day on Home. Seed is idempotent. Reset keeps your profile and world clock.</p>
+                <p class="muted">Three demo books: ACME navy, NWIN forest, GLX burgundy — sample logos, full customer org charts, and a realistic meeting day on Home. Seed is idempotent. Reset keeps your profile and world clock.</p>
               </div>
             </header>
             <article class="card">
@@ -335,11 +364,13 @@
   </div>
   <div class="lightbox hidden" id="compose-box" hidden></div>
   <div class="lightbox hidden" id="detail-box" hidden></div>
+  <div class="lightbox hidden" id="confirm-box" hidden></div>
   <div class="lightbox hidden" id="crop-box" hidden></div>
   <div class="lightbox hidden" id="world-box" hidden></div>
   <div class="lightbox hidden" id="task-box" hidden></div>
   <div class="toasts" id="toasts"></div>
   <script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify@4.32.2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.1.0/dist/fuse.min.js"></script>
   <script src="/static/app.js?v={{ version }}"></script>
   <script src="/static/compose.js?v={{ version }}"></script>
   <script src="/static/worldclock.js?v={{ version }}"></script>

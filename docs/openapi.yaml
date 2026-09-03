@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: CSM Dashboard API
-  version: 0.1.98
+  version: 0.1.126
   description: Local Customer Success Manager desk. Hand-maintained source of truth.
 servers:
   - url: http://127.0.0.1:8788
@@ -43,7 +43,7 @@ paths:
       operationId: getStatus
       responses:
         "200":
-          description: status
+          description: version, operator (persona, intent), personas presets, keys present, connectors
   /api/help:
     get:
       tags: [meta]
@@ -193,9 +193,22 @@ paths:
           name: account_id
           required: true
           schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [confirm]
+              properties:
+                confirm:
+                  type: string
+                  description: Company abbreviation or name, typed to confirm.
       responses:
         "200":
           description: removed
+        "400":
+          description: confirm token missing or does not match
         "404":
           description: not found
   /api/accounts/{account_id}/logo:
@@ -238,6 +251,50 @@ paths:
       responses:
         "200":
           description: removed
+        "404":
+          description: not found
+  /api/accounts/{account_id}/reprocess:
+    post:
+      tags: [accounts]
+      operationId: reprocessAccount
+      parameters:
+        - in: path
+          name: account_id
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                domains:
+                  type: array
+                  items: { type: string }
+                  description: Replace customer domains, then re-route unmatched mail and meetings.
+                feeds:
+                  type: array
+                  items: { type: string }
+                  description: Connectors to pull again. Empty list reattaches only.
+      responses:
+        "200":
+          description: account, reattached counts, and per-feed jobs
+        "404":
+          description: not found
+        "409":
+          description: invalid coverage or domains
+  /api/accounts/{account_id}/people-mine:
+    get:
+      tags: [people]
+      operationId: mineAccountPeople
+      parameters:
+        - in: path
+          name: account_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: de-duped customer people mined from mail, meetings, tickets, Slack, and Teams
         "404":
           description: not found
   /api/accounts/{account_id}/rescore:
@@ -329,8 +386,9 @@ paths:
       parameters:
         - in: query
           name: account_id
-          required: true
+          required: false
           schema: { type: string }
+          description: Omit to list people on every book (Home chat /people and @ autocomplete).
         - in: query
           name: kind
           schema: { type: string }
@@ -411,9 +469,24 @@ paths:
           name: project_id
           required: true
           schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [confirm]
+              properties:
+                confirm:
+                  type: string
+                  description: Project name, typed to confirm.
       responses:
         "200":
           description: removed
+        "400":
+          description: confirm token missing or does not match
+        "404":
+          description: not found
   /api/tickets:
     get:
       tags: [tickets]
@@ -505,7 +578,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
-          description: suggested reply
+          description: suggested reply (includes context_chars; reply mode is this thread plus a short book brief)
         "404":
           description: not found
   /api/threads/{thread_id}/operator:
@@ -1137,6 +1210,23 @@ paths:
           description: job
         "404":
           description: connector_off or unknown
+  /api/sync/refresh:
+    post:
+      tags: [sync]
+      operationId: refreshGoogle
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                connectors:
+                  type: array
+                  items: { type: string }
+                  description: Defaults to google_mail and google_cal.
+      responses:
+        "200":
+          description: per-connector jobs using Gmail historyId / Calendar syncToken when a CBL cursor exists
   /api/sync/jobs:
     get:
       tags: [sync]

@@ -380,6 +380,9 @@ def test_gmail_sync_mocked(client, repo, monkeypatch):
         if url.endswith("/profile"):
             return {"emailAddress": "jordan@example.com"}
         if url.endswith("/messages"):
+            q = str((params or {}).get("q") or "")
+            if "from:" not in q or "after:" not in q:
+                raise AssertionError("expected customer-domain Gmail q, got " + q)
             return {"messages": [{"id": "g1"}]}
         if url.endswith("/messages/g1"):
             return {
@@ -405,5 +408,7 @@ def test_gmail_sync_mocked(client, repo, monkeypatch):
     monkeypatch.setattr("csm_dashboard.connectors.google_mail.json_get", fake_get)
     job = client.post("/api/connectors/google_mail/sync", json={})
     assert job.json()["status"] == "done"
+    assert job.json()["routed"] >= 1
+    assert job.json()["unassigned"] == 0
     mail = client.get("/api/emails", params={"account_id": "acct:acme"}).json()["items"]
     assert any("Live gmail" in (m.get("subject") or "") for m in mail)

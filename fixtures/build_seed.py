@@ -14,12 +14,11 @@ SEED = ROOT / "seed"
 sys.path.insert(0, str(ROOT.parent / "src"))
 
 from csm_dashboard.ingest.identity import activity_doc_id, email_doc_id, thread_doc_id  # noqa: E402
-from csm_dashboard.storage.repo import ts_to_iso  # noqa: E402
+from csm_dashboard.storage.repo import _task_body, _task_subject, ts_to_iso  # noqa: E402
 
 DEMO_DAY = "2026-08-28"
 TEST_DAY = "2026-08-18"
 TOKEN_RE = re.compile(r"^[a-z0-9-]{2,32}$")
-DEMO_TS = int(datetime(2026, 8, 28, 12, 0, tzinfo=timezone.utc).timestamp())
 
 
 def dump(name: str, rows: list) -> None:
@@ -159,7 +158,25 @@ def ticket(key, account_id, summary, status, pri, updated, comments, created="20
     return row
 
 
-def email_row(account_id, message_id, in_reply_to, frm, to, subject, sent, snippet, body, direction="inbound"):
+def email_row(
+    account_id,
+    message_id,
+    in_reply_to,
+    frm,
+    to,
+    subject,
+    sent,
+    snippet,
+    body,
+    direction="inbound",
+    *,
+    project_id="",
+    operator=None,
+    unread=None,
+):
+    op = {"unread": direction == "inbound" if unread is None else bool(unread)}
+    if operator:
+        op.update(operator)
     doc = {
         "type": "email",
         "account_id": account_id,
@@ -176,12 +193,39 @@ def email_row(account_id, message_id, in_reply_to, frm, to, subject, sent, snipp
         "body_text": body,
         "body_bytes": len(body.encode("utf-8")),
         "has_attachments": False,
-        "operator": {"unread": direction == "inbound"},
+        "operator": op,
         "sources": {"stub": {"fetched_at": "2026-08-17T15:00:00Z"}},
     }
+    if project_id:
+        doc["project_id"] = project_id
     doc["thread_id"] = thread_doc_id(doc)
     doc["_id"] = email_doc_id(doc)
     return doc
+
+
+def task_row(account_id, company, name, kind, sent, due, body, *, project_id="", token=""):
+    slug = token or re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:24]
+    return email_row(
+        account_id,
+        f"<task.{slug}@csm.local>",
+        "",
+        "jordan@example.com",
+        "jordan@example.com",
+        _task_subject(company, name, kind),
+        sent,
+        body[:180],
+        _task_body(body, due),
+        "internal",
+        project_id=project_id,
+        unread=True,
+        operator={
+            "unread": True,
+            "task": True,
+            "task_name": name,
+            "task_kind": kind,
+            "due_at": due,
+        },
+    )
 
 
 def slack_channel(account_id, cid, name, topic):
@@ -262,6 +306,11 @@ def slot(day: str, hh: int, mm: int, dur: int = 30) -> tuple[str, str]:
     end_m = start_m + dur
     eh, em = divmod(end_m, 60)
     return f"{day}T{hh:02d}:{mm:02d}:00Z", f"{day}T{eh:02d}:{em:02d}:00Z"
+
+
+def slack_ts(day: str, hh: int, mm: int, ss: int = 0, frac: str = "000100") -> str:
+    dt = datetime(int(day[0:4]), int(day[5:7]), int(day[8:10]), hh, mm, ss, tzinfo=timezone.utc)
+    return f"{int(dt.timestamp())}.{frac}"
 
 
 def action(_id, account_id, title, kind, status, due, owner, label):
@@ -517,35 +566,50 @@ def build_calendar() -> list[dict]:
         cal("acct:globex", "evt-glx-kick", "GLX kickoff", "2026-08-10T16:00:00Z", "2026-08-10T18:00:00Z", att(("ava.chen@globex.example", "Ava Chen"))),
         cal("acct:globex", "evt-glx-plant", "GLX plant walk", "2026-08-14T16:00:00Z", "2026-08-14T17:00:00Z", att(("ava.chen@globex.example", "Ava Chen"))),
         cal("acct:globex", "evt-glx-next", "GLX weekly", "2026-08-21T16:00:00Z", "2026-08-21T16:30:00Z", att(("ava.chen@globex.example", "Ava Chen"))),
-        # Packed demo day — ~8am–6pm Chicago (UTC-5)
+        # Neighboring weekdays — keep titles, off the cloned demo day
+        cal("acct:northwind", "evt-nwin-sso", "NWIN contractor SSO patch", *s("2026-08-27", 14, 0, 45), att(("jules.hart@northwind.example", "Jules Hart"), ("devin.cole@northwind.example", "Devin Cole")) + j),
+        cal("acct:northwind", "evt-nwin-fpa", "NWIN FP&A renewal model", *s("2026-08-27", 15, 15, 30), att(("owen.park@northwind.example", "Owen Park"), ("nina.vogt@northwind.example", "Nina Vogt")) + j),
+        cal("acct:acme", "evt-acme-fin", "ACME finance QBR prep", *s("2026-08-27", 16, 15, 30), att(("grace.lin@acme.com", "Grace Lin"), ("taylor.brooks@acme.com", "Taylor Brooks")) + j),
+        cal("acct:acme", "evt-acme-train", "ACME DC2 training slot", *s("2026-08-27", 17, 15, 45), att(("priya.shah@acme.com", "Priya Shah")) + j),
+        cal("acct:acme", "evt-acme-dana", "ACME Dana one-pager", *s("2026-08-27", 18, 30, 30), att(("dana.cole@acme.com", "Dana Cole")) + j),
+        cal("acct:globex", "evt-glx-coo", "GLX Victor onboarding review", *s("2026-09-02", 14, 0, 45), att(("victor.lang@globex.example", "Victor Lang"), ("ava.chen@globex.example", "Ava Chen")) + j),
+        cal("acct:globex", "evt-glx-p2w", "GLX Plant 2 walkthrough", *s("2026-09-02", 15, 15, 30), att(("sofia.berg@globex.example", "Sofia Berg"), ("luis.romero@globex.example", "Luis Romero")) + j, "Plant 2"),
+        cal("acct:northwind", "evt-nwin-wrap", "NWIN commercial follow-up", *s("2026-09-02", 16, 15, 25), att(("rob.singh@northwind.example", "Rob Singh"), ("seth.brown@northwind.example", "Seth Brown")) + j),
+        cal("acct:globex", "evt-glx-ceo", "GLX Eleanor exec brief", *s("2026-09-02", 17, 15, 30), att(("eleanor.voss@globex.example", "Eleanor Voss"), ("greg.hale@globex.example", "Greg Hale")) + j),
+        # Demo day — Chicago CDT (UTC-5). Usually 30–60 min between meetings; three pairs are back-to-back.
         cal("acct:globex", "evt-glx-p1", "GLX Plant 1 standup", *s(d, 13, 0, 25), att(("ava.chen@globex.example", "Ava Chen"), ("ben.ortiz@globex.example", "Ben Ortiz")) + j),
-        cal("acct:acme", "evt-acme-dc1", "ACME DC1 check-in", *s(d, 13, 30, 25), att(("lee.park@acme.com", "Lee Park")) + j),
-        cal("acct:globex", "evt-glx-print", "GLX Plant 2 badge printer", *s(d, 14, 30, 40), att(("sofia.berg@globex.example", "Sofia Berg")) + j, "Plant 2"),
-        cal("acct:acme", "evt-acme-stand", "ACME standup", *s(d, 15, 0, 25), att(("pat.nguyen@acme.com", "Pat Nguyen"), ("sam.ortiz@acme.com", "Sam Ortiz"), ("bob.hale@acme.com", "Bob Hale")) + j),
-        cal("acct:northwind", "evt-nwin-am", "NWIN renewal commercial", *s(d, 15, 30, 45), att(("rob.singh@northwind.example", "Rob Singh"), ("helen.cho@northwind.example", "Helen Cho")) + j),
-        cal("acct:acme", "evt-acme-dc3", "ACME DC3 firmware war room", *s(d, 16, 0, 45), att(("sam.ortiz@acme.com", "Sam Ortiz"), ("bob.hale@acme.com", "Bob Hale"), ("chris@example.com", "Chris Vale")) + j, "DC3 floor"),
-        cal("acct:globex", "evt-glx-vpn", "GLX VPN allowlist with Nadia", *s(d, 16, 30, 30), att(("nadia.ali@globex.example", "Nadia Ali")) + j),
-        cal("acct:acme", "evt-acme-sso", "ACME SSO 8-hour timeout review", *s(d, 17, 0, 45), att(("mei.wong@acme.com", "Mei Wong"), ("elena.ruiz@acme.com", "Elena Ruiz")) + j),
-        cal("acct:northwind", "evt-nwin-sso", "NWIN contractor SSO patch", *s(d, 17, 30, 45), att(("jules.hart@northwind.example", "Jules Hart"), ("devin.cole@northwind.example", "Devin Cole")) + j),
-        cal("acct:acme", "evt-acme-fin", "ACME finance QBR prep", *s(d, 18, 0, 30), att(("grace.lin@acme.com", "Grace Lin"), ("taylor.brooks@acme.com", "Taylor Brooks")) + j),
-        cal("acct:globex", "evt-glx-coo", "GLX Victor onboarding review", *s(d, 18, 30, 45), att(("victor.lang@globex.example", "Victor Lang"), ("ava.chen@globex.example", "Ava Chen")) + j),
-        cal("acct:acme", "evt-acme-qbrn", "ACME QBR numbers", *s(d, 19, 0, 60), att(("taylor.brooks@acme.com", "Taylor Brooks"), ("pat.nguyen@acme.com", "Pat Nguyen"), ("dana.cole@acme.com", "Dana Cole")) + j),
-        cal("acct:northwind", "evt-nwin-fpa", "NWIN FP&A renewal model", *s(d, 19, 30, 30), att(("owen.park@northwind.example", "Owen Park"), ("nina.vogt@northwind.example", "Nina Vogt")) + j),
-        cal("acct:northwind", "evt-nwin-ops", "NWIN Tacoma ops check-in", *s(d, 20, 0, 30), att(("marco.rossi@northwind.example", "Marco Rossi"), ("imani.wells@northwind.example", "Imani Wells")) + j),
-        cal("acct:globex", "evt-glx-p2w", "GLX Plant 2 walkthrough", *s(d, 20, 30, 30), att(("sofia.berg@globex.example", "Sofia Berg"), ("luis.romero@globex.example", "Luis Romero")) + j, "Plant 2"),
-        cal("acct:acme", "evt-acme-train", "ACME DC2 training slot", *s(d, 21, 0, 45), att(("priya.shah@acme.com", "Priya Shah")) + j),
-        cal("acct:globex", "evt-glx-ceo", "GLX Eleanor exec brief", *s(d, 21, 30, 30), att(("eleanor.voss@globex.example", "Eleanor Voss"), ("greg.hale@globex.example", "Greg Hale")) + j),
+        cal("acct:acme", "evt-acme-dc1", "ACME DC1 check-in", *s(d, 14, 0, 25), att(("lee.park@acme.com", "Lee Park")) + j),
+        cal("acct:northwind", "evt-nwin-am", "NWIN renewal commercial", *s(d, 15, 0, 45), att(("rob.singh@northwind.example", "Rob Singh"), ("helen.cho@northwind.example", "Helen Cho")) + j),
+        cal("acct:acme", "evt-acme-stand", "ACME standup", *s(d, 15, 45, 25), att(("pat.nguyen@acme.com", "Pat Nguyen"), ("sam.ortiz@acme.com", "Sam Ortiz"), ("bob.hale@acme.com", "Bob Hale")) + j),
+        cal("acct:globex", "evt-glx-print", "GLX Plant 2 badge printer", *s(d, 17, 5, 40), att(("sofia.berg@globex.example", "Sofia Berg")) + j, "Plant 2"),
+        cal("acct:acme", "evt-acme-dc3", "ACME DC3 firmware war room", *s(d, 18, 15, 45), att(("sam.ortiz@acme.com", "Sam Ortiz"), ("bob.hale@acme.com", "Bob Hale"), ("chris@example.com", "Chris Vale")) + j, "DC3 floor"),
+        cal("acct:globex", "evt-glx-vpn", "GLX VPN allowlist with Nadia", *s(d, 19, 0, 30), att(("nadia.ali@globex.example", "Nadia Ali")) + j),
+        cal("acct:northwind", "evt-nwin-ops", "NWIN Tacoma ops check-in", *s(d, 20, 15, 30), att(("marco.rossi@northwind.example", "Marco Rossi"), ("imani.wells@northwind.example", "Imani Wells")) + j),
+        cal("acct:acme", "evt-acme-sso", "ACME SSO 8-hour timeout review", *s(d, 21, 15, 45), att(("mei.wong@acme.com", "Mei Wong"), ("elena.ruiz@acme.com", "Elena Ruiz")) + j),
         cal("acct:northwind", "evt-nwin-exec", "NWIN Helen exec brief", *s(d, 22, 0, 30), att(("helen.cho@northwind.example", "Helen Cho"), ("riley@example.com", "Riley Park")) + j),
-        cal("acct:acme", "evt-acme-dana", "ACME Dana one-pager", *s(d, 22, 30, 30), att(("dana.cole@acme.com", "Dana Cole")) + j),
-        cal("acct:northwind", "evt-nwin-wrap", "NWIN commercial follow-up", *s(d, 23, 0, 25), att(("rob.singh@northwind.example", "Rob Singh"), ("seth.brown@northwind.example", "Seth Brown")) + j),
+        cal("acct:acme", "evt-acme-qbrn", "ACME QBR numbers", *s(d, 23, 0, 45), att(("taylor.brooks@acme.com", "Taylor Brooks"), ("pat.nguyen@acme.com", "Pat Nguyen"), ("dana.cole@acme.com", "Dana Cole")) + j),
     ]
 
 
-def chain_emails(account_id: str, items: list[tuple]) -> list[dict]:
+def chain_emails(account_id: str, items: list[tuple], *, project_id: str = "") -> list[dict]:
     out = []
     for item in items:
         mid, irt, frm, to, sub, sent, snip, body, *rest = item
-        out.append(email_row(account_id, mid, irt, frm, to, sub, sent, snip, body, rest[0] if rest else "inbound"))
+        out.append(
+            email_row(
+                account_id,
+                mid,
+                irt,
+                frm,
+                to,
+                sub,
+                sent,
+                snip,
+                body,
+                rest[0] if rest else "inbound",
+                project_id=project_id,
+            )
+        )
     return out
 
 
@@ -553,46 +617,137 @@ def build_emails() -> list[dict]:
     emails = chain_emails(
         "acct:acme",
         [
-            ("<acme-root@acme.com>", "", "pat.nguyen@acme.com", "jordan@example.com", "ACME-12 workaround", "2026-08-15T14:00:00Z", "Scanner died again.", "The handheld still dies after 20 minutes on OS 14."),
-            ("<acme-2@example.com>", "<acme-root@acme.com>", "jordan@example.com", "pat.nguyen@acme.com", "Re: ACME-12 workaround", "2026-08-15T16:00:00Z", "We have a firmware pin.", "Pat — we have a firmware pin. TAM will send steps tonight.", "outbound"),
-            ("<acme-3@acme.com>", "<acme-2@example.com>", "pat.nguyen@acme.com", "jordan@example.com", "Re: ACME-12 workaround", "2026-08-16T09:00:00Z", "Tried it on DC1.", "Tried the pin on DC1. DC3 still fails."),
-            ("<acme-4@example.com>", "<acme-3@acme.com>", "jordan@example.com", "pat.nguyen@acme.com", "Re: ACME-12 workaround", "2026-08-16T18:00:00Z", "New build tomorrow.", "New build tomorrow morning. Booking TAM.", "outbound"),
-            ("<acme-5@acme.com>", "<acme-4@example.com>", "pat.nguyen@acme.com", "jordan@example.com", "Re: ACME-12 workaround", "2026-08-17T14:22:00Z", "The handheld still dies…", "The handheld still dies after 20 minutes on the DC3 floor. Need a date."),
-            ("<acme-6@acme.com>", "<acme-5@acme.com>", "sam.ortiz@acme.com", "jordan@example.com", "Re: ACME-12 workaround", f"{DEMO_DAY}T13:10:00Z", "DC3 floor log attached.", "Attaching tonight's DC3 log. Same brick after 18 minutes."),
+            ("<acme-root@acme.com>", "", "pat.nguyen@acme.com", "jordan@example.com", "ACME-12 workaround", "2026-08-13T20:17:00Z", "Scanner died again.", "The handheld still dies after 20 minutes on OS 14."),
+            ("<acme-2@example.com>", "<acme-root@acme.com>", "jordan@example.com", "pat.nguyen@acme.com", "Re: ACME-12 workaround", "2026-08-14T13:42:00Z", "We have a firmware pin.", "Pat — we have a firmware pin. TAM will send steps tonight.", "outbound"),
+            ("<acme-3@acme.com>", "<acme-2@example.com>", "pat.nguyen@acme.com", "jordan@example.com", "Re: ACME-12 workaround", "2026-08-14T22:05:00Z", "Tried it on DC1.", "Tried the pin on DC1. DC3 still fails."),
+            ("<acme-4@example.com>", "<acme-3@acme.com>", "jordan@example.com", "pat.nguyen@acme.com", "Re: ACME-12 workaround", "2026-08-15T15:11:00Z", "New build tomorrow.", "New build tomorrow morning. Booking TAM.", "outbound"),
+            ("<acme-5@acme.com>", "<acme-4@example.com>", "pat.nguyen@acme.com", "jordan@example.com", "Re: ACME-12 workaround", "2026-08-17T18:47:00Z", "The handheld still dies…", "The handheld still dies after 20 minutes on the DC3 floor. Need a date."),
+            ("<acme-6@acme.com>", "<acme-5@acme.com>", "sam.ortiz@acme.com", "jordan@example.com", "Re: ACME-12 workaround", f"{DEMO_DAY}T17:28:00Z", "DC3 floor log attached.", "Attaching tonight's DC3 log. Same brick after 18 minutes."),
         ],
+        project_id="proj:acme-scan",
     )
-    emails.append(email_row("acct:acme", "<acme-sso@acme.com>", "", "sam.ortiz@acme.com", "jordan@example.com", "SSO timeout after 8 hours", "2026-08-16T11:30:00Z", "Night shift gets kicked.", "Night shift gets kicked after 8 hours. Related to ACME-18?"))
-    emails.append(email_row("acct:acme", "<acme-qbr@acme.com>", "", "taylor.brooks@acme.com", "jordan@example.com", "QBR numbers for Friday", f"{DEMO_DAY}T14:05:00Z", "Need ARR and open P1s.", "Need ARR, open P1s, and a firmware date before the QBR."))
-    emails.append(email_row("acct:acme", "<acme-bob-1@example.com>", "", "jordan@example.com", "bob.hale@acme.com", "DC3 scanner pin for ACME-12", "2026-08-16T19:00:00Z", "Bob — can you try the pin on DC3 tonight?", "Bob — can you try the pin on DC3 tonight and tell me if it holds?", "outbound"))
-    emails.append(email_row("acct:acme", "<acme-bob-2@acme.com>", "<acme-bob-1@example.com>", "bob.hale@acme.com", "jordan@example.com", "Re: DC3 scanner pin for ACME-12", "2026-08-17T07:15:00Z", "Tried it. DC3 still dies after 20 minutes.", "Tried it. DC3 still dies after 20 minutes. Need a new build."))
-    emails.append(email_row("acct:acme", "<acme-dana@acme.com>", "", "dana.cole@acme.com", "jordan@example.com", "One-pager before 3pm", f"{DEMO_DAY}T12:40:00Z", "Need a one-pager.", "Need a one-pager on firmware and SSO before the QBR."))
+    emails.append(
+        email_row(
+            "acct:acme",
+            "<acme-sso@acme.com>",
+            "",
+            "sam.ortiz@acme.com",
+            "jordan@example.com",
+            "SSO timeout after 8 hours",
+            "2026-08-16T04:12:00Z",
+            "Night shift gets kicked.",
+            "Night shift gets kicked after 8 hours. Related to ACME-18?",
+            project_id="proj:acme-sso",
+        )
+    )
+    emails.append(
+        email_row(
+            "acct:acme",
+            "<acme-qbr@acme.com>",
+            "",
+            "taylor.brooks@acme.com",
+            "jordan@example.com",
+            "QBR numbers for Friday",
+            f"{DEMO_DAY}T20:42:00Z",
+            "Need ARR and open P1s.",
+            "Need ARR, open P1s, and a firmware date before the QBR.",
+        )
+    )
+    emails.append(
+        email_row(
+            "acct:acme",
+            "<acme-bob-1@example.com>",
+            "",
+            "jordan@example.com",
+            "bob.hale@acme.com",
+            "DC3 scanner pin for ACME-12",
+            "2026-08-16T21:08:00Z",
+            "Bob — can you try the pin on DC3 tonight?",
+            "Bob — can you try the pin on DC3 tonight and tell me if it holds?",
+            "outbound",
+            project_id="proj:acme-scan",
+        )
+    )
+    emails.append(
+        email_row(
+            "acct:acme",
+            "<acme-bob-2@acme.com>",
+            "<acme-bob-1@example.com>",
+            "bob.hale@acme.com",
+            "jordan@example.com",
+            "Re: DC3 scanner pin for ACME-12",
+            "2026-08-17T05:44:00Z",
+            "Tried it. DC3 still dies after 20 minutes.",
+            "Tried it. DC3 still dies after 20 minutes. Need a new build.",
+            project_id="proj:acme-scan",
+        )
+    )
+    emails.append(
+        email_row(
+            "acct:acme",
+            "<acme-dana@acme.com>",
+            "",
+            "dana.cole@acme.com",
+            "jordan@example.com",
+            "One-pager before 3pm",
+            f"{DEMO_DAY}T12:31:00Z",
+            "Need a one-pager.",
+            "Need a one-pager on firmware and SSO before the QBR.",
+        )
+    )
     emails.extend(
         chain_emails(
             "acct:northwind",
             [
-                ("<nwin-root@northwind.example>", "", "kim.hale@northwind.example", "jordan@example.com", "Friday auth outage", "2026-08-15T19:00:00Z", "We missed cutoff.", "We missed the cutoff. This is the second P1 this month."),
-                ("<nwin-2@example.com>", "<nwin-root@northwind.example>", "jordan@example.com", "kim.hale@northwind.example", "Re: Friday auth outage", "2026-08-16T08:00:00Z", "Incident doc attached.", "Kim — incident doc is in the ticket. Can we talk Tuesday?", "outbound"),
-                ("<nwin-3@northwind.example>", "<nwin-2@example.com>", "kim.hale@northwind.example", "jordan@example.com", "Re: Friday auth outage", "2026-08-16T20:00:00Z", "I am out until the 28th.", "I am out until the 28th. Rob can talk numbers."),
-                ("<nwin-4@northwind.example>", "<nwin-3@example.com>", "rob.singh@northwind.example", "jordan@example.com", "Re: Friday auth outage", "2026-08-17T10:00:00Z", "Renewal is at risk.", "If auth is this shaky the renewal is at risk."),
-                ("<nwin-5@northwind.example>", "<nwin-4@northwind.example>", "rob.singh@northwind.example", "jordan@example.com", "Re: Friday auth outage", f"{DEMO_DAY}T15:20:00Z", "Need a commercial option today.", "Need a commercial option on this morning's call."),
-                ("<nwin-6@northwind.example>", "", "helen.cho@northwind.example", "jordan@example.com", "Exec brief agenda", f"{DEMO_DAY}T16:05:00Z", "Keep it to ten minutes.", "Keep the 3pm to ten minutes. Commercial option first."),
+                ("<nwin-root@northwind.example>", "", "kim.hale@northwind.example", "jordan@example.com", "Friday auth outage", "2026-08-14T23:51:00Z", "We missed cutoff.", "We missed the cutoff. This is the second P1 this month."),
+                ("<nwin-2@example.com>", "<nwin-root@northwind.example>", "jordan@example.com", "kim.hale@northwind.example", "Re: Friday auth outage", "2026-08-15T12:07:00Z", "Incident doc attached.", "Kim — incident doc is in the ticket. Can we talk Tuesday?", "outbound"),
+                ("<nwin-3@northwind.example>", "<nwin-2@example.com>", "kim.hale@northwind.example", "jordan@example.com", "Re: Friday auth outage", "2026-08-15T19:33:00Z", "I am out until the 28th.", "I am out until the 28th. Rob can talk numbers."),
+                ("<nwin-4@northwind.example>", "<nwin-3@example.com>", "rob.singh@northwind.example", "jordan@example.com", "Re: Friday auth outage", "2026-08-17T16:22:00Z", "Renewal is at risk.", "If auth is this shaky the renewal is at risk."),
+                ("<nwin-5@northwind.example>", "<nwin-4@northwind.example>", "rob.singh@northwind.example", "jordan@example.com", "Re: Friday auth outage", f"{DEMO_DAY}T14:05:00Z", "Need a commercial option today.", "Need a commercial option on this morning's call."),
+                ("<nwin-6@northwind.example>", "", "helen.cho@northwind.example", "jordan@example.com", "Exec brief agenda", f"{DEMO_DAY}T15:48:00Z", "Keep it to ten minutes.", "Keep the 3pm to ten minutes. Commercial option first."),
             ],
+            project_id="proj:nwin-renew",
         )
     )
     emails.extend(
         chain_emails(
             "acct:globex",
             [
-                ("<glx-root@globex.example>", "", "ava.chen@globex.example", "jordan@example.com", "Kickoff recap", "2026-08-11T16:00:00Z", "Great start.", "Great start yesterday. Plant 2 wants a date."),
-                ("<glx-2@example.com>", "<glx-root@globex.example>", "jordan@example.com", "ava.chen@globex.example", "Re: Kickoff recap", "2026-08-12T09:00:00Z", "Drafting the plan.", "Drafting the plan. PS will hold Thursday.", "outbound"),
-                ("<glx-3@globex.example>", "<glx-2@example.com>", "ava.chen@globex.example", "jordan@example.com", "Re: Kickoff recap", "2026-08-13T15:00:00Z", "Thursday works.", "Thursday works. Sending badge list."),
-                ("<glx-4@example.com>", "<glx-3@globex.example>", "jordan@example.com", "ava.chen@globex.example", "Re: Kickoff recap", "2026-08-14T11:00:00Z", "Got the list.", "Got the list. See you Thursday.", "outbound"),
-                ("<glx-5@globex.example>", "<glx-4@example.com>", "sofia.berg@globex.example", "jordan@example.com", "Re: Kickoff recap", f"{DEMO_DAY}T16:40:00Z", "Plant 2 badge printer.", "Plant 2 badge printer is still down. Can PS bring a spare?"),
-                ("<glx-6@globex.example>", "", "eleanor.voss@globex.example", "jordan@example.com", "Onboarding review", f"{DEMO_DAY}T17:10:00Z", "I will sit in.", "I will sit in on Victor's review. Keep Plant 2 first."),
+                ("<glx-root@globex.example>", "", "ava.chen@globex.example", "jordan@example.com", "Kickoff recap", "2026-08-11T17:28:00Z", "Great start.", "Great start yesterday. Plant 2 wants a date."),
+                ("<glx-2@example.com>", "<glx-root@globex.example>", "jordan@example.com", "ava.chen@globex.example", "Re: Kickoff recap", "2026-08-12T13:04:00Z", "Drafting the plan.", "Drafting the plan. PS will hold Thursday.", "outbound"),
+                ("<glx-3@globex.example>", "<glx-2@example.com>", "ava.chen@globex.example", "jordan@example.com", "Re: Kickoff recap", "2026-08-13T18:51:00Z", "Thursday works.", "Thursday works. Sending badge list."),
+                ("<glx-4@example.com>", "<glx-3@globex.example>", "jordan@example.com", "ava.chen@globex.example", "Re: Kickoff recap", "2026-08-14T14:16:00Z", "Got the list.", "Got the list. See you Thursday.", "outbound"),
+                ("<glx-5@globex.example>", "<glx-4@example.com>", "sofia.berg@globex.example", "jordan@example.com", "Re: Kickoff recap", f"{DEMO_DAY}T18:48:00Z", "Plant 2 badge printer.", "Plant 2 badge printer is still down. Can PS bring a spare?"),
+                ("<glx-6@globex.example>", "", "eleanor.voss@globex.example", "jordan@example.com", "Onboarding review", f"{DEMO_DAY}T19:36:00Z", "I will sit in.", "I will sit in on Victor's review. Keep Plant 2 first."),
             ],
+            project_id="proj:glx-onboard",
         )
     )
+    emails.extend(build_tasks())
     return emails
+
+
+def build_tasks() -> list[dict]:
+    acme, nwin, glx = "acct:acme", "acct:northwind", "acct:globex"
+    scan, sso, renew, onboard = "proj:acme-scan", "proj:acme-sso", "proj:nwin-renew", "proj:glx-onboard"
+    return [
+        task_row(acme, "Acme Corporation", "Send Dana the one-pager", "Follow up(s)", f"{DEMO_DAY}T21:00:00Z", f"{DEMO_DAY}T20:00:00Z", "Firmware date + SSO timeout on one page before the QBR."),
+        task_row(acme, "Acme Corporation", "Lock QBR numbers with Grace", "Review(s)", "2026-08-26T14:03:00Z", "2026-08-31T16:00:00Z", "Confirm ARR and open P1 count with finance."),
+        task_row(acme, "Acme Corporation", "Send firmware pin to DC3", "Action item(s)", "2026-08-16T21:20:00Z", "2026-08-29T17:00:00Z", "Bob still bricks after 20 minutes. Pin steps and TAM on copy.", project_id=scan, token="acme-scan-pin"),
+        task_row(acme, "Acme Corporation", "Confirm DC1 vs DC3 hold", "Follow up(s)", "2026-08-17T18:41:00Z", "2026-09-02T15:00:00Z", "DC1 holds. Need a date for DC3 on the new OS image.", project_id=scan, token="acme-scan-hold"),
+        task_row(acme, "Acme Corporation", "Book TAM war room", "Action item(s)", "2026-08-18T12:09:00Z", f"{DEMO_DAY}T18:00:00Z", "If tonight's DC3 log still bricks, hold a floor session with Chris.", project_id=scan, token="acme-scan-war"),
+        task_row(acme, "Acme Corporation", "Contractor SSO mapping date", "Follow up(s)", "2026-08-27T16:22:00Z", "2026-09-01T14:00:00Z", "Elena needs a date before QBR. Mei owns the mapping.", project_id=sso, token="acme-sso-map"),
+        task_row(acme, "Acme Corporation", "Night-shift timeout notes", "Review(s)", "2026-08-16T04:40:00Z", f"{DEMO_DAY}T21:00:00Z", "8-hour kick is ACME-18. Capture Vic's VPN notes before the review.", project_id=sso, token="acme-sso-night"),
+        task_row(nwin, "Northwind Traders", "Brief Helen in ten minutes", "Action item(s)", "2026-08-27T11:18:00Z", f"{DEMO_DAY}T22:00:00Z", "Commercial option first. Keep the exec brief to ten minutes."),
+        task_row(nwin, "Northwind Traders", "Close Friday auth P1", "Action item(s)", "2026-08-15T23:55:00Z", "2026-08-29T16:00:00Z", "NWIN-4 is still open. Kim is dark; Rob has the numbers.", project_id=renew, token="nwin-auth-p1"),
+        task_row(nwin, "Northwind Traders", "Commercial option for Rob", "Follow up(s)", "2026-08-17T16:40:00Z", "2026-09-03T15:00:00Z", "Renewal 19 days out. Need a commercial path if auth stays shaky.", project_id=renew, token="nwin-commercial"),
+        task_row(nwin, "Northwind Traders", "Review contractor SSO patch", "Review(s)", "2026-08-27T14:08:00Z", "2026-09-04T18:00:00Z", "Jules and Devin have a patch in test. Read before the 27th working session.", project_id=renew, token="nwin-sso-patch"),
+        task_row(glx, "Globex Industrial", "Send kickoff recap", "Follow up(s)", "2026-08-12T09:22:00Z", "2026-08-20T16:00:00Z", "Plant 2 wants a date. Recap yesterday's kickoff while it is fresh."),
+        task_row(glx, "Globex Industrial", "Spare badge printer Plant 2", "Action item(s)", f"{DEMO_DAY}T20:20:00Z", f"{DEMO_DAY}T17:00:00Z", "Sofia says the line is blocked. PS bringing a spare this afternoon.", project_id=onboard, token="glx-printer"),
+        task_row(glx, "Globex Industrial", "Confirm VPN allowlist", "Follow up(s)", "2026-08-17T13:50:00Z", "2026-09-02T16:00:00Z", "Nadia opened GLX-8. Confirm the OT allowlist before Plant 2 walk.", project_id=onboard, token="glx-vpn"),
+        task_row(glx, "Globex Industrial", "Plant 2 walkthrough notes", "Review(s)", "2026-08-14T16:11:00Z", "2026-09-01T19:00:00Z", "Luis and Sofia on the floor. Capture shipping-label blockers.", project_id=onboard, token="glx-walk"),
+        task_row(glx, "Globex Industrial", "Onboarding cost for Ivy", "More Detail(s)", "2026-08-21T15:07:00Z", "2026-09-08T15:00:00Z", "Ivy asked for plant-onboarding cost before Eleanor's brief."),
+    ]
 
 
 def build_threads(emails: list[dict]) -> list[dict]:
@@ -625,109 +780,105 @@ def build_threads(emails: list[dict]) -> list[dict]:
 
 def build_slack() -> list[dict]:
     slack = []
-    acme_texts = [
-        "Scanner died again in DC3",
-        "TAM is looking at the logs",
-        "OS 14 image went out last night",
-        "Can we get a date for the pin?",
-        "DC1 is fine, DC3 is the problem",
-        "QBR is on the calendar",
-        "Pat prefers email before Slack",
-        "Firmware build tagged 14.2-rc2",
-        "Need a war room if it fails again",
-        "Ack, watching the channel",
-        "Dana wants a one-pager before 3pm",
-        "Raj says SSO logs look clean after 8h",
-        "Grace needs ARR confirmed for QBR",
-        "Priya can take the DC2 training slot",
-        "Standup in 10 — bring the DC3 log",
-        "Bob is on the floor with the spare batteries",
-        "Mei wants contractor mapping before QBR",
-        "Safety walk at DC3 is clear",
+    acme_parent = slack_ts("2026-08-15", 14, 7, 12)
+    acme = [
+        ("2026-08-15", 14, 7, 12, "U0PAT", "pat.nguyen", "Scanner died again in DC3", ""),
+        ("2026-08-15", 14, 11, 4, "U0JOR", "jordan", "TAM is looking at the logs", ""),
+        ("2026-08-15", 14, 29, 41, "U0PAT", "pat.nguyen", "OS 14 image went out last night", ""),
+        ("2026-08-15", 15, 2, 18, "U0JOR", "jordan", "Can we get a date for the pin?", ""),
+        ("2026-08-15", 16, 18, 9, "U0PAT", "pat.nguyen", "DC1 is fine, DC3 is the problem", ""),
+        ("2026-08-15", 18, 40, 22, "U0BOB", "bob.hale", "thread: still failing on DC3", acme_parent),
+        ("2026-08-17", 13, 44, 3, "U0JOR", "jordan", "QBR is on the calendar", ""),
+        ("2026-08-17", 14, 1, 51, "U0PAT", "pat.nguyen", "Pat prefers email before Slack", ""),
+        ("2026-08-17", 19, 36, 8, "U0PAT", "pat.nguyen", "Firmware build tagged 14.2-rc2", ""),
+        ("2026-08-18", 12, 8, 33, "U0JOR", "jordan", "Need a war room if it fails again", ""),
+        ("2026-08-18", 12, 14, 2, "U0PAT", "pat.nguyen", "Ack, watching the channel", ""),
+        (DEMO_DAY, 12, 8, 11, "U0JOR", "jordan", "Dana wants a one-pager before 3pm", ""),
+        (DEMO_DAY, 13, 46, 47, "U0PAT", "pat.nguyen", "Raj says SSO logs look clean after 8h", ""),
+        (DEMO_DAY, 14, 49, 9, "U0JOR", "jordan", "Grace needs ARR confirmed for QBR", ""),
+        (DEMO_DAY, 15, 39, 28, "U0PAT", "pat.nguyen", "Priya can take the DC2 training slot", ""),
+        (DEMO_DAY, 17, 8, 6, "U0JOR", "jordan", "Standup in 10 — bring the DC3 log", ""),
+        (DEMO_DAY, 17, 47, 19, "U0BOB", "bob.hale", "Bob is on the floor with the spare batteries", ""),
+        (DEMO_DAY, 19, 31, 55, "U0PAT", "pat.nguyen", "Mei wants contractor mapping before QBR", ""),
+        (DEMO_DAY, 20, 33, 41, "U0JOR", "jordan", "Safety walk at DC3 is clear", ""),
     ]
-    for i, text in enumerate(acme_texts):
-        ts = f"{DEMO_TS + i}.000100"
-        slack.append(slack_msg("acct:acme", "C0ACME1", ts, "U0PAT" if i % 2 == 0 else "U0JOR", "pat.nguyen" if i % 2 == 0 else "jordan", text))
-    slack.append(slack_msg("acct:acme", "C0ACME1", f"{DEMO_TS + 20}.000200", "U0BOB", "bob.hale", "thread: still failing on DC3", f"{DEMO_TS}.000100"))
-    nwin_texts = [
-        "Anyone seen Kim?",
-        "She is dark since the outage",
-        "Renewal is 19 days out",
-        "Rob wants numbers",
-        "I pinged twice",
-        "Need exec sponsor",
-        "P1 still open",
-        "Call recap?",
-        "Helen asked for a commercial option",
-        "Devin has a contractor SSO patch",
-        "Nina can join the 11:00",
-        "Marco says Tacoma is quiet",
-        "Owen has a renewal model draft",
-        "Pedro opened a network ticket",
-        "Seth wants sales ops on the exec brief",
+    for day, hh, mm, ss, user, name, text, thread in acme:
+        slack.append(slack_msg("acct:acme", "C0ACME1", slack_ts(day, hh, mm, ss), user, name, text, thread))
+    nwin = [
+        ("2026-08-15", 0, 12, 8, "U0KIM", "kim.hale", "Anyone seen Kim?", ""),
+        ("2026-08-15", 0, 18, 44, "U0JOR", "jordan", "She is dark since the outage", ""),
+        ("2026-08-15", 13, 41, 2, "U0JOR", "jordan", "Renewal is 19 days out", ""),
+        ("2026-08-15", 14, 6, 19, "U0JOR", "jordan", "Rob wants numbers", ""),
+        ("2026-08-16", 17, 22, 5, "U0JOR", "jordan", "I pinged twice", ""),
+        ("2026-08-17", 11, 8, 33, "U0JOR", "jordan", "Need exec sponsor", ""),
+        ("2026-08-17", 15, 47, 11, "U0JOR", "jordan", "P1 still open", ""),
+        ("2026-08-18", 13, 2, 40, "U0JOR", "jordan", "Call recap?", ""),
+        (DEMO_DAY, 12, 44, 16, "U0JOR", "jordan", "Helen asked for a commercial option", ""),
+        (DEMO_DAY, 14, 11, 8, "U0JOR", "jordan", "Devin has a contractor SSO patch", ""),
+        (DEMO_DAY, 16, 4, 52, "U0JOR", "jordan", "Nina can join the 11:00", ""),
+        (DEMO_DAY, 16, 42, 3, "U0JOR", "jordan", "Marco says Tacoma is quiet", ""),
+        (DEMO_DAY, 18, 26, 21, "U0JOR", "jordan", "Owen has a renewal model draft", ""),
+        (DEMO_DAY, 19, 5, 9, "U0JOR", "jordan", "Pedro opened a network ticket", ""),
+        (DEMO_DAY, 20, 11, 55, "U0JOR", "jordan", "Seth wants sales ops on the exec brief", ""),
     ]
-    for i, text in enumerate(nwin_texts):
-        slack.append(slack_msg("acct:northwind", "C0NWIN1", f"{DEMO_TS + 100 + i}.000100", "U0KIM" if i == 0 else "U0JOR", "kim.hale" if i == 0 else "jordan", text))
-    glx_texts = [
-        "Kickoff went well",
-        "Badge list incoming",
-        "Plant 2 wants training",
-        "VPN ticket opened",
-        "See you Thursday",
-        "Notes in the drive",
-        "No blockers",
-        "Nice start",
-        "Sofia needs a spare printer",
-        "Ben can cover the 2pm walk",
-        "Nadia opened GLX-12",
-        "Victor sitting in on standup",
-        "Eleanor wants Plant 2 first",
-        "Moira is on OT allowlist",
-        "Ivy asked for onboarding cost",
+    for day, hh, mm, ss, user, name, text, thread in nwin:
+        slack.append(slack_msg("acct:northwind", "C0NWIN1", slack_ts(day, hh, mm, ss), user, name, text, thread))
+    glx = [
+        ("2026-08-11", 18, 4, 12, "U0AVA", "ava.chen", "Kickoff went well", ""),
+        ("2026-08-11", 18, 11, 40, "U0JOR", "jordan", "Badge list incoming", ""),
+        ("2026-08-12", 14, 22, 8, "U0AVA", "ava.chen", "Plant 2 wants training", ""),
+        ("2026-08-13", 16, 9, 33, "U0JOR", "jordan", "VPN ticket opened", ""),
+        ("2026-08-13", 16, 18, 1, "U0AVA", "ava.chen", "See you Thursday", ""),
+        ("2026-08-14", 15, 41, 19, "U0JOR", "jordan", "Notes in the drive", ""),
+        ("2026-08-14", 15, 48, 6, "U0AVA", "ava.chen", "No blockers", ""),
+        ("2026-08-14", 19, 2, 44, "U0JOR", "jordan", "Nice start", ""),
+        (DEMO_DAY, 13, 8, 17, "U0AVA", "ava.chen", "Sofia needs a spare printer", ""),
+        (DEMO_DAY, 15, 27, 5, "U0JOR", "jordan", "Ben can cover the 2pm walk", ""),
+        (DEMO_DAY, 16, 50, 39, "U0AVA", "ava.chen", "Eleanor wants Plant 2 first", ""),
+        (DEMO_DAY, 17, 34, 11, "U0JOR", "jordan", "Nadia opened GLX-12", ""),
+        (DEMO_DAY, 18, 52, 48, "U0AVA", "ava.chen", "Victor sitting in on standup", ""),
+        (DEMO_DAY, 19, 57, 22, "U0JOR", "jordan", "Moira is on OT allowlist", ""),
+        (DEMO_DAY, 20, 46, 9, "U0AVA", "ava.chen", "Ivy asked for onboarding cost", ""),
     ]
-    for i, text in enumerate(glx_texts):
-        slack.append(slack_msg("acct:globex", "C0GLX1", f"{DEMO_TS + 200 + i}.000100", "U0AVA" if i % 2 == 0 else "U0JOR", "ava.chen" if i % 2 == 0 else "jordan", text))
+    for day, hh, mm, ss, user, name, text, thread in glx:
+        slack.append(slack_msg("acct:globex", "C0GLX1", slack_ts(day, hh, mm, ss), user, name, text, thread))
     return slack
 
 
 def build_teams() -> list[dict]:
     teams = []
-    tbase = DEMO_TS + 800
-    for i, (who, text) in enumerate(
-        [
-            ("bob.hale", "Tried the pin on DC3 — still dying."),
-            ("jordan", "Thanks Bob. Logging on ACME-12."),
-            ("pat.nguyen", "QBR deck needs the firmware date."),
-            ("chris", "TAM on the 15:00 working session."),
-            ("sam.ortiz", "DC3 log is in the channel."),
-            ("jordan", "Bringing it to standup."),
-            ("dana.cole", "One-pager by 3pm please."),
-            ("mei.wong", "SSO mapping for contractors is still open."),
-        ]
-    ):
-        teams.append(teams_msg("acct:acme", "19:acme-success", f"{tbase + i}.000000", who, who, text))
-    for i, (who, text) in enumerate(
-        [
-            ("kim.hale", "I am out — Rob has the numbers."),
-            ("jordan", "Rob, joining the 11:00 renewal."),
-            ("rob.singh", "Need a commercial option today."),
-            ("jules.hart", "Contractor SSO patch is in test."),
-            ("helen.cho", "Ten minutes. Commercial first."),
-            ("marco.rossi", "Tacoma is quiet this week."),
-        ]
-    ):
-        teams.append(teams_msg("acct:northwind", "19:nwin-success", f"{tbase + 50 + i}.000000", who, who, text))
-    for i, (who, text) in enumerate(
-        [
-            ("ava.chen", "Plant 1 is green. Plant 2 printer is down."),
-            ("jordan", "PS bringing a spare this afternoon."),
-            ("sofia.berg", "Thanks — badge line is blocked."),
-            ("victor.lang", "I will sit in on the 16:00 standup."),
-            ("eleanor.voss", "Keep Plant 2 first on the review."),
-            ("nadia.ali", "VPN allowlist is in GLX-8."),
-        ]
-    ):
-        teams.append(teams_msg("acct:globex", "19:glx-onboard", f"{tbase + 80 + i}.000000", who, who, text))
+    acme = [
+        ("2026-08-16", 21, 14, 6, "bob.hale", "Tried the pin on DC3 — still dying."),
+        ("2026-08-16", 21, 19, 41, "jordan", "Thanks Bob. Logging on ACME-12."),
+        ("2026-08-18", 14, 8, 12, "pat.nguyen", "QBR deck needs the firmware date."),
+        ("2026-08-18", 14, 22, 3, "chris", "TAM on the 15:00 working session."),
+        (DEMO_DAY, 12, 19, 44, "sam.ortiz", "DC3 log is in the channel."),
+        (DEMO_DAY, 13, 33, 9, "jordan", "Bringing it to standup."),
+        (DEMO_DAY, 16, 29, 27, "dana.cole", "One-pager by 3pm please."),
+        (DEMO_DAY, 18, 13, 18, "mei.wong", "SSO mapping for contractors is still open."),
+    ]
+    for day, hh, mm, ss, who, text in acme:
+        teams.append(teams_msg("acct:acme", "19:acme-success", slack_ts(day, hh, mm, ss, "000000"), who, who, text))
+    nwin = [
+        ("2026-08-15", 19, 44, 8, "kim.hale", "I am out — Rob has the numbers."),
+        ("2026-08-16", 13, 11, 22, "jordan", "Rob, joining the 11:00 renewal."),
+        (DEMO_DAY, 14, 24, 14, "rob.singh", "Need a commercial option today."),
+        (DEMO_DAY, 15, 14, 3, "helen.cho", "Ten minutes. Commercial first."),
+        (DEMO_DAY, 17, 21, 41, "jules.hart", "Contractor SSO patch is in test."),
+        (DEMO_DAY, 19, 18, 55, "marco.rossi", "Tacoma is quiet this week."),
+    ]
+    for day, hh, mm, ss, who, text in nwin:
+        teams.append(teams_msg("acct:northwind", "19:nwin-success", slack_ts(day, hh, mm, ss, "000000"), who, who, text))
+    glx = [
+        (DEMO_DAY, 12, 57, 11, "ava.chen", "Plant 1 is green. Plant 2 printer is down."),
+        (DEMO_DAY, 13, 12, 40, "jordan", "PS bringing a spare this afternoon."),
+        (DEMO_DAY, 15, 52, 8, "sofia.berg", "Thanks — badge line is blocked."),
+        (DEMO_DAY, 16, 55, 22, "victor.lang", "I will sit in on the 16:00 standup."),
+        (DEMO_DAY, 18, 39, 17, "eleanor.voss", "Keep Plant 2 first on the review."),
+        (DEMO_DAY, 19, 44, 5, "nadia.ali", "VPN allowlist is in GLX-8."),
+    ]
+    for day, hh, mm, ss, who, text in glx:
+        teams.append(teams_msg("acct:globex", "19:glx-onboard", slack_ts(day, hh, mm, ss, "000000"), who, who, text))
     return teams
 
 
@@ -798,6 +949,8 @@ def build_activities(tickets, emails, calendar, slack, teams, opps, cases) -> li
             )
         )
     for em in emails:
+        if (em.get("operator") or {}).get("task"):
+            continue
         source_ref = f"mail:{em['message_id']}"
         activities.append(
             _activity(

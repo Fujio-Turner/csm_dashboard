@@ -3,11 +3,43 @@ from __future__ import annotations
 import json
 
 from csm_dashboard.connectors.google_cal import cal_time, map_event
-from csm_dashboard.connectors.google_mail import gmail_body, header_time, map_gmail_message
+from csm_dashboard.connectors.google_mail import (
+    gmail_body,
+    gmail_search_query,
+    google_draft_ready,
+    google_send_ready,
+    header_time,
+    map_gmail_message,
+)
 from csm_dashboard.connectors.google_secrets import hydrate_google, load_google_client
 from csm_dashboard.connectors.http import HttpError
 from csm_dashboard.storage.memory import MemoryStore
 from csm_dashboard.storage.repo import CsmRepo
+
+
+def test_gmail_search_query_scopes_customer_domains():
+    q = gmail_search_query("2026-08-01T00:00:00Z", ["acme.com", "@acme.com"])
+    assert "after:2026/08/01" in q
+    assert "-in:chats" in q
+    assert "from:acme.com" in q
+    assert "to:acme.com" in q
+    assert "cc:acme.com" in q
+    assert q.count("from:acme.com") == 1
+    bare = gmail_search_query("2026-08-19T00:00:00Z", [])
+    assert "after:2026/08/19" in bare
+    assert "from:" not in bare
+    windowed = gmail_search_query(None, ["acme.com"], days=90)
+    assert "from:acme.com" in windowed
+    assert "after:" in windowed
+
+
+def test_gmail_scope_gates_send_and_drafts(repo):
+    repo.put_credential_secret("connector", "google", {"access_token": "ya29", "refresh_token": "1//r", "scope": "https://www.googleapis.com/auth/gmail.send"})
+    assert google_send_ready(repo) is True
+    assert google_draft_ready(repo) is False
+    repo.put_credential_secret("connector", "google", {"access_token": "ya29", "refresh_token": "1//r", "scope": "https://www.googleapis.com/auth/gmail.compose"})
+    assert google_send_ready(repo) is True
+    assert google_draft_ready(repo) is True
 
 
 def test_gmail_multipart_plain_and_sent_direction():
@@ -44,6 +76,22 @@ def test_gmail_multipart_plain_and_sent_direction():
     assert mapped["direction"] == "outbound"
     assert mapped["subject"] == "(No subject)"
     assert mapped["message_id"].startswith("<gmail.abc@")
+    named = map_gmail_message(
+        {
+            "id": "named",
+            "threadId": "t",
+            "snippet": "hi",
+            "payload": {
+                "headers": [
+                    {"name": "From", "value": '"Moyerman, Joshua" <joshua.moyerman@acme.com>'},
+                    {"name": "To", "value": "you@example.com"},
+                    {"name": "Subject", "value": "Hello"},
+                ]
+            },
+        }
+    )
+    assert named["from_addr"] == "joshua.moyerman@acme.com"
+    assert named["from_name"] == "Moyerman, Joshua"
 
 
 def test_gmail_header_time_and_html_only():
@@ -157,3 +205,40 @@ def test_gmail_probe_401_retries(monkeypatch, repo):
     health = GmailConnector(repo).probe()
     assert health["ok"] is True
     assert health["email"] == "ada@example.com"
+
+
+def test_gmail_pull_uses_metadata_format(monkeypatch, repo):
+    from csm_dashboard.connectors.google_mail import GmailConnector
+
+    repo.put_credential_secret("connector", "google", {"access_token": "ya29", "refresh_token": "rt"})
+    calls = []
+
+    def fake_get(url, headers=None, params=None, **kwargs):
+        calls.append((url, params))
+        if str(url).endswith("/messages"):
+            return {"messages": [{"id": "m1"}]}
+        return {
+            "id": "m1",
+            "threadId": "t",
+            "snippet": "hi from acme",
+            "payload": {
+                "headers": [
+                    {"name": "From", "value": "pat@acme.com"},
+                    {"name": "To", "value": "you@example.com"},
+                    {"name": "Subject", "value": "Hello"},
+                    {"name": "Date", "value": "Tue, 1 Sep 2026 12:00:00 +0000"},
+                    {"name": "Message-ID", "value": "<m1@acme.com>"},
+                ]
+            },
+        }
+
+    monkeypatch.setattr("csm_dashboard.connectors.google_mail.json_get", fake_get)
+    monkeypatch.setattr("csm_dashboard.connectors.oauth.ensure_access_token", lambda *a, **k: "ya29")
+    events = GmailConnector(repo).pull(
+        None, {"domains": ["acme.com"], "coverage": {"lookback_days": 14}}
+    )
+    assert len(events) == 1
+    assert events[0]["payload"]["from_addr"] == "pat@acme.com"
+    meta = [p for _url, p in calls if isinstance(p, dict) and p.get("format") == "metadata"]
+    assert meta
+    assert "From" in (meta[0].get("metadataHeaders") or [])

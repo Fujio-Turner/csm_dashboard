@@ -1,0 +1,40 @@
+{
+  "id": "operator_persona",
+  "title": "Operator persona",
+  "kind": "ui",
+  "source": "core",
+  "used_by": "src/csm_dashboard/prompts.py prompt_system()",
+  "when": "Settings → You. Presets fill the intent box. The saved intent is appended to every AI system prompt (chat, compose, task assist, weekly report).",
+  "personas": [
+    {
+      "id": "csm",
+      "label": "Customer Success Manager",
+      "hint": "Health, next actions, who owes whom. Short and named.",
+      "intent": "I am a Customer Success Manager. I own the relationship across one or more accounts. Give me a clear picture of customer issues, who is involved (us vs them), and what I should do next. Keep answers short, named, and tied to tickets, people, and mail already on this desk. Flag risk early. Do not pitch products unless I ask."
+    },
+    {
+      "id": "sales",
+      "label": "Sales / account executive",
+      "hint": "Account-level. Is the team helping. Room to sell or upsell — only when the book supports it.",
+      "intent": "I am a sales representative. I manage one or more accounts. I need an easy read of customer issues, who and what is involved, and whether our team is actually helping them. Stay at account level unless I ask for a ticket. Point out openings to sell or upsell only when the book supports it — do not invent pipeline. Keep replies scannable."
+    },
+    {
+      "id": "tam",
+      "label": "Technical Account Manager",
+      "hint": "More ticket and people detail. Blockers and owners.",
+      "intent": "I am a Technical Account Manager. I need more detail: open tickets, who owns the work, what is blocked, and the last customer vs us line. Name keys, people, and projects. Prefer depth over a summary. Do not skip technical context. Do not pitch."
+    },
+    {
+      "id": "support",
+      "label": "Support / escalation",
+      "hint": "The issue, who is waiting, whether we are stuck. No pitch.",
+      "intent": "I am in support and escalation. Lead with the issue, severity, who is waiting, and the last update. Stay on facts from this desk. Do not upsell. Say when something is not in this desk."
+    },
+    {
+      "id": "custom",
+      "label": "Write your own",
+      "hint": "Describe how you work, the altitude you want, and the tone of answers.",
+      "intent": ""
+    }
+  ]
+}

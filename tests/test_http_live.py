@@ -72,6 +72,27 @@ def test_request_ok_and_errors(monkeypatch):
     assert request("GET", "https://example.test/num") == {}
 
 
+def test_request_reuses_passed_client(monkeypatch):
+    import csm_dashboard.connectors.http as http_mod
+
+    created = {"n": 0}
+
+    class Factory:
+        def __init__(self, **kw):
+            created["n"] += 1
+
+        def __enter__(self):
+            return _Client(_Resp())
+
+        def __exit__(self, *a):
+            return False
+
+    monkeypatch.setattr(http_mod.httpx, "Client", Factory)
+    existing = _Client(_Resp())
+    assert request("GET", "https://example.test", client=existing) == {"ok": True}
+    assert created["n"] == 0
+
+
 def test_since_helpers_use_provided_or_default():
     assert since_iso("2026-08-01T00:00:00Z").startswith("2026-08-01")
     assert since_iso("").endswith("Z")

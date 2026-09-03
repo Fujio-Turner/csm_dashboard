@@ -2,7 +2,7 @@
 
 A Customer Success Manager desk on your laptop. One operator, many enterprise accounts, one place to see tickets, email chains, Slack, calendar, and account / PS teams — then draft the next email with that context.
 
-Open [http://127.0.0.1:8788](http://127.0.0.1:8788) after you start it.
+Open [http://127.0.0.1:8788](http://127.0.0.1:8788) after `make run`, or [http://localhost:5001](http://localhost:5001) when Docker is up.
 
 ---
 
@@ -15,7 +15,7 @@ CSMs live in five tabs. They lose threads, miss renewals, write emails without t
 | Which book is this? | Color chip + 2–6 char abbreviation on every row |
 | What is on fire? | Home board: health, open P1s, overdue actions, unread threads, meetings today |
 | What is the story? | Account workspace: timeline, tickets, mail, slack / teams, calendar, projects, people |
-| How do I reply? | One mail composer (Compose, Reply, New task): Tagify To / Cc / Bcc, Attach, AI Suggest, Save draft. **Send after confirm** when SMTP is live. |
+| How do I reply? | One mail composer (Compose, Reply, New task): Tagify To / Cc / Bcc, Attach, AI Suggest, Save draft (desk + Gmail Drafts). **Send after confirm** via Gmail or SMTP. |
 | What is next? | First-class action items (many per account) |
 | Friday report | Generate a weekly from the same context |
 
@@ -39,9 +39,11 @@ make venv
 make run
 ```
 
-Then open [http://127.0.0.1:8788](http://127.0.0.1:8788). **Settings → Load seed data** loads three demo books (ACME navy, NWIN forest, GLX burgundy) with org charts, logos, and a packed meeting day.
+Then open [http://127.0.0.1:8788](http://127.0.0.1:8788). **Settings → Load seed data** loads three demo books (ACME navy, NWIN forest, GLX burgundy) with org charts, logos, and a realistic meeting day.
 
-Home is **Agenda** (Day / Week / Month calendar + mail / chat / tasks, each inbox row stamped **Me / Us / Them / All / ?? / n/a**) or **Companies**. Open a book for timeline (Vertical / Horizontal around **Now**), tickets, mail, slack / teams, Salesforce, calendar, projects, and people. Multi-value fields (Projects, Functions, tags, tickets) are Tagify chips. Settings → User Preferences hides weekdays, sets when the week begins, and picks Day / Night / Auto.
+Home is **Agenda** (Day / Week / Month calendar + mail / chat / tasks, each inbox row stamped **Me / Us / Them / All / ?? / n/a**) or **Companies**. Open a book for timeline (Vertical / Horizontal around **Now**), tickets, mail, slack / teams, Salesforce, calendar, projects, and people. Multi-value fields (Projects, Functions, tags, tickets) are Tagify chips. Settings → User Preferences hides weekdays, sets when the week begins, and picks Day / Night / Auto. Settings → You has **How you work** (persona + intent) so AI chat and drafts match a sales rep vs a TAM. Reply **AI Suggest** uses this thread plus a short book brief (not the mailbox) and signs as Settings → You. Per company you can tick **AI Suggest Response to Draft** (off by default) so To:you inbound mail gets a Grok reply saved to Gmail Drafts — it never sends on its own.
+
+Right-hand **desk chat** is book-scoped when a company is open, all-accounts on Home. Type `#ACME` on Home to pick a company. Type `/people bob` and `/ticket ACME-12` to bound a question (they chain). `@bob` is talk-to, not search. Inside a book, chat does not point at another company. Help (`#help`) is searchable How-do-I tiles (Fuse.js).
 
 The desk binds **127.0.0.1** by default (customer mail and Slack live in the local file). To listen on the LAN: `CSM_DASHBOARD_BIND=0.0.0.0` — there is **no auth**. Community Couchbase Lite does **not** encrypt the `.cblite2` file; FileVault (or equivalent) is the disk story.
 
@@ -51,7 +53,7 @@ Docker:
 docker compose up --build
 ```
 
-On Apple Silicon the image runs as `linux/amd64` because the Community library is x86_64. Compose publishes `127.0.0.1:8788` only. Data lives in `./data/` on your disk (not in git).
+On Apple Silicon the image runs as `linux/amd64` because the Community library is x86_64. Compose publishes **`127.0.0.1:5001`** on the laptop to **port 5000** inside the container (loopback only). Open [http://localhost:5001](http://localhost:5001). Google OAuth uses `http://localhost:5001/oauth2callback` — add that exact URI on the Google Cloud OAuth client. Data lives in `./data/` on your disk (not in git).
 
 If the build dies on `CERTIFICATE_VERIFY_FAILED` (Netskope / Zscaler / corp TLS inspection), export the intercept CA and rebuild:
 
@@ -69,7 +71,7 @@ See [`certs/README.md`](certs/README.md).
 | Doc | What it is |
 | --- | --- |
 | [docs/DESIGN.md](docs/DESIGN.md) | How the desk is built |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | Living train map (shipped 0.1.98, then 0.2–0.8) |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | Living train map (shipped 0.1.126, then 0.2–0.8) |
 | [docs/AI_CHAT_IDEAS.md](docs/AI_CHAT_IDEAS.md) | What desk chat should answer |
 | [guides/OPENAPI.md](guides/OPENAPI.md) | Adding HTTP APIs |
 | [guides/HTML_CSS.md](guides/HTML_CSS.md) | Desk UI rules |
