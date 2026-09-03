@@ -216,6 +216,259 @@
   },
   {
     "type": "calendar_event",
+    "account_id": "acct:northwind",
+    "provider": "stub",
+    "external_id": "evt-nwin-sso",
+    "title": "NWIN contractor SSO patch",
+    "start_at": "2026-08-27T14:00:00Z",
+    "end_at": "2026-08-27T14:45:00Z",
+    "attendees": [
+      {
+        "email": "jules.hart@northwind.example",
+        "name": "Jules Hart"
+      },
+      {
+        "email": "devin.cole@northwind.example",
+        "name": "Devin Cole"
+      },
+      {
+        "email": "jordan@example.com",
+        "name": "Jordan Lee"
+      }
+    ],
+    "location": "Meet",
+    "operator": {
+      "prep_note": "",
+      "unread": false
+    },
+    "sources": {}
+  },
+  {
+    "type": "calendar_event",
+    "account_id": "acct:northwind",
+    "provider": "stub",
+    "external_id": "evt-nwin-fpa",
+    "title": "NWIN FP&A renewal model",
+    "start_at": "2026-08-27T15:15:00Z",
+    "end_at": "2026-08-27T15:45:00Z",
+    "attendees": [
+      {
+        "email": "owen.park@northwind.example",
+        "name": "Owen Park"
+      },
+      {
+        "email": "nina.vogt@northwind.example",
+        "name": "Nina Vogt"
+      },
+      {
+        "email": "jordan@example.com",
+        "name": "Jordan Lee"
+      }
+    ],
+    "location": "Meet",
+    "operator": {
+      "prep_note": "",
+      "unread": false
+    },
+    "sources": {}
+  },
+  {
+    "type": "calendar_event",
+    "account_id": "acct:acme",
+    "provider": "stub",
+    "external_id": "evt-acme-fin",
+    "title": "ACME finance QBR prep",
+    "start_at": "2026-08-27T16:15:00Z",
+    "end_at": "2026-08-27T16:45:00Z",
+    "attendees": [
+      {
+        "email": "grace.lin@acme.com",
+        "name": "Grace Lin"
+      },
+      {
+        "email": "taylor.brooks@acme.com",
+        "name": "Taylor Brooks"
+      },
+      {
+        "email": "jordan@example.com",
+        "name": "Jordan Lee"
+      }
+    ],
+    "location": "Meet",
+    "operator": {
+      "prep_note": "",
+      "unread": false
+    },
+    "sources": {}
+  },
+  {
+    "type": "calendar_event",
+    "account_id": "acct:acme",
+    "provider": "stub",
+    "external_id": "evt-acme-train",
+    "title": "ACME DC2 training slot",
+    "start_at": "2026-08-27T17:15:00Z",
+    "end_at": "2026-08-27T18:00:00Z",
+    "attendees": [
+      {
+        "email": "priya.shah@acme.com",
+        "name": "Priya Shah"
+      },
+      {
+        "email": "jordan@example.com",
+        "name": "Jordan Lee"
+      }
+    ],
+    "location": "Meet",
+    "operator": {
+      "prep_note": "",
+      "unread": false
+    },
+    "sources": {}
+  },
+  {
+    "type": "calendar_event",
+    "account_id": "acct:acme",
+    "provider": "stub",
+    "external_id": "evt-acme-dana",
+    "title": "ACME Dana one-pager",
+    "start_at": "2026-08-27T18:30:00Z",
+    "end_at": "2026-08-27T19:00:00Z",
+    "attendees": [
+      {
+        "email": "dana.cole@acme.com",
+        "name": "Dana Cole"
+      },
+      {
+        "email": "jordan@example.com",
+        "name": "Jordan Lee"
+      }
+    ],
+    "location": "Meet",
+    "operator": {
+      "prep_note": "",
+      "unread": false
+    },
+    "sources": {}
+  },
+  {
+    "type": "calendar_event",
+    "account_id": "acct:globex",
+    "provider": "stub",
+    "external_id": "evt-glx-coo",
+    "title": "GLX Victor onboarding review",
+    "start_at": "2026-09-02T14:00:00Z",
+    "end_at": "2026-09-02T14:45:00Z",
+    "attendees": [
+      {
+        "email": "victor.lang@globex.example",
+        "name": "Victor Lang"
+      },
+      {
+        "email": "ava.chen@globex.example",
+        "name": "Ava Chen"
+      },
+      {
+        "email": "jordan@example.com",
+        "name": "Jordan Lee"
+      }
+    ],
+    "location": "Meet",
+    "operator": {
+      "prep_note": "",
+      "unread": false
+    },
+    "sources": {}
+  },
+  {
+    "type": "calendar_event",
+    "account_id": "acct:globex",
+    "provider": "stub",
+    "external_id": "evt-glx-p2w",
+    "title": "GLX Plant 2 walkthrough",
+    "start_at": "2026-09-02T15:15:00Z",
+    "end_at": "2026-09-02T15:45:00Z",
+    "attendees": [
+      {
+        "email": "sofia.berg@globex.example",
+        "name": "Sofia Berg"
+      },
+      {
+        "email": "luis.romero@globex.example",
+        "name": "Luis Romero"
+      },
+      {
+        "email": "jordan@example.com",
+        "name": "Jordan Lee"
+      }
+    ],
+    "location": "Plant 2",
+    "operator": {
+      "prep_note": "",
+      "unread": false
+    },
+    "sources": {}
+  },
+  {
+    "type": "calendar_event",
+    "account_id": "acct:northwind",
+    "provider": "stub",
+    "external_id": "evt-nwin-wrap",
+    "title": "NWIN commercial follow-up",
+    "start_at": "2026-09-02T16:15:00Z",
+    "end_at": "2026-09-02T16:40:00Z",
+    "attendees": [
+      {
+        "email": "rob.singh@northwind.example",
+        "name": "Rob Singh"
+      },
+      {
+        "email": "seth.brown@northwind.example",
+        "name": "Seth Brown"
+      },
+      {
+        "email": "jordan@example.com",
+        "name": "Jordan Lee"
+      }
+    ],
+    "location": "Meet",
+    "operator": {
+      "prep_note": "",
+      "unread": false
+    },
+    "sources": {}
+  },
+  {
+    "type": "calendar_event",
+    "account_id": "acct:globex",
+    "provider": "stub",
+    "external_id": "evt-glx-ceo",
+    "title": "GLX Eleanor exec brief",
+    "start_at": "2026-09-02T17:15:00Z",
+    "end_at": "2026-09-02T17:45:00Z",
+    "attendees": [
+      {
+        "email": "eleanor.voss@globex.example",
+        "name": "Eleanor Voss"
+      },
+      {
+        "email": "greg.hale@globex.example",
+        "name": "Greg Hale"
+      },
+      {
+        "email": "jordan@example.com",
+        "name": "Jordan Lee"
+      }
+    ],
+    "location": "Meet",
+    "operator": {
+      "prep_note": "",
+      "unread": false
+    },
+    "sources": {}
+  },
+  {
+    "type": "calendar_event",
     "account_id": "acct:globex",
     "provider": "stub",
     "external_id": "evt-glx-p1",
@@ -249,8 +502,8 @@
     "provider": "stub",
     "external_id": "evt-acme-dc1",
     "title": "ACME DC1 check-in",
-    "start_at": "2026-08-28T13:30:00Z",
-    "end_at": "2026-08-28T13:55:00Z",
+    "start_at": "2026-08-28T14:00:00Z",
+    "end_at": "2026-08-28T14:25:00Z",
     "attendees": [
       {
         "email": "lee.park@acme.com",
@@ -270,23 +523,27 @@
   },
   {
     "type": "calendar_event",
-    "account_id": "acct:globex",
+    "account_id": "acct:northwind",
     "provider": "stub",
-    "external_id": "evt-glx-print",
-    "title": "GLX Plant 2 badge printer",
-    "start_at": "2026-08-28T14:30:00Z",
-    "end_at": "2026-08-28T15:10:00Z",
+    "external_id": "evt-nwin-am",
+    "title": "NWIN renewal commercial",
+    "start_at": "2026-08-28T15:00:00Z",
+    "end_at": "2026-08-28T15:45:00Z",
     "attendees": [
       {
-        "email": "sofia.berg@globex.example",
-        "name": "Sofia Berg"
+        "email": "rob.singh@northwind.example",
+        "name": "Rob Singh"
+      },
+      {
+        "email": "helen.cho@northwind.example",
+        "name": "Helen Cho"
       },
       {
         "email": "jordan@example.com",
         "name": "Jordan Lee"
       }
     ],
-    "location": "Plant 2",
+    "location": "Meet",
     "operator": {
       "prep_note": "",
       "unread": false
@@ -299,8 +556,8 @@
     "provider": "stub",
     "external_id": "evt-acme-stand",
     "title": "ACME standup",
-    "start_at": "2026-08-28T15:00:00Z",
-    "end_at": "2026-08-28T15:25:00Z",
+    "start_at": "2026-08-28T15:45:00Z",
+    "end_at": "2026-08-28T16:10:00Z",
     "attendees": [
       {
         "email": "pat.nguyen@acme.com",
@@ -328,27 +585,23 @@
   },
   {
     "type": "calendar_event",
-    "account_id": "acct:northwind",
+    "account_id": "acct:globex",
     "provider": "stub",
-    "external_id": "evt-nwin-am",
-    "title": "NWIN renewal commercial",
-    "start_at": "2026-08-28T15:30:00Z",
-    "end_at": "2026-08-28T16:15:00Z",
+    "external_id": "evt-glx-print",
+    "title": "GLX Plant 2 badge printer",
+    "start_at": "2026-08-28T17:05:00Z",
+    "end_at": "2026-08-28T17:45:00Z",
     "attendees": [
       {
-        "email": "rob.singh@northwind.example",
-        "name": "Rob Singh"
-      },
-      {
-        "email": "helen.cho@northwind.example",
-        "name": "Helen Cho"
+        "email": "sofia.berg@globex.example",
+        "name": "Sofia Berg"
       },
       {
         "email": "jordan@example.com",
         "name": "Jordan Lee"
       }
     ],
-    "location": "Meet",
+    "location": "Plant 2",
     "operator": {
       "prep_note": "",
       "unread": false
@@ -361,8 +614,8 @@
     "provider": "stub",
     "external_id": "evt-acme-dc3",
     "title": "ACME DC3 firmware war room",
-    "start_at": "2026-08-28T16:00:00Z",
-    "end_at": "2026-08-28T16:45:00Z",
+    "start_at": "2026-08-28T18:15:00Z",
+    "end_at": "2026-08-28T19:00:00Z",
     "attendees": [
       {
         "email": "sam.ortiz@acme.com",
@@ -394,8 +647,8 @@
     "provider": "stub",
     "external_id": "evt-glx-vpn",
     "title": "GLX VPN allowlist with Nadia",
-    "start_at": "2026-08-28T16:30:00Z",
-    "end_at": "2026-08-28T17:00:00Z",
+    "start_at": "2026-08-28T19:00:00Z",
+    "end_at": "2026-08-28T19:30:00Z",
     "attendees": [
       {
         "email": "nadia.ali@globex.example",
@@ -415,190 +668,12 @@
   },
   {
     "type": "calendar_event",
-    "account_id": "acct:acme",
-    "provider": "stub",
-    "external_id": "evt-acme-sso",
-    "title": "ACME SSO 8-hour timeout review",
-    "start_at": "2026-08-28T17:00:00Z",
-    "end_at": "2026-08-28T17:45:00Z",
-    "attendees": [
-      {
-        "email": "mei.wong@acme.com",
-        "name": "Mei Wong"
-      },
-      {
-        "email": "elena.ruiz@acme.com",
-        "name": "Elena Ruiz"
-      },
-      {
-        "email": "jordan@example.com",
-        "name": "Jordan Lee"
-      }
-    ],
-    "location": "Meet",
-    "operator": {
-      "prep_note": "",
-      "unread": false
-    },
-    "sources": {}
-  },
-  {
-    "type": "calendar_event",
-    "account_id": "acct:northwind",
-    "provider": "stub",
-    "external_id": "evt-nwin-sso",
-    "title": "NWIN contractor SSO patch",
-    "start_at": "2026-08-28T17:30:00Z",
-    "end_at": "2026-08-28T18:15:00Z",
-    "attendees": [
-      {
-        "email": "jules.hart@northwind.example",
-        "name": "Jules Hart"
-      },
-      {
-        "email": "devin.cole@northwind.example",
-        "name": "Devin Cole"
-      },
-      {
-        "email": "jordan@example.com",
-        "name": "Jordan Lee"
-      }
-    ],
-    "location": "Meet",
-    "operator": {
-      "prep_note": "",
-      "unread": false
-    },
-    "sources": {}
-  },
-  {
-    "type": "calendar_event",
-    "account_id": "acct:acme",
-    "provider": "stub",
-    "external_id": "evt-acme-fin",
-    "title": "ACME finance QBR prep",
-    "start_at": "2026-08-28T18:00:00Z",
-    "end_at": "2026-08-28T18:30:00Z",
-    "attendees": [
-      {
-        "email": "grace.lin@acme.com",
-        "name": "Grace Lin"
-      },
-      {
-        "email": "taylor.brooks@acme.com",
-        "name": "Taylor Brooks"
-      },
-      {
-        "email": "jordan@example.com",
-        "name": "Jordan Lee"
-      }
-    ],
-    "location": "Meet",
-    "operator": {
-      "prep_note": "",
-      "unread": false
-    },
-    "sources": {}
-  },
-  {
-    "type": "calendar_event",
-    "account_id": "acct:globex",
-    "provider": "stub",
-    "external_id": "evt-glx-coo",
-    "title": "GLX Victor onboarding review",
-    "start_at": "2026-08-28T18:30:00Z",
-    "end_at": "2026-08-28T19:15:00Z",
-    "attendees": [
-      {
-        "email": "victor.lang@globex.example",
-        "name": "Victor Lang"
-      },
-      {
-        "email": "ava.chen@globex.example",
-        "name": "Ava Chen"
-      },
-      {
-        "email": "jordan@example.com",
-        "name": "Jordan Lee"
-      }
-    ],
-    "location": "Meet",
-    "operator": {
-      "prep_note": "",
-      "unread": false
-    },
-    "sources": {}
-  },
-  {
-    "type": "calendar_event",
-    "account_id": "acct:acme",
-    "provider": "stub",
-    "external_id": "evt-acme-qbrn",
-    "title": "ACME QBR numbers",
-    "start_at": "2026-08-28T19:00:00Z",
-    "end_at": "2026-08-28T20:00:00Z",
-    "attendees": [
-      {
-        "email": "taylor.brooks@acme.com",
-        "name": "Taylor Brooks"
-      },
-      {
-        "email": "pat.nguyen@acme.com",
-        "name": "Pat Nguyen"
-      },
-      {
-        "email": "dana.cole@acme.com",
-        "name": "Dana Cole"
-      },
-      {
-        "email": "jordan@example.com",
-        "name": "Jordan Lee"
-      }
-    ],
-    "location": "Meet",
-    "operator": {
-      "prep_note": "",
-      "unread": false
-    },
-    "sources": {}
-  },
-  {
-    "type": "calendar_event",
-    "account_id": "acct:northwind",
-    "provider": "stub",
-    "external_id": "evt-nwin-fpa",
-    "title": "NWIN FP&A renewal model",
-    "start_at": "2026-08-28T19:30:00Z",
-    "end_at": "2026-08-28T20:00:00Z",
-    "attendees": [
-      {
-        "email": "owen.park@northwind.example",
-        "name": "Owen Park"
-      },
-      {
-        "email": "nina.vogt@northwind.example",
-        "name": "Nina Vogt"
-      },
-      {
-        "email": "jordan@example.com",
-        "name": "Jordan Lee"
-      }
-    ],
-    "location": "Meet",
-    "operator": {
-      "prep_note": "",
-      "unread": false
-    },
-    "sources": {}
-  },
-  {
-    "type": "calendar_event",
     "account_id": "acct:northwind",
     "provider": "stub",
     "external_id": "evt-nwin-ops",
     "title": "NWIN Tacoma ops check-in",
-    "start_at": "2026-08-28T20:00:00Z",
-    "end_at": "2026-08-28T20:30:00Z",
+    "start_at": "2026-08-28T20:15:00Z",
+    "end_at": "2026-08-28T20:45:00Z",
     "attendees": [
       {
         "email": "marco.rossi@northwind.example",
@@ -622,74 +697,20 @@
   },
   {
     "type": "calendar_event",
-    "account_id": "acct:globex",
-    "provider": "stub",
-    "external_id": "evt-glx-p2w",
-    "title": "GLX Plant 2 walkthrough",
-    "start_at": "2026-08-28T20:30:00Z",
-    "end_at": "2026-08-28T21:00:00Z",
-    "attendees": [
-      {
-        "email": "sofia.berg@globex.example",
-        "name": "Sofia Berg"
-      },
-      {
-        "email": "luis.romero@globex.example",
-        "name": "Luis Romero"
-      },
-      {
-        "email": "jordan@example.com",
-        "name": "Jordan Lee"
-      }
-    ],
-    "location": "Plant 2",
-    "operator": {
-      "prep_note": "",
-      "unread": false
-    },
-    "sources": {}
-  },
-  {
-    "type": "calendar_event",
     "account_id": "acct:acme",
     "provider": "stub",
-    "external_id": "evt-acme-train",
-    "title": "ACME DC2 training slot",
-    "start_at": "2026-08-28T21:00:00Z",
-    "end_at": "2026-08-28T21:45:00Z",
-    "attendees": [
-      {
-        "email": "priya.shah@acme.com",
-        "name": "Priya Shah"
-      },
-      {
-        "email": "jordan@example.com",
-        "name": "Jordan Lee"
-      }
-    ],
-    "location": "Meet",
-    "operator": {
-      "prep_note": "",
-      "unread": false
-    },
-    "sources": {}
-  },
-  {
-    "type": "calendar_event",
-    "account_id": "acct:globex",
-    "provider": "stub",
-    "external_id": "evt-glx-ceo",
-    "title": "GLX Eleanor exec brief",
-    "start_at": "2026-08-28T21:30:00Z",
+    "external_id": "evt-acme-sso",
+    "title": "ACME SSO 8-hour timeout review",
+    "start_at": "2026-08-28T21:15:00Z",
     "end_at": "2026-08-28T22:00:00Z",
     "attendees": [
       {
-        "email": "eleanor.voss@globex.example",
-        "name": "Eleanor Voss"
+        "email": "mei.wong@acme.com",
+        "name": "Mei Wong"
       },
       {
-        "email": "greg.hale@globex.example",
-        "name": "Greg Hale"
+        "email": "elena.ruiz@acme.com",
+        "name": "Elena Ruiz"
       },
       {
         "email": "jordan@example.com",
@@ -736,43 +757,22 @@
     "type": "calendar_event",
     "account_id": "acct:acme",
     "provider": "stub",
-    "external_id": "evt-acme-dana",
-    "title": "ACME Dana one-pager",
-    "start_at": "2026-08-28T22:30:00Z",
-    "end_at": "2026-08-28T23:00:00Z",
+    "external_id": "evt-acme-qbrn",
+    "title": "ACME QBR numbers",
+    "start_at": "2026-08-28T23:00:00Z",
+    "end_at": "2026-08-28T23:45:00Z",
     "attendees": [
+      {
+        "email": "taylor.brooks@acme.com",
+        "name": "Taylor Brooks"
+      },
+      {
+        "email": "pat.nguyen@acme.com",
+        "name": "Pat Nguyen"
+      },
       {
         "email": "dana.cole@acme.com",
         "name": "Dana Cole"
-      },
-      {
-        "email": "jordan@example.com",
-        "name": "Jordan Lee"
-      }
-    ],
-    "location": "Meet",
-    "operator": {
-      "prep_note": "",
-      "unread": false
-    },
-    "sources": {}
-  },
-  {
-    "type": "calendar_event",
-    "account_id": "acct:northwind",
-    "provider": "stub",
-    "external_id": "evt-nwin-wrap",
-    "title": "NWIN commercial follow-up",
-    "start_at": "2026-08-28T23:00:00Z",
-    "end_at": "2026-08-28T23:25:00Z",
-    "attendees": [
-      {
-        "email": "rob.singh@northwind.example",
-        "name": "Rob Singh"
-      },
-      {
-        "email": "seth.brown@northwind.example",
-        "name": "Seth Brown"
       },
       {
         "email": "jordan@example.com",

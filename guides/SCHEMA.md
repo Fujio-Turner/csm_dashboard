@@ -27,7 +27,7 @@ Every durable document and `config.json` has a file under [`schema/`](../schema/
 | [`report.schema.json`](../schema/report.schema.json) | `reports` |
 | [`chat_thread.schema.json`](../schema/chat_thread.schema.json) | `chats` |
 | [`sync_job.schema.json`](../schema/sync_job.schema.json) | `sync_jobs` |
-| [`settings.schema.json`](../schema/settings.schema.json) | CBL settings (no secrets). `preferences`: `week_start`, `hidden_weekdays`, `theme`, `timeline_layout`, `timeline_past_days` / `timeline_next_days` (7 or 30) |
+| [`settings.schema.json`](../schema/settings.schema.json) | CBL settings (no secrets). `preferences`: `week_start`, `hidden_weekdays`, `theme`, `timeline_layout`, `timeline_past_days` / `timeline_next_days` (7 or 30). Operator profile may include `persona` (csm / sales / tam / support / custom) and `intent` (textarea, max 4000 chars) — appended to every AI system prompt. |
 | [`credential.schema.json`](../schema/credential.schema.json) | CBL `credentials` (AI keys + connector tokens) |
 | [`activity.schema.json`](../schema/activity.schema.json) | `activities` |
 | [`note.schema.json`](../schema/note.schema.json) | `notes` |

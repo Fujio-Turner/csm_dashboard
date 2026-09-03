@@ -1,7 +1,7 @@
 # CSM Dashboard roadmap
 
-> Living train map · last updated **2026-08-29** (0.1.98 overlay: human chat)  
-> **Current baseline:** `0.1.98` · Apache License 2.0
+> Living train map · last updated **2026-09-03** (0.1.126: Gmail drafts, slim AI Suggest, people badges)  
+> **Current baseline:** `0.1.126` · Apache License 2.0
 
 This file answers **what ships when**. Design depth lives in [`DESIGN.md`](DESIGN.md).
 
@@ -13,7 +13,7 @@ The desk stays **one operator, one machine, Couchbase Lite JSON documents**. Big
 
 | Concern | Canonical home |
 | --- | --- |
-| **This train map** | `docs/ROADMAP.md` |
+| **This train map** | `docs/ROADMAP.md` (repo-root `ROADMAP.md` only points here) |
 | System design | [`DESIGN.md`](DESIGN.md) |
 | HTTP contract | [`openapi.yaml`](openapi.yaml) · [`guides/OPENAPI.md`](../guides/OPENAPI.md) |
 | Documents | [`schema/`](../schema/) · [`guides/SCHEMA.md`](../guides/SCHEMA.md) |
@@ -23,30 +23,32 @@ The desk stays **one operator, one machine, Couchbase Lite JSON documents**. Big
 
 ---
 
-## 1. Shipped now (0.1.98)
+## 1. Shipped now (0.1.126)
 
 | Area | State |
 | --- | --- |
-| Repo / Docker / `make ci` | `127.0.0.1:8788`, compose loopback publish. Playwright MCP: `.grok/config.toml` |
-| Store | Couchbase Lite **Community 4.0.3**, ctypes wrapper in this repo. No vector index. Lists page with `COUNT` + `LIMIT` (`storage/paging.py`). Mail lists omit `body_text`; ticket lists omit `comments`. Tab badges cache on `accounts.input_counts`. Seed uses `begin_bulk` / `end_bulk`. |
+| Repo / Docker / `make ci` | `make run` → `127.0.0.1:8788`. Docker: container **:5000**, laptop browser **:5001** (loopback). OAuth `redirect_uri` uses `CSM_DASHBOARD_PUBLIC_PORT`. Playwright MCP: `.grok/config.toml` |
+| Store | Couchbase Lite **Community 4.0.3**, ctypes wrapper in this repo. No vector index. Lists page with `COUNT` + `LIMIT` (`storage/paging.py`). Mail lists omit `body_text`; ticket lists omit `comments`. Tab badges cache on `accounts.input_counts`. Person/project writes call `_touch_rollup`. Opening a book (`expand_account`) recomputes counts and heals a stale cache. Seed uses `begin_bulk` / `end_bulk`. |
 | Home | Agenda and Companies tiles. Mini sidebar default. Meeting cards: company logo left, duration minutes right, subject on the card. Inbox rows: type icon + company logo + **who-stamp** |
 | Agenda calendar | **Day / Week / Month**. 24-hour Day and Week, default scroll ~7 AM. Now line. Time-proportional gaps. Hide weekdays and week-begins from User Preferences |
 | Deep links | `#account/{abbr}/{tab}/id={id}` opens the matching meeting, mail, chat, or task lightbox |
 | Inbox | Mail, Slack, Teams, **tasks** (self-emails). Filter All / Email / Slack / Tasks / Teams. `+` creates a task. Far-right stamp is who it is **to**: Me / Us / Them / All / ?? / n/a. Lists page in the store (COUNT + LIMIT, no `body_text` on mail lists). |
-| World clock | Globe lightbox. Add / remove / reorder zones. Persists in CBL `settings.world_clock` |
+| World clock | Globe lightbox. Add / remove / reorder zones. Persists in CBL `settings.world_clock`. You-row hours with a calendar overlap show a red `*`; click lists those meetings |
 | Appearance | Settings → User Preferences: Day / Night / Auto. Sidebar sun/moon toggle. `html[data-theme]`. Pale page, periwinkle primary, Quicksand, initials avatars on people/mail, bubble desk chat |
-| Help | Search `#help-search`. Group tiles. Questions are **How do I…** with headings and bullets. `#help/{id}` highlights |
+| Help | Search `#help-search` (Fuse.js, typo-tolerant). Group tiles. Questions are **How do I…** with headings and bullets. Matches wrap in `mark.help-mark`. `#help/{id}` highlights |
 | Account | Timeline, tickets, mail, **slack / teams** (one tab), Salesforce, calendar, **projects CRUD**, people, org chart, account team |
 | Timeline | Vertical (future top, oldest bottom) or Horizontal (past left, future right). Red **Now** line + **Now** button. Past 7 / 30 and Next 7 / 30 bound the window. Horizontal range labels are spine text so the rail stays narrow |
-| People | Add / Edit person sheet (`#detail-box` `.sheet-person`). Kind / Reports to are search-select. **Projects** and **Functions** are Tagify chips. Org chart scrolls; the tree is `max-content` so the left edge is not clipped |
+| People | Add / Edit person sheet (`#detail-box` `.sheet-person`). Kind / Reports to are search-select. **Projects** and **Functions** are Tagify chips. Org chart scrolls; the tree is `max-content` so the left edge is not clipped. Mine customer people from mail / meetings / tickets / chat (`GET /api/accounts/{id}/people-mine`); wizard can add the ticked rows. People / org-chart badges match the list |
 | Projects | Search, type, status, owner from people, group email, Tagify tag chips, remove |
-| Compose | Shared `.mail-composer` (Compose, thread Reply, New task): Tagify To / Cc / Bcc, subject, body, Attach, **AI Suggest**, **Save draft**, **Send**. Compose **Tickets** are Tagify chips; Thread is search-select. SMTP after confirm; 409 `send_not_configured` when SMTP is off. Attachments ride with the send (not stored as blobs). |
-| Chat | Book-scoped or all-accounts (desk). Human replies, not raw JSON. Relative timestamps. History overlay + bookmark. `.chat-ops` Open / Compose / Add note / Add person |
-| Settings / Help | Sectioned operator profile (timezone search-select), companies, AI keys, connectors, lab seed, User Preferences. `GET /api/status` is memoized a few seconds. |
-| Connectors | Live **Jira**, **Slack**, **Teams**, **Gmail**, **Google Calendar**. **SMTP send** (drafts + task self-emails) after confirm when `smtp_imap` is live. Gmail/Calendar use local `credentials.json` plus Sign in with Google. Seed is Lab; Sync no longer replays fixtures. |
+| Compose | Shared `.mail-composer` (Compose, thread Reply, New task): Tagify To / Cc / Bcc, subject, body, Attach, **AI Suggest**, **Save draft**, **Send**. Compose **Tickets** are Tagify chips; Thread is search-select. **Send** after confirm via Gmail (`gmail.send`) when Google is signed in with send+compose scopes, else SMTP. 409 `google_send_reconnect` / `send_not_configured` when the path is not ready. **Save draft** writes the desk `drafts` row and a Gmail Draft when `gmail.compose` is granted. Attachments ride with the send (not stored as blobs). In-sheet `.mail-status` (not only a toast). |
+| Chat | Book-scoped or all-accounts (desk). Human replies, not raw JSON. Relative timestamps. History overlay + bookmark. `.chat-ops` Open / Compose / Add note / Add person. **Tags:** `#ACME` picks a company on Home only (book chat stays on that company). `/people bob` and `/ticket ACME-12` **bound** a question and chain. `@bob` is talk-to, not search. Type `#` / `@` / `/` for autocomplete. Local answers parse the same tokens (`chat/mentions.py`). |
+| Settings / Help | Sectioned operator profile (timezone search-select, **How you work** persona + intent textarea, `?` tooltips). Intent is appended to every AI system prompt (`prompt_system`). `{operator_name}` / `{operator_email}` come from Settings → You, then `config.json` seed (`Jordan Lee` / `jordan@example.com`). Companies: type-to-confirm Remove; coverage (lookback, feeds, refresh minutes, **AI Suggest Response to Draft**). AI keys, connectors, lab seed, User Preferences. `GET /api/status` is memoized a few seconds (`personas` list included). |
+| Connectors | Live **Jira**, **Slack**, **Teams**, **Gmail**, **Google Calendar**. **Gmail send + Gmail Drafts** after confirm when Google is signed in with `gmail.send` and `gmail.compose`. **SMTP send** still works when `smtp_imap` is live. Gmail/Calendar use local `credentials.json` plus Sign in with Google (`prompt=consent`). A background poller one-shots Gmail/Calendar per company `coverage.refresh_minutes` (default 5; shortest interval wins). Seed is Lab; Sync no longer replays fixtures. |
+| AI Suggest | Reply and Compose **AI Suggest** call Grok (`email_draft`). Reply mode sends **this thread** (last 8 snippets + inbound body) plus a short book brief — not the mailbox, not Slack/Teams/calendar, not full health/team. Cap 8k chars. Button shows **Drafting…** plus a spinner status; success reports `Drafted with Grok · Nk context`. Grok `to`/`cc` strings are coerced to address lists. |
+| Auto-draft | Per company, **AI Suggest Response to Draft** (`coverage.auto_draft_replies`, off by default). New inbound mail with the operator on **To:** (not merely Cc/Bcc), not noreply, gets a Grok reply saved as a Gmail Draft. Toggle-on backfills a small newest cap. Never auto-sends. |
 | Credentials | CBL `credentials` collection. Settings → AI keys + connector tokens. GET never returns secret values. Secrets and OAuth client JSON live in gitignored `__local/` |
 
-**Not shipped:** IMAP / Salesforce live pull, Zendesk, Jira write, Pydantic AI multi-agent desk, scratch TTL collection, App Services sync, EE vectors, transcript ingest, PDF/image chat, slash-in-chat, finished QBR/monthly reports, shared mailbox.
+**Not shipped:** IMAP / Salesforce live pull, Zendesk, Jira write, Pydantic AI multi-agent desk, scratch TTL collection, App Services sync, EE vectors, transcript ingest, PDF/image chat, slash-in-chat **creates** (invite / task / send from chat — bounds already ship), finished QBR/monthly reports, shared mailbox. Auto-draft stays **off** until the operator ticks it on a company.
 
 ---
 
@@ -54,8 +56,8 @@ The desk stays **one operator, one machine, Couchbase Lite JSON documents**. Big
 
 | Rule | Why |
 | --- | --- |
-| **Never send a whole project to the model** | A long book (years of tickets, mail, Slack, notes) will not fit and will not stay relevant. Chat and compose retrieve a **brief + the slice that answers this turn** |
-| **Confirm before send** | Drafts land in `drafts`. Human hits send. No auto-outbound |
+| **Never send a whole project to the model** | A long book (years of tickets, mail, Slack, notes) will not fit and will not stay relevant. Chat and compose retrieve a **brief + the slice that answers this turn**. Reply AI Suggest is `mode=reply`: this thread + inbound + a short account brief, capped at 8k |
+| **Confirm before send** | Drafts land in `drafts` (and Gmail Drafts when compose is granted). Human hits send. Auto-draft writes a draft only — it never sends |
 | **CBL JSON is the store** | App Services is **replication**. Confluence is a **wiki sidecar**. Zendesk / Jira stay connectors |
 | **First-party fields win** | Operator notes, task edits, and project tags survive connector refresh. Write the conflict rule **before** any pull |
 | **Community stays the default** | EE (vector index) is an explicit later train. Do not require EE to open the desk |
@@ -98,17 +100,18 @@ Tasks are **emails back to yourself**, stored as `emails` with `operator.task=tr
 | Item | Notes |
 | --- | --- |
 | **Local create (already shipped)** | Agenda `+` / `POST /api/tasks` writes a self-email (`from=to=operator`). Inbox kind `task`. |
-| **Send to self** | **Shipped 0.1.70.** After confirm, SMTP delivers the formatted task (`POST /api/tasks/{id}/send`) and drafts (`POST /api/drafts/{id}/send`). 409 `send_not_configured` when SMTP is disabled or missing. Never auto-send. |
+| **Send to self** | **Shipped 0.1.70 (SMTP); 0.1.121+ Gmail.** After confirm, Gmail or SMTP delivers the formatted task (`POST /api/tasks/{id}/send`) and drafts (`POST /api/drafts/{id}/send`). 409 `google_send_reconnect` / `send_not_configured` when the path is not ready. Never auto-send. |
 | **Suggested reply → Draft** | **Shipped 0.1.70.** Suggest reply writes a `drafts` doc. Operator can edit, then Send. |
 | **Shared mailbox** | Additive `emails.mailbox_id` — no schema break |
 
 ### 0.4 — chat operates the desk
 
-Slash types already work on **account search**. This train wires the **same verbs into desk chat**.
+Slash types already work on **account search** and as **bounds in desk chat** (`/people bob` + `/ticket ACME-12` in one question). This train is the remaining **create / send** verbs. Chat stays scoped to the book.
 
 | Item | Notes |
 | --- | --- |
-| **Slash in chat** | `/note`, `/project`, `/people`, `/ticket`, `/task`, `/email`, `/sf` create or open, not only filter. Chat stays scoped to the book |
+| **Slash bounds (shipped 0.1.110)** | Parse and autocomplete `/people`, `/ticket`, `/project`, `/email`, `/chat`, `/sf`. Chain in one prompt. `#` company pick is Home only. `@` is talk-to. |
+| **Slash in chat (create)** | `/note`, `/project`, `/people`, `/ticket`, `/task`, `/email`, `/sf` **create or open**, not only filter. Still confirm before send |
 | **Create meeting invite** | Chat proposes title, attendees, window (world clock helps). Writes a calendar draft; connector sends after confirm |
 | **Create task (email)** | Chat creates the same self-email task as Agenda `+` (`Tasks: Company : name {kind}`, due, CC) |
 | **Analyze support tickets** | Summarize open / aging / P1s for the book or one key. Uses ticket slice, not the whole history |

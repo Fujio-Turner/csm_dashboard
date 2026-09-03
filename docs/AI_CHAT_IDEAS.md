@@ -1,10 +1,18 @@
 # Desk chat — what it should solve
 
-Operator questions the **right-hand desk chat** should answer from the open book (or `#{ABBR}` / `@person` / `/project` / `/ticket` in the prompt). This is the target set, not a claim that every question already works.
+Operator questions the **right-hand desk chat** should answer from the open book (or `/people` / `/ticket` / `/project` in the prompt; `#ACME` on Home). This is the target set, not a claim that every question already works.
 
 Chat **reads** the local book. It **never invents** tickets, replies, or meeting times. It **never sends** mail, Slack, Teams, or calendar invites — it proposes; the operator confirms.
 
-Tags in questions below match the desk: `#{ACME}` is a book, `@bob` is a person, `/project XYZ` and `/ticket 12345` are slash jumps already used on account search.
+**Prefixes (shipped):**
+
+| Prefix | Means | Where |
+| --- | --- | --- |
+| `#ACME` | Pick a company | Home chat only. Type `#` for autocomplete of every book. Inside a company, chat stays on that book — `#` does not list other companies. |
+| `/people bob` `/ticket ACME-12` `/project SSO` `/email` `/chat` `/sf` | **Bound** the question (search *for*) | Chat and book Search. Type `/` for the slash menu; `/people` then lists people, `/ticket` lists tickets. **Chain:** `what was /people bob response to /ticket ACME-12?` |
+| `@bob` | Talk *to* that person (address / send) | Chat. Not how you search the book. |
+
+No curly braces. `#{ACME}` still parses as a legacy alias. Settings → You **How you work** (persona + intent) flavors every AI reply.
 
 ---
 
@@ -13,7 +21,7 @@ Tags in questions below match the desk: `#{ACME}` is a book, `@bob` is a person,
 | Ask | What a good answer does |
 | --- | --- |
 | What tickets do I need to follow up on? | Open / aging / P1–P2 (or Highest) on this book. Last customer line vs last us line. Promise without a later task. |
-| What is on fire at `#{ACME}`? | Same, plus blocked projects, overdue tasks, and meetings that slipped. Short. Named keys and people, not a vibe. |
+| What is on fire at `#ACME`? | Same, plus blocked projects, overdue tasks, and meetings that slipped. Short. Named keys and people, not a vibe. |
 | What tasks are due this week? | Self-email tasks (`operator.task=true`) whose due date falls in the current week (operator timezone). Amber due stamp on Agenda is the same set. |
 
 ## Projects and blockers
@@ -34,7 +42,7 @@ Tags in questions below match the desk: `#{ACME}` is a book, `@bob` is a person,
 | Ask | What a good answer does |
 | --- | --- |
 | What is the tone of the email chain for `/project XYZ` this last 6 weeks? | Threads tagged to that project, last 6 weeks. Calm / tense / stalled / escalating, with two or three quoted lines. Not a sentiment score. |
-| Did `@bob` from `#{ACME}` reply to my last email? | Last outbound from You to that person (or thread they are on). Inbound after that timestamp, or **no**. |
+| Did `/people bob` on `#ACME` reply to my last email? | Last outbound from You to that person (or thread they are on). Inbound after that timestamp, or **no**. `@bob` is talk-to, not this search. |
 | Has `rick.smith@acme.com` been CCed on the last few emails about `/ticket 12345`? | Last N messages on that ticket’s threads. Yes/no per message, with dates. |
 | When did the director or VP get added/CCed to this email or ticket? | First time a person whose title/kind is director or VP (or reports-to chain) appears on To/Cc of that thread or ticket. Date + which message. |
 
@@ -74,9 +82,9 @@ Named evidence is a **link**, not plain text. Clicks use the same hashes as the 
 
 | In the answer | Goes to |
 | --- | --- |
-| `#{ACME}` | `#account/ACME` |
+| `#ACME` | `#account/ACME` |
 | Ticket key `ACME-12` | `#account/ACME/tickets` (search `/ticket ACME-12`) |
-| `/project SSO` `/people bob` `/email …` `/chat …` | Matching book tab + search |
+| `/people bob` `/project SSO` `/email …` `/chat …` `/ticket ACME-12` | Matching book tab + search. `/people` is search-for a person. `@bob` in the bubble is talk-to. |
 | Thread / meeting / Slack id | `#account/{abbr}/{tab}/id={id}` |
 | `#compose/ACME` | Compose lightbox |
 | `#help/ticket-priority` | Help tile |
@@ -125,7 +133,8 @@ When a later mail from a known person uses a different title (signature, From di
 
 ## How chat should behave
 
-- **Scope.** Most threads stay on one book, or on **Company:Project** (`ACME:SSO hardening`). Home **Desk chat** is the all-accounts thread — “What tasks are due this week?” and “Do I have an opening next Tuesday for 1 hour with ACME:SSO hardening?” live there. Honor `#{ABBR}`, `@name`, `/project`, `/ticket`, `/company ACME:SSO …` in the prompt.
+- **Scope.** Most threads stay on one book, or on **Company:Project** (`ACME:SSO hardening`). Home **Desk chat** is the all-accounts thread — “What tasks are due this week?” and “Do I have an opening next Tuesday for 1 hour with ACME:SSO hardening?” live there. Honor `/people`, `/ticket`, `/project`, `/email`, `/chat` bounds (they chain). `#ACME` on Home picks a book. Book chat assumes that company and does not point at another. `@name` addresses a person.
+- **Persona.** Settings → You intent is appended to every AI system prompt so a sales rep gets account-level answers and a TAM gets more ticket detail. Still no invented tickets or pipeline.
 - **Evidence.** Every claim names a ticket key, thread, task, or meeting — and those names are links. If the book has no row, say **not in this desk**.
 - **No send.** Propose a draft, a task, a meeting window, a person, or a title change. Buttons open existing sheets. The composer / SMTP confirm path still sends.
 - **Who-stamps.** Me / Us / Them / All is already computed for inbox rows (`inbox_audience`). Chat should reuse that idea for “who is driving.”
@@ -136,4 +145,4 @@ When a later mail from a known person uses a different title (signature, From di
 
 Help (`#help`) is **how to click the desk**. This file is **what to ask chat**. Do not duplicate How-do-I steps here.
 
-Finished weekly/QBR PDF packs, slash-in-chat creates, and Pydantic AI fan-out stay on [`ROADMAP.md`](ROADMAP.md) (0.4 / 0.45 / 0.5). These questions are the reason those trains exist.
+Finished weekly/QBR PDF packs, slash-in-chat **creates** (invite / task / send), and Pydantic AI fan-out stay on [`ROADMAP.md`](ROADMAP.md) (0.4 / 0.45 / 0.5). Slash **bounds** already ship. These questions are the reason those trains exist.

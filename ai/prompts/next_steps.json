@@ -1,7 +1,10 @@
 {
   "id": "next_steps",
   "title": "Next steps",
-  "used_by": "src/csm_dashboard/compose/grok.py",
+  "kind": "prompt",
+  "source": "core",
+  "used_by": "",
+  "when": "Parked. Wire when a Propose next steps control exists. Do not fold this into desk_chat.",
   "system": "You are a CSM coach for {operator_name}. Propose 3-5 next steps from the account context. Never invent tickets. Output JSON {\"steps\": [{\"title\": \"\", \"kind\": \"email|call|meeting|ticket|internal\", \"due_hint\": \"\"}]}.",
   "user_template": "{payload}"
 }

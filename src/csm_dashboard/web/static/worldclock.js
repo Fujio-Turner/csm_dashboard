@@ -11,8 +11,11 @@
   var tick = 0;
   var suggestOn = 0;
   var sorting = false;
+  var meetings = [];
+  var meetingFetch = 0;
 
   function $(id) {
+    if (!id) return null;
     return document.getElementById(id);
   }
 
@@ -500,6 +503,130 @@
     return { a: a, b: b };
   }
 
+  function asDate(raw) {
+    var d = new Date(raw || "");
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function meetingsOverlapping(start, end) {
+    var out = [];
+    var i;
+    for (i = 0; i < meetings.length; i++) {
+      var ev = meetings[i];
+      var a = asDate(ev.start_at);
+      if (!a) continue;
+      var b = asDate(ev.end_at);
+      if (!b || b <= a) b = new Date(a.getTime() + 30 * 60 * 1000);
+      if (a < end && b > start) out.push(ev);
+    }
+    out.sort(function (x, y) {
+      return String(x.start_at || "").localeCompare(String(y.start_at || ""));
+    });
+    return out;
+  }
+
+  function applyBusyMark(btn, inst) {
+    var mark = btn.querySelector(".wtb-busy");
+    if (!mark || !inst) return;
+    var hits = meetingsOverlapping(inst, new Date(inst.getTime() + 60 * 60 * 1000));
+    var busy = hits.length > 0;
+    mark.textContent = busy ? "*" : "";
+    btn.classList.toggle("is-busy", busy);
+    var base = btn.getAttribute("data-base-title") || "";
+    if (busy) {
+      var names = hits.map(function (ev) {
+        return ev.title || "Meeting";
+      });
+      btn.title = base + " · booked: " + names.join(", ");
+    } else {
+      btn.title = base;
+    }
+  }
+
+  function paintBusyHours() {
+    var box = $("world-box");
+    if (!box) return;
+    var cols = columns();
+    box.querySelectorAll(".wtb-row.is-you .wtb-hour").forEach(function (el) {
+      var col = Number(el.getAttribute("data-col"));
+      applyBusyMark(el, cols[col]);
+    });
+  }
+
+  function loadMeetings() {
+    if (!csm().api || !day) return Promise.resolve();
+    var token = ++meetingFetch;
+    var start = csm().shiftYmd ? csm().shiftYmd(day, -1) : day;
+    var qs =
+      "date=" +
+      encodeURIComponent(day) +
+      "&start=" +
+      encodeURIComponent(start) +
+      "&end=" +
+      encodeURIComponent(day);
+    return csm()
+      .api("/api/home/agenda?" + qs)
+      .then(function (data) {
+        if (token !== meetingFetch) return;
+        meetings = data.meetings || [];
+        paintBusyHours();
+        paintHoverSel();
+      })
+      .catch(function () {
+        if (token !== meetingFetch) return;
+        meetings = [];
+        paintBusyHours();
+        paintHoverSel();
+      });
+  }
+
+  function goDay(delta) {
+    day = csm().shiftYmd ? csm().shiftYmd(day, delta) : day;
+    renderWorld();
+    loadMeetings();
+  }
+
+  function accountLabel(ev) {
+    var acct = ev && ev.account;
+    return (acct && (acct.name || acct.abbr)) || "";
+  }
+
+  function paintSelMeetings(line, start, end) {
+    var head = document.createElement("div");
+    head.className = "wtb-sel-when";
+    head.textContent = "You " + formatRangeEnd(start, homeTz) + "–" + formatRangeEnd(end, homeTz);
+    line.appendChild(head);
+    var hits = meetingsOverlapping(start, end);
+    if (!hits.length) {
+      var none = document.createElement("p");
+      none.className = "wtb-sel-empty";
+      none.textContent = "No meetings at this time.";
+      line.appendChild(none);
+      return;
+    }
+    hits.forEach(function (ev) {
+      var row = document.createElement("div");
+      row.className = "wtb-sel-meet";
+      var title = document.createElement("strong");
+      var company = accountLabel(ev);
+      title.textContent = company ? company + " · " + (ev.title || "Meeting") : ev.title || "Meeting";
+      var meta = document.createElement("span");
+      var when = formatMeetWhen(ev.start_at) + "–" + formatMeetWhen(ev.end_at || ev.start_at);
+      if (ev.status === "proposed") when += " · proposed";
+      if (ev.location) when += " · " + ev.location;
+      meta.textContent = when;
+      row.appendChild(title);
+      row.appendChild(meta);
+      line.appendChild(row);
+    });
+  }
+
+  function formatMeetWhen(iso) {
+    var d = asDate(iso);
+    if (!d) return "";
+    return formatClock(localParts(d, homeTz));
+  }
+
   function paintHoverSel() {
     var range = selRange();
     document.querySelectorAll("#world-box .wtb-hour").forEach(function (el) {
@@ -519,10 +646,7 @@
     var cols = columns();
     var start = cols[range.a];
     var end = new Date(cols[range.b].getTime() + 60 * 60 * 1000);
-    var bits = zones.map(function (tz) {
-      return zoneLabel(tz) + " " + formatRangeEnd(start, tz) + "–" + formatRangeEnd(end, tz);
-    });
-    line.textContent = bits.join("  ·  ");
+    paintSelMeetings(line, start, end);
     line.hidden = false;
     line.classList.remove("hidden");
   }
@@ -642,7 +766,16 @@
       }
       btn.appendChild(num);
       btn.appendChild(sub);
-      btn.title = zoneLabel(tz) + " " + formatClock(loc) + " " + loc.tzName;
+      var baseTitle = zoneLabel(tz) + " " + formatClock(loc) + " " + loc.tzName;
+      btn.setAttribute("data-base-title", baseTitle);
+      btn.title = baseTitle;
+      if (isYou) {
+        var busyMark = document.createElement("span");
+        busyMark.className = "wtb-busy";
+        busyMark.setAttribute("aria-hidden", "true");
+        btn.appendChild(busyMark);
+        applyBusyMark(btn, inst);
+      }
       btn.addEventListener("mouseenter", function () {
         hoverCol = col;
         paintHoverSel();
@@ -687,8 +820,7 @@
     prev.textContent = "◀";
     prev.setAttribute("aria-label", "Previous day");
     prev.addEventListener("click", function () {
-      day = csm().shiftYmd ? csm().shiftYmd(day, -1) : day;
-      renderWorld();
+      goDay(-1);
     });
     var label = document.createElement("span");
     label.className = "wtb-date";
@@ -699,8 +831,7 @@
     next.textContent = "▶";
     next.setAttribute("aria-label", "Next day");
     next.addEventListener("click", function () {
-      day = csm().shiftYmd ? csm().shiftYmd(day, 1) : day;
-      renderWorld();
+      goDay(1);
     });
     var fmt = document.createElement("button");
     fmt.type = "button";
@@ -805,6 +936,7 @@
       box.hidden = false;
       box.classList.remove("hidden");
       renderWorld();
+      loadMeetings();
       if (tick) clearInterval(tick);
       tick = setInterval(function () {
         if (box.hidden) return;
@@ -812,6 +944,7 @@
         if (add && document.activeElement === add) return;
         if (sorting) return;
         renderWorld();
+        loadMeetings();
       }, 30000);
     });
   }

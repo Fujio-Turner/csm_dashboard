@@ -26,6 +26,12 @@ LOGO_MAX_BYTES = 1_500_000
 OPEN_TICKET = {"open", "in_progress", "waiting"}
 PERSON_FUNCTIONS = ("Ops", "Accounting", "DBA")
 TASK_KINDS = ("Action item(s)", "Follow up(s)", "Review(s)", "More Detail(s)")
+LOOKBACK_CHOICES = (14, 90, 365)
+REFRESH_MIN_DEFAULT = 5
+REFRESH_MIN_MIN = 1
+REFRESH_MIN_MAX = 1440
+COVERAGE_MODES = ("new", "view", "takeover", "covering")
+VIEWER_KINDS = ("manager", "csm", "rep")
 PROJECT_KINDS = ("implementation", "qbr", "training", "migration", "other")
 PROJECT_STATUSES = ("planned", "active", "blocked", "done", "cancelled")
 _FUNC_CANON = {name.lower(): name for name in PERSON_FUNCTIONS}
@@ -38,6 +44,67 @@ REF_PROJECT_COLLECTIONS = {
     "salesforce_opportunities",
     "salesforce_cases",
 }
+
+
+def lookback_days(account: dict | None, *, default: int = 14) -> int:
+    raw = ((account or {}).get("coverage") or {}).get("lookback_days")
+    try:
+        days = int(raw)
+    except (TypeError, ValueError):
+        days = default
+    return days if days in LOOKBACK_CHOICES else default
+
+
+def refresh_minutes(account: dict | None, *, default: int = REFRESH_MIN_DEFAULT) -> int:
+    raw = ((account or {}).get("coverage") or {}).get("refresh_minutes")
+    try:
+        minutes = int(raw)
+    except (TypeError, ValueError):
+        minutes = default
+    return max(REFRESH_MIN_MIN, min(REFRESH_MIN_MAX, minutes))
+
+
+def normalize_coverage(raw, *, require_owner: bool = False) -> dict:
+    data = raw if isinstance(raw, dict) else {}
+    mode = str(data.get("mode") or "view").strip().lower()
+    if mode not in COVERAGE_MODES:
+        mode = "view"
+    viewer = str(data.get("viewer_kind") or "").strip().lower()
+    if viewer not in VIEWER_KINDS:
+        viewer = "csm" if mode == "view" else ""
+    if mode != "view":
+        viewer = ""
+    default_days = 90 if mode in {"takeover", "covering"} else 14
+    try:
+        days = int(data.get("lookback_days") or default_days)
+    except (TypeError, ValueError):
+        days = default_days
+    if days not in LOOKBACK_CHOICES:
+        days = default_days
+    prev = str(data.get("previous_owner_email") or "").strip().lower()
+    until = str(data.get("until") or "").strip()[:10]
+    if require_owner and mode in {"takeover", "covering"} and "@" not in prev:
+        raise ValueError("previous_owner_email required")
+    if require_owner and mode == "covering" and len(until) < 10:
+        raise ValueError("until required")
+    from csm_dashboard.connectors.registry import PULL_CONNECTORS
+
+    feeds: list[str] = []
+    for name in data.get("feeds") or []:
+        key = str(name or "").strip()
+        if key in PULL_CONNECTORS and key not in feeds:
+            feeds.append(key)
+    return {
+        "mode": mode,
+        "viewer_kind": viewer,
+        "previous_owner_email": prev if mode in {"takeover", "covering"} else "",
+        "until": until if mode == "covering" else "",
+        "lookback_days": days,
+        "feeds": feeds,
+        "mine_people": True if "mine_people" not in data else bool(data.get("mine_people")),
+        "refresh_minutes": refresh_minutes({"coverage": data}, default=REFRESH_MIN_DEFAULT),
+        "auto_draft_replies": bool(data.get("auto_draft_replies")),
+    }
 
 
 def utcnow() -> str:
@@ -401,6 +468,9 @@ def _person_blob(row: dict) -> str:
         row.get("name"),
         row.get("email"),
         row.get("title"),
+        row.get("phone"),
+        row.get("group"),
+        row.get("job_description"),
         row.get("location"),
         row.get("role"),
         row.get("kind"),
@@ -608,6 +678,10 @@ class CsmRepo:
             op["timezone"] = _norm_timezone(str(op.get("timezone") or ""))
             if "timezones" in incoming_op:
                 op["timezones"] = _norm_timezone_list(incoming_op.get("timezones"))
+            if "persona" in incoming_op or "persona" in op:
+                op["persona"] = str(op.get("persona") or "csm").strip() or "csm"
+            if "intent" in incoming_op or "intent" in op:
+                op["intent"] = str(op.get("intent") or "").strip()[:4000]
             incoming["operator"] = op
         wc_in = incoming.get("world_clock") if isinstance(incoming.get("world_clock"), dict) else None
         op_now = incoming.get("operator") if isinstance(incoming.get("operator"), dict) else current.get("operator") or {}
@@ -793,6 +867,7 @@ class CsmRepo:
             "next_action": body.get("next_action") or {},
             "stats": body.get("stats") or {},
             "sources": body.get("sources") or {},
+            "coverage": normalize_coverage(body.get("coverage"), require_owner=bool(body.get("coverage"))),
             "created_at": now,
             "updated_at": now,
         }
@@ -838,6 +913,9 @@ class CsmRepo:
         for key in ("name", "color", "connectors", "team", "contract", "next_action"):
             if key in patch:
                 doc[key] = patch[key]
+        if "coverage" in patch and isinstance(patch.get("coverage"), dict):
+            merged = {**(doc.get("coverage") or {}), **(patch.get("coverage") or {})}
+            doc["coverage"] = normalize_coverage(merged, require_owner=False)
         if "domains" in patch:
             doc["domains"] = _norm_domains(patch.get("domains"))
         if "quiet" in patch:
@@ -858,6 +936,49 @@ class CsmRepo:
         doc["updated_at"] = utcnow()
         self.store.save("accounts", account_id, doc)
         return _attach(doc, account_id) or doc
+
+    def reattach_unassigned(self, account_id: str) -> dict:
+        from csm_dashboard.ingest.route import route_event
+
+        acct = self.get_account(account_id)
+        if not acct:
+            raise KeyError(account_id)
+        aid = str(acct.get("account_id") or account_id)
+        ours = self.operator_domains()
+        books = [acct]
+        counts = {"emails": 0, "calendar_events": 0, "threads": 0}
+        for row in self.store.query_all("emails"):
+            if str(row.get("account_id") or "").strip():
+                continue
+            got = route_event(books, {"kind": "email", "payload": row}, operator_domains=ours)
+            if got != aid:
+                continue
+            eid = str(row.get("_id") or "")
+            if not eid:
+                continue
+            row["account_id"] = aid
+            self.store.save("emails", eid, row)
+            counts["emails"] += 1
+            tid = str(row.get("thread_id") or "")
+            if tid:
+                thr = self.store.get("threads", tid)
+                if thr is not None and not str(thr.get("account_id") or "").strip():
+                    thr["account_id"] = aid
+                    self.store.save("threads", tid, thr)
+                    counts["threads"] += 1
+        for row in self.store.query_all("calendar_events"):
+            if str(row.get("account_id") or "").strip():
+                continue
+            got = route_event(books, {"kind": "calendar_event", "payload": row}, operator_domains=ours)
+            if got != aid:
+                continue
+            cid = str(row.get("_id") or "")
+            if not cid:
+                continue
+            row["account_id"] = aid
+            self.store.save("calendar_events", cid, row)
+            counts["calendar_events"] += 1
+        return counts
 
     def list_accounts(
         self,
@@ -899,13 +1020,31 @@ class CsmRepo:
         name = str(body.get("name") or "").strip()
         if not name:
             raise ValueError("name required")
+        email = str(body.get("email") or "").strip()
+        aid = body.get("account_id") or ""
+        if email and aid:
+            found = self.find_person_by_email(aid, email)
+            if found:
+                pid = str(found.get("_id") or found.get("person_id") or "")
+                if pid:
+                    patch = {}
+                    for key in ("name", "title", "phone", "group", "job_description", "location"):
+                        incoming = str(body.get(key) or "").strip()
+                        if incoming and not str(found.get(key) or "").strip():
+                            patch[key] = incoming
+                    if patch:
+                        return self.patch_person(pid, patch)
+                    return found
         doc = {
             "type": "person",
-            "account_id": body.get("account_id") or "",
+            "account_id": aid,
             "kind": body.get("kind") or "customer",
             "name": name,
-            "email": str(body.get("email") or "").strip(),
+            "email": email,
             "title": str(body.get("title") or "").strip(),
+            "phone": str(body.get("phone") or "").strip(),
+            "group": str(body.get("group") or "").strip(),
+            "job_description": str(body.get("job_description") or "").strip(),
             "location": str(body.get("location") or "").strip(),
             "role": body.get("role") or "other",
             "reports_to": str(body.get("reports_to") or "").strip(),
@@ -918,7 +1057,17 @@ class CsmRepo:
             "updated_at": now,
         }
         self.store.save("people", doc_id, doc)
+        self._touch_rollup(aid)
         return _attach(doc, doc_id) or doc
+
+    def find_person_by_email(self, account_id: str, email: str) -> dict | None:
+        needle = str(email or "").strip().lower()
+        if not needle or "@" not in needle:
+            return None
+        for row in self._account_rows("people", account_id):
+            if str(row.get("email") or "").strip().lower() == needle:
+                return row
+        return None
 
     def get_person(self, person_id: str) -> dict | None:
         return _attach(self.store.get("people", person_id), person_id)
@@ -927,7 +1076,19 @@ class CsmRepo:
         doc = self.store.get("people", person_id)
         if not doc:
             raise KeyError(person_id)
-        for key in ("name", "email", "title", "location", "role", "kind", "reports_to", "external_ids"):
+        for key in (
+            "name",
+            "email",
+            "title",
+            "phone",
+            "group",
+            "job_description",
+            "location",
+            "role",
+            "kind",
+            "reports_to",
+            "external_ids",
+        ):
             if key in patch:
                 doc[key] = patch[key]
         if "project_ids" in patch:
@@ -938,18 +1099,22 @@ class CsmRepo:
             doc["owns_all_projects"] = bool(patch.get("owns_all_projects"))
         doc["updated_at"] = utcnow()
         self.store.save("people", person_id, doc)
+        self._touch_rollup(str(doc.get("account_id") or ""))
         return _attach(doc, person_id) or doc
 
     def list_people(
         self,
-        account_id: str,
+        account_id: str | None = None,
         *,
         kind: str | None = None,
         q: str | None = None,
         project_id: str | None = None,
         function: str | None = None,
     ) -> list[dict]:
-        rows = self._account_rows("people", account_id)
+        if account_id:
+            rows = self._account_rows("people", account_id)
+        else:
+            rows = self.store.query_all("people")
         if kind:
             rows = [r for r in rows if r.get("kind") == kind]
         if project_id:
@@ -997,6 +1162,7 @@ class CsmRepo:
         }
         self.store.save("projects", doc_id, doc)
         self._link_project_owner(doc_id, doc.get("owner_person_id") or "")
+        self._touch_rollup(str(doc.get("account_id") or ""))
         return _attach(doc, doc_id) or doc
 
     def get_project(self, project_id: str) -> dict | None:
@@ -1037,6 +1203,7 @@ class CsmRepo:
         doc["removed"] = True
         doc["updated_at"] = utcnow()
         self.store.save("projects", project_id, doc)
+        self._touch_rollup(str(doc.get("account_id") or ""))
         return _attach(doc, project_id) or doc
 
     def _link_project_owner(self, project_id: str, person_id: str) -> None:
@@ -1234,6 +1401,7 @@ class CsmRepo:
                 doc["operator"] = existing["operator"]
         else:
             doc.setdefault("operator", {"unread": True})
+        is_new = not existing
         self.store.save("emails", eid, doc)
         thread = self.get_thread(thread_id) or {
             "type": "thread",
@@ -1261,7 +1429,9 @@ class CsmRepo:
         self.store.save("threads", thread_id, thread)
         aid = str(doc.get("account_id") or "")
         self._touch_rollup(aid)
-        return _attach(doc, eid) or doc
+        out = dict(_attach(doc, eid) or doc)
+        out["_new"] = is_new
+        return out
 
     def save_task(self, body: dict, *, email_id: str | None = None) -> dict:
         aid = str(body.get("account_id") or "").strip()
@@ -1368,6 +1538,8 @@ class CsmRepo:
         op = dict(doc.get("operator") or {})
         if "unread" in patch:
             op["unread"] = bool(patch["unread"])
+        if "auto_draft_id" in patch:
+            op["auto_draft_id"] = str(patch.get("auto_draft_id") or "")
         doc["operator"] = op
         self.store.save("emails", email_id, doc)
         return _attach(doc, email_id) or doc
@@ -1910,6 +2082,7 @@ class CsmRepo:
             "updated_at": now,
             "sent_at": "",
             "send_error": "",
+            "gmail_draft_id": body.get("gmail_draft_id") or "",
         }
         self.store.save("drafts", doc_id, doc)
         return _attach(doc, doc_id) or doc
@@ -1921,7 +2094,16 @@ class CsmRepo:
         doc = self.store.get("drafts", draft_id)
         if not doc:
             raise KeyError(draft_id)
-        for key in ("subject", "body", "to_addrs", "cc_addrs", "bcc_addrs", "attachment_names", "status"):
+        for key in (
+            "subject",
+            "body",
+            "to_addrs",
+            "cc_addrs",
+            "bcc_addrs",
+            "attachment_names",
+            "status",
+            "gmail_draft_id",
+        ):
             if key in patch:
                 doc[key] = patch[key]
         doc["updated_at"] = utcnow()
@@ -2038,6 +2220,28 @@ class CsmRepo:
         rows = self.store.query_all("sync_jobs")
         rows.sort(key=lambda r: str(r.get("updated_at") or ""), reverse=True)
         return rows
+
+    def get_sync_cursor(self, connector: str) -> dict:
+        key = str(connector or "").strip()
+        if not key:
+            return {}
+        return self.store.get("settings", f"sync_cursor:{key}") or {}
+
+    def put_sync_cursor(self, connector: str, patch: dict) -> dict:
+        key = str(connector or "").strip()
+        if not key:
+            raise ValueError("connector required")
+        doc = {
+            **(self.get_sync_cursor(key) or {}),
+            **(patch or {}),
+            "type": "sync_cursor",
+            "connector": key,
+            "updated_at": utcnow(),
+        }
+        if not doc.get("pulled_at"):
+            doc["pulled_at"] = utcnow()
+        self.store.save("settings", f"sync_cursor:{key}", doc)
+        return doc
 
     # -- activities --------------------------------------------------------
 
@@ -2521,17 +2725,33 @@ class CsmRepo:
 
         out["team"] = {"account": _expand(team.get("account")), "ps": _expand(team.get("ps"))}
         aid = out.get("account_id") or out.get("_id") or ""
-        cached = out.get("input_counts")
-        if isinstance(cached, dict) and cached.get("refreshed_at"):
-            out["input_counts"] = cached
-        else:
-            out["input_counts"] = self.refresh_input_counts(aid)
+        live = self._compute_input_counts(aid)
+        cached = out.get("input_counts") if isinstance(out.get("input_counts"), dict) else {}
+        if self._counts_stale(cached, live):
+            self._persist_input_counts(aid, live)
+            log.info("csm.account.counts_healed account_id=%s", aid)
+        out["input_counts"] = live
         return out
 
-    def refresh_input_counts(self, account_id: str) -> dict:
+    _COUNT_KEYS = (
+        "timeline",
+        "tickets",
+        "email",
+        "slack",
+        "teams",
+        "chat",
+        "salesforce",
+        "calendar",
+        "projects",
+        "people",
+        "orgchart",
+        "accountteam",
+    )
+
+    def _compute_input_counts(self, account_id: str) -> dict:
         slack = self._count("slack_messages", account_id)
         teams = self._count("teams_messages", account_id)
-        counts = {
+        return {
             "timeline": self._count("activities", account_id),
             "tickets": self._count("tickets", account_id),
             "email": self._count("threads", account_id),
@@ -2549,11 +2769,23 @@ class CsmRepo:
             ),
             "refreshed_at": utcnow(),
         }
+
+    def _persist_input_counts(self, account_id: str, counts: dict) -> None:
         acct = self.store.get("accounts", account_id)
-        if acct:
-            acct["input_counts"] = counts
-            acct["updated_at"] = utcnow()
-            self.store.save("accounts", account_id, acct)
+        if not acct:
+            return
+        acct["input_counts"] = counts
+        acct["updated_at"] = utcnow()
+        self.store.save("accounts", account_id, acct)
+
+    def _counts_stale(self, cached: dict, live: dict) -> bool:
+        if not cached.get("refreshed_at"):
+            return True
+        return any(int(cached.get(key) or 0) != int(live.get(key) or 0) for key in self._COUNT_KEYS)
+
+    def refresh_input_counts(self, account_id: str) -> dict:
+        counts = self._compute_input_counts(account_id)
+        self._persist_input_counts(account_id, counts)
         return counts
 
     def account_input_counts(self, account_id: str) -> dict:
@@ -2568,18 +2800,34 @@ class CsmRepo:
         from csm_dashboard.config import load_settings
 
         cfg = load_settings()
-        email = str(stored.get("email") or cfg.operator_email or "").strip()
+        stored_email = str(stored.get("email") or "").strip()
+        email = stored_email or str(cfg.operator_email or "").strip()
+        name = str(stored.get("name") or "").strip()
+        if not name:
+            if stored_email and "@" in stored_email:
+                local = stored_email.split("@", 1)[0]
+                name = " ".join(
+                    p.capitalize()
+                    for p in local.replace(".", " ").replace("_", " ").replace("-", " ").split()
+                    if p
+                )
+            if not name:
+                name = str(cfg.operator_name or "").strip()
         home = _norm_timezone(str(stored.get("timezone") or ""))
         zones = _norm_timezone_list(stored.get("timezones"))
         if not zones:
             zones = [home]
+        persona = str(stored.get("persona") or "csm").strip() or "csm"
+        intent = str(stored.get("intent") or "").strip()[:4000]
         return {
-            "name": str(stored.get("name") or cfg.operator_name or "").strip(),
+            "name": name,
             "phone": str(stored.get("phone") or "").strip(),
             "email": email,
             "timezone": home,
             "timezones": zones,
             "role": str(stored.get("role") or cfg.operator_role or "csm").strip(),
+            "persona": persona,
+            "intent": intent,
             "domains": _norm_domains(stored.get("domains") or ([email.rsplit("@", 1)[-1]] if "@" in email else [])),
         }
 

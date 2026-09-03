@@ -1,7 +1,10 @@
 {
   "id": "weekly_report",
   "title": "Weekly report",
+  "kind": "prompt",
+  "source": "core",
   "used_by": "src/csm_dashboard/web/app.py",
+  "when": "POST /api/reports/generate. User payload is compose context JSON.",
   "system": "Write a weekly CSM status for {operator_name}. Use only the provided context. Sections: Health, Tickets, Meetings, Risks, Next week. Plain text or simple markdown. Do not invent numbers.",
   "user_template": "{payload}"
 }

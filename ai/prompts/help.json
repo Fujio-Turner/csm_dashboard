@@ -1,0 +1,1004 @@
+{
+  "id": "help",
+  "kind": "ui",
+  "source": "core",
+  "used_by": "src/csm_dashboard/web/app.py",
+  "when": "GET /api/help. How-do-I tiles. Not sent to a model.",
+  "title": "Help",
+  "groups": [
+    {
+      "id": "find",
+      "title": "I want to…",
+      "items": [
+        {
+          "id": "mentions",
+          "h": "How do I tag a company or a person?",
+          "blocks": [
+            {
+              "p": "Three prefixes. Type one and a menu opens. You can chain slash bounds in one question."
+            },
+            {
+              "h3": "The prefixes",
+              "ul": [
+                "#ACME — pick a company. Home chat only. Inside a book, chat already knows the company — # does not list other books.",
+                "/people bob and /ticket ACME-12 — bound the question (search for, not talk to). Chain them: “what was /people bob response to /ticket ACME-12?”",
+                "@bob — talk to that person (address / send). Not how you search the book."
+              ]
+            },
+            {
+              "h3": "Home chat",
+              "ul": [
+                "Type # to pick a company.",
+                "Type / to bound with /people or /ticket (and the other slash types).",
+                "Type @ when you mean to address someone."
+              ]
+            },
+            {
+              "h3": "Inside a company",
+              "ul": [
+                "The thread stays on that book. Do not point at another company.",
+                "Type /people or /ticket in chat to bound. The menu lists people and tickets on this book.",
+                "Book Search (far left) uses the same slash: /people bob, /ticket ACME-12, /email, /chat."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "add-company",
+          "h": "How do I add a company?",
+          "blocks": [
+            {
+              "p": "Settings → Add company opens a seven-stop train. Edit company stays one sheet. Fields marked * are required. Tip buttons explain each field."
+            },
+            {
+              "h3": "The stops",
+              "ul": [
+                "Role — Brand new (you own it, no handoff), View only (Manager / CSM / Rep), Takeover, or Covering (temp co-owner). Takeover and covering need the other person’s email. Covering needs an until date.",
+                "Book — name, slug (permanent), abbr, color, optional logo. Placeholders use Acme Inc.",
+                "Customer domain(s) — email domains (acme.com). That is how mail and calendar attach. Not a people list.",
+                "Feeds — tiles for IMAP, Gmail, Microsoft 365, Jira, Slack, Teams, Salesforce, Google Calendar, M365 Calendar. Tick what should fill this book. Finish only pulls feeds that are already live.",
+                "Look back — 14, 90, or 365 days for mail and calendar. This is the first-pull window in YOUR mailbox, not a dump of the whole account. Cap 200 messages. Auto-refresh every N minutes (default 5) keeps new mail and meetings coming after that.",
+                "People — mine customer people from mail, meetings, tickets, Slack, and Teams, de-duped by email. Last, First and first.last@domain become a name. Title, group, phone, and job description when those feeds have them. You tick who to add after Finish.",
+                "Attach — Finish saves the book, pulls the ticked live feeds, then shows a processing report (emails, meetings, tickets, Slack, people). You can add or fix a domain (acme.co.uk, or a typo like accme.com) and reprocess one feed or all of them, then tick people to add."
+              ]
+            },
+            {
+              "h3": "What it will not do",
+              "ul": [
+                "Open a former CSM’s mailbox. Pull is always your Google account.",
+                "Rewrite task To:Me on covering. Takeover stores that you own the book.",
+                "Resend calendar invites as you."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "project-owner",
+          "h": "How do I find the project owner?",
+          "blocks": [
+            {
+              "h3": "On the book",
+              "ul": [
+                "Open the company (Home → Companies, or the breadcrumb).",
+                "Click the projects tab.",
+                "The owner is on the row, after the project type.",
+                "Search the project name if the list is long. Click the row to see the full owner picker."
+              ]
+            },
+            {
+              "h3": "Ask chat",
+              "p": "On the right, ask: “Who owns Warehouse scan rollout on #ACME?” On Home, type # to pick the company. Inside a book, skip # — type @ if you need a person."
+            }
+          ]
+        },
+        {
+          "id": "ticket-priority",
+          "h": "Which ticket has the highest priority?",
+          "blocks": [
+            {
+              "h3": "On the tickets tab",
+              "ul": [
+                "Open the book → tickets.",
+                "Each row shows priority · status on the right (Highest / High / Medium / Low, or P1–P4 from Jira).",
+                "Type /ticket in Search, then a key or word, for example /ticket P1 or /ticket ACME-12."
+              ]
+            },
+            {
+              "h3": "Ask chat",
+              "p": "“Which ticket has the highest priority on #ACME?” Chat only uses tickets that are already in this desk — it does not invent keys."
+            }
+          ]
+        },
+        {
+          "id": "tasks-due",
+          "h": "What tasks are due this week?",
+          "blocks": [
+            {
+              "h3": "On Home Agenda",
+              "ul": [
+                "Stay on Home → Agenda.",
+                "In New mail / chat / tasks, open Filter and tick Tasks.",
+                "Rows with a due date show it in amber. Scan this week’s dates."
+              ]
+            },
+            {
+              "h3": "Ask chat",
+              "p": "“What tasks are due this week?” or “What is due on #NWIN?” A task is a mail to yourself, not a Jira ticket."
+            }
+          ]
+        },
+        {
+          "id": "assign-task",
+          "h": "How do I assign a task to someone else?",
+          "blocks": [
+            {
+              "p": "A task is still your mail. There is no separate assignee field. CC the person so they get a copy."
+            },
+            {
+              "h3": "Steps",
+              "ul": [
+                "On Agenda, click + in New mail / chat / tasks (or Compose → treat it as a task).",
+                "Pick the company. Name the task.",
+                "In CC, add people from that book (Tagify chips). They are the people who should act.",
+                "Set When Due By in the body. AI Suggest can fill name, due, CC, and note from the book.",
+                "Save draft or Send. Send asks you to confirm when SMTP is live."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "drafts-only",
+          "h": "How do I look through emails that are in draft only?",
+          "blocks": [
+            {
+              "p": "Save draft writes the message to Gmail Drafts when Google is connected with compose access. The desk also keeps a copy on that book. There is no Drafts folder on the email tab yet."
+            },
+            {
+              "h3": "What you can do today",
+              "ul": [
+                "Save draft — Gmail Drafts if Sign in with Google allowed sending and composing; otherwise the desk copy only.",
+                "Open Gmail → Drafts to keep editing there. Send from the desk removes that Gmail draft.",
+                "The email tab lists threads (sent and received), not unsent drafts."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "auto-draft",
+          "h": "How do I auto-draft replies into Gmail Drafts?",
+          "blocks": [
+            {
+              "p": "Per company. When AI Suggest Response to Draft is on, new mail with you on To: gets a Grok reply from that book’s tickets, Slack/Teams, people, past mail, and your intent, then lands in Gmail Drafts. You still Send."
+            },
+            {
+              "h3": "Steps",
+              "ul": [
+                "Settings → Companies → Edit the book.",
+                "Turn on AI Suggest Response to Draft. Save.",
+                "Sign in with Google must allow composing (Gmail Drafts). Send-only is not enough.",
+                "New inbound To: you is drafted on the next Gmail refresh. Turning it on also backfills recent matching mail (capped).",
+                "Open Gmail → Drafts, edit, or Send from the desk. Mail only on Cc/Bcc is skipped."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "chat-on-ticket",
+          "h": "How do I search for an old chat on a ticket?",
+          "blocks": [
+            {
+              "h3": "In the book search",
+              "ul": [
+                "Open the book.",
+                "In Search, type /chat and the ticket key, for example /chat ACME-12.",
+                "Or /slack ACME-12 or /teams ACME-12 — Slack and Teams share the slack / teams tab."
+              ]
+            },
+            {
+              "h3": "Timeline",
+              "p": "Open timeline and look for Slack or Teams thumbs near that ticket’s time. Use Past 7 / Past 30 if it is older than the default window."
+            },
+            {
+              "h3": "Ask chat",
+              "p": "“Find Slack about ACME-12 on #ACME.”"
+            }
+          ]
+        },
+        {
+          "id": "on-fire",
+          "h": "What's on fire this morning?",
+          "blocks": [
+            {
+              "h3": "On Home",
+              "ul": [
+                "Agenda: red Now line plus unread mail, Slack, Teams, and amber-due tasks.",
+                "Companies: tiles show health (watch / at risk / critical), open P1s, and the next meeting.",
+                "Click a tile that looks bad. The book opens on timeline around Now."
+              ]
+            },
+            {
+              "h3": "Ask chat",
+              "p": "On Home chat (no book open): “What is on fire at #ACME?” or “What tasks are due this week?” Chat only names tickets and people already on this desk."
+            }
+          ]
+        },
+        {
+          "id": "they-replied",
+          "h": "Did they reply to my last email?",
+          "blocks": [
+            {
+              "h3": "On the book",
+              "ul": [
+                "Open the company → email.",
+                "Open the thread. Newest message is last.",
+                "Or timeline: look for inbound mail (down) after your outbound (up)."
+              ]
+            },
+            {
+              "h3": "Ask chat",
+              "p": "With the book open, type /people and pick: “Did /people bob reply to my last email?” On Home, add #ACME. Chat answers yes/no from timestamps. It does not send a nudge."
+            }
+          ]
+        },
+        {
+          "id": "wrong-book",
+          "h": "How do I keep one company's mail off another book?",
+          "blocks": [
+            {
+              "p": "Books split on domains and connector tags, not on the subject line. ACME mail must not land on Northwind."
+            },
+            {
+              "h3": "Check the book",
+              "ul": [
+                "Settings → Companies → Edit that book.",
+                "Domains: acme.com, acme.co.uk — inbound From/To those domains join this book.",
+                "Slack / Teams / Jira / Salesforce tags on the same screen pin chat and tickets."
+              ]
+            },
+            {
+              "h3": "If a row looks wrong",
+              "ul": [
+                "Open the card. Color chip and abbreviation must match the company you meant.",
+                "Fix domains on Edit company, then Refresh health. Do not forward the mail to “fix” it."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "start",
+      "title": "Start here",
+      "items": [
+        {
+          "id": "what",
+          "h": "How do I use this desk?",
+          "blocks": [
+            {
+              "p": "This is a local Customer Success Manager desk. One operator, many customer books. Tickets, mail, Slack, Teams, Salesforce, and calendar sit on one account so you do not reply to the wrong company."
+            },
+            {
+              "h3": "Typical path",
+              "ul": [
+                "Home → Agenda for today.",
+                "Companies to open a book.",
+                "Tabs on the book for tickets, email, slack / teams, projects, people.",
+                "Desk chat on the right — # picks a company on Home. Inside a book, /people and /ticket bound the question. @ talks to someone."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "morning",
+          "h": "How do I start my morning?",
+          "blocks": [
+            {
+              "ul": [
+                "Home → Agenda. The red line is Now. Meetings for today are on the left.",
+                "On the right, scan New mail / chat / tasks. Me / Us / Them tells you who the row is to.",
+                "Home → Companies if you need health and next meeting on every book at once.",
+                "Open the first book you owe. Timeline around Now is the story; tickets and email are the proof.",
+                "Ask chat after the book is open, or on Home type # to pick the company so it does not guess."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "limits",
+          "h": "What will this desk not do?",
+          "blocks": [
+            {
+              "ul": [
+                "It will not send mail, Slack, Teams, or a calendar invite until you confirm Send (SMTP must be on).",
+                "Chat never invents ticket keys, meeting times, or people who are not on the book.",
+                "There is no Drafts folder on the email tab. Save draft keeps a copy on that book and, when Google allows it, in Gmail Drafts.",
+                "This is not a second Salesforce. Opportunities and cases that are already synced show on the Salesforce tab.",
+                "Keys and the database stay on this machine. There is no login on the desk itself."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "colors",
+          "h": "How do I tell companies apart?",
+          "blocks": [
+            {
+              "ul": [
+                "Every book has a color chip and a 2–6 character abbreviation (ACME, NWIN, GLX).",
+                "They follow every row, tile, and chat so books never mix. In chat that abbreviation is #ACME.",
+                "Set color and logo under Settings → Companies → Edit."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "search-help",
+          "h": "How do I search this Help page?",
+          "blocks": [
+            {
+              "ul": [
+                "The box at the top filters How-do-I tiles as you type.",
+                "Typos are fine — timezome still finds timezones. Matching words highlight.",
+                "Chips under the box jump to a group. Clear the box to see every tile again."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "day",
+      "title": "A working day",
+      "items": [
+        {
+          "id": "prep-meeting",
+          "h": "How do I prep for my next meeting?",
+          "blocks": [
+            {
+              "h3": "From Agenda",
+              "ul": [
+                "Click the next meeting card (logo on the left, minutes on the right).",
+                "The lightbox is that event. Note who is on it.",
+                "Open the book from the chip or breadcrumb."
+              ]
+            },
+            {
+              "h3": "On the book",
+              "ul": [
+                "Timeline around Now — last mail, Slack, and tickets before the call.",
+                "People / org chart if you need who reports to whom.",
+                "World clock (the digital clock) if they are not in your timezone."
+              ]
+            },
+            {
+              "h3": "Ask chat",
+              "p": "“What should I know before the QBR on #ACME?” It only uses this book. It will not put an invite on the calendar."
+            }
+          ]
+        },
+        {
+          "id": "after-call",
+          "h": "How do I follow up after a call?",
+          "blocks": [
+            {
+              "ul": [
+                "Open the meeting or the ticket you just discussed.",
+                "Notes at the bottom of the lightbox — what you promised, in your words. Save note.",
+                "If you owe mail: Compose or Reply. AI Suggest can draft from the book. Save draft or Send (confirm).",
+                "If you owe yourself work: Agenda → + for a task. CC the customer if they should see it.",
+                "Assign the mail or ticket to the project so it stays on that work, not just the company."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "qbr-week",
+          "h": "How do I get ready for a QBR?",
+          "blocks": [
+            {
+              "ul": [
+                "Open the book. Timeline Past 30 / Next 30 around Now.",
+                "Tickets: open P1s and anything still waiting.",
+                "Projects: status and owner. Blocked is the one to say out loud.",
+                "Email / slack / teams: last customer line vs last us line.",
+                "Ask chat: “QBR topics and wins on #ACME last 90 days.” It lists keys already on the book — it does not write slides."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "end-of-day",
+          "h": "How do I close out the day?",
+          "blocks": [
+            {
+              "ul": [
+                "Agenda → Tasks. Anything due today or overdue in amber.",
+                "New mail / chat still unread? Open the thread — opening it marks mail read.",
+                "Leave a note on the ticket or meeting if tomorrow-you will not remember the call.",
+                "Do not rely on chat history for promises. A task or a note on the card is the record."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "offshore-time",
+          "h": "How do I pick a time with an offshore team?",
+          "blocks": [
+            {
+              "ul": [
+                "Click the digital clock above Desk chat.",
+                "Add their city (search is typo-tolerant). You stay on the You row.",
+                "Hover a column. Click two hours to mark a window.",
+                "Propose that window in mail — the desk will not send a calendar invite."
+              ]
+            },
+            {
+              "h3": "Ask chat",
+              "p": "“What’s a good time next week for #ACME SSO with the India team?” It suggests windows from past meetings and locations. It does not create the event."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "home",
+      "title": "Home",
+      "items": [
+        {
+          "id": "agenda",
+          "h": "How do I see today on Agenda?",
+          "blocks": [
+            {
+              "h3": "Meetings (left)",
+              "ul": [
+                "Day / Week / Month at the top.",
+                "Arrows change the day. The red line is Now.",
+                "A meeting card shows the company logo on the left and duration minutes on the right."
+              ]
+            },
+            {
+              "h3": "New mail / chat / tasks (right)",
+              "ul": [
+                "Newest first. Filter is one control: To (Me / Us / Them / All / ??, multi), type (Email / Slack / Teams / Tasks, multi), From, and when (Today / Yesterday / Last 7 days / custom range).",
+                "Far right of a row is who it is to: Me / Us / Them / All / ?? / n/a.",
+                "+ creates a task — a mail to yourself. Subject is Tasks: Company : name {type}.",
+                "Refresh (next to Agenda / Companies) one-shots Gmail and Calendar for new, changed, and cancelled rows. The desk also does that on a timer (default every 5 minutes per company; shortest interval wins). Checkpoints stay in Couchbase Lite — not a standing Google connection."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "who-stamps",
+          "h": "What does Me / Us / Them mean on a row?",
+          "blocks": [
+            {
+              "p": "That stamp is who the mail or chat is to, from your point of view. It is not stored on the message."
+            },
+            {
+              "ul": [
+                "Me — To you (your operator email).",
+                "Us — To your side (your domain, account team).",
+                "Them — To the customer.",
+                "All — mixed To/Cc, or a Slack/Teams channel.",
+                "?? — the desk could not tell. n/a — does not apply (a task to yourself)."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "agenda-project",
+          "h": "How do I filter Agenda to one project?",
+          "blocks": [
+            {
+              "ul": [
+                "On Agenda, the Company : Project control (next to Filter).",
+                "Pick a book, or a book:project such as ACME:SSO hardening.",
+                "Inbox rows with that project_id stay. Meetings for the day still show; the filter is for mail / chat / tasks.",
+                "Set it back to All (or Company : Project) to see every book again."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "week-month",
+          "h": "How do I see next week or the whole month?",
+          "blocks": [
+            {
+              "ul": [
+                "Agenda → Week or Month (next to Day).",
+                "Arrows walk by week or by month. Click a day on Month to open that Day.",
+                "User Preferences can hide Saturday and Sunday and set which day the week begins."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "companies-tab",
+          "h": "How do I open a customer book?",
+          "blocks": [
+            {
+              "ul": [
+                "Home → Companies.",
+                "Each tile is one book: health, next meeting, and counts.",
+                "Click a tile. The book opens on the left; chat on the right stays scoped to that book."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "at-risk",
+          "h": "How do I see which books are at risk?",
+          "blocks": [
+            {
+              "ul": [
+                "Home → Companies. Health words: healthy, watch, at risk, critical.",
+                "Filter the board with the search box (name or abbr).",
+                "Refresh health (far right) after you close tickets or load seed — scores are computed on this desk.",
+                "Quiet on Settings → Companies hides a book from Home without deleting it."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chat",
+      "title": "Chat",
+      "items": [
+        {
+          "id": "desk-chat",
+          "h": "How do I ask the desk a question?",
+          "blocks": [
+            {
+              "ul": [
+                "The right pane is always chat.",
+                "On Home it covers the whole desk. With a book open it is only about that account.",
+                "On Home, type # to pick a company. Inside a book, skip # — this thread stays on that company.",
+                "/people and /ticket bound the question. You can chain them.",
+                "@ talks to a person (address / send). Use /people when you mean search for them.",
+                "Example: “what was /people bob response to /ticket ACME-12?”"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "chat-tags",
+          "h": "What do #, @, and / mean in chat?",
+          "blocks": [
+            {
+              "p": "Same prefixes as book Search. Slash bounds a question. @ addresses a person. # picks a company on Home only."
+            },
+            {
+              "h3": "Type the prefix",
+              "ul": [
+                "Type / — bound this question. /people lists people, /ticket lists tickets. Chain: “what was /people bob response to /ticket ACME-12?”",
+                "Type @ — talk to that person (a message / address). The menu is people on this book (or every book on Home).",
+                "Type # — companies, on Home only. Inside Acme (or any book) chat does not point at another company."
+              ]
+            },
+            {
+              "h3": "Book Search",
+              "ul": [
+                "Far left on the open book. Type /people bob to find a person, /ticket ACME-12 for a ticket, /email, /chat, /project.",
+                "That is search. @ in chat is talk-to, not search."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "desk-wide",
+          "h": "How do I ask a question across every book?",
+          "blocks": [
+            {
+              "ul": [
+                "Stay on Home (no book open) so chat is desk-wide.",
+                "Ask: “What tasks are due this week?” or “What is on fire at #ACME?”",
+                "If it asks which book, type # and pick the company, or open the company first.",
+                "History and Bookmark still work. New chat starts a clean thread."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "chat-buttons",
+          "h": "What do Open, Compose, and Add note do?",
+          "blocks": [
+            {
+              "p": "Buttons under an assistant bubble run screens you already have. They never send."
+            },
+            {
+              "ul": [
+                "Open — jumps to the book, ticket, or thread named in the answer.",
+                "Compose — opens the shared mail composer with To / Cc filled when chat proposed them. You still Save draft or Send.",
+                "Add note — same Notes block as a timeline card, on this chat thread.",
+                "Add person / Update title — opens the people sheet when someone on a chain is missing or their title changed."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "chat-no-send",
+          "h": "Why didn't chat send the email?",
+          "blocks": [
+            {
+              "ul": [
+                "On purpose. Chat drafts; you send.",
+                "Use Compose under the bubble, or Compose on the book.",
+                "Send in the lightbox asks you to confirm when SMTP is live.",
+                "If SMTP is off you get send_not_configured — set it under Settings → connectors."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "chat-tools",
+          "h": "How do I find an old desk chat?",
+          "blocks": [
+            {
+              "ul": [
+                "History (clock) lists earlier threads. Click one to reopen it.",
+                "Bookmark pins the current thread.",
+                "New chat starts a clean thread.",
+                "Hover an icon for its name."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "account",
+      "title": "A customer book",
+      "items": [
+        {
+          "id": "slash",
+          "h": "How do I search a customer book?",
+          "blocks": [
+            {
+              "p": "Use the search box at the top of the book (far left). Plain text filters the current tab. Type / to jump type and to find a person."
+            },
+            {
+              "h3": "People — type /people",
+              "ul": [
+                "/people bob — search for that person. Type /people and pick. The people tab opens and filters.",
+                "In chat, /people bob bounds the question. @bob is talk-to, not search."
+              ]
+            },
+            {
+              "h3": "Slash jumps — type /",
+              "ul": [
+                "/ticket ACME-12 — tickets",
+                "/email outage — mail threads",
+                "/chat DC3 — Slack and Teams together",
+                "/slack pin or /teams Bob — still the slack / teams tab",
+                "/project all — people who own every project",
+                "/calendar QBR — meetings",
+                "/sf renewal — Salesforce",
+                "/note call Pat — notes on timeline events"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "timeline",
+          "h": "How do I read the timeline?",
+          "blocks": [
+            {
+              "ul": [
+                "Events run around a Now line.",
+                "Horizontal: past on the left, future on the right.",
+                "Vertical: newest at the top, oldest at the bottom.",
+                "Past 7 / Past 30 and Next 7 / Next 30 bound the window.",
+                "Now recenters after you scroll. Click a card for the lightbox."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "add-note",
+          "h": "How do I leave a note on a ticket or meeting?",
+          "blocks": [
+            {
+              "ul": [
+                "Open the timeline card, ticket, thread, or meeting (click the row).",
+                "Notes is at the bottom of the lightbox, same as chat Add note.",
+                "Type what you would tell tomorrow-you. Save note.",
+                "Notes stay on that card. They are not a mail and they are not a Jira comment."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "compose",
+          "h": "How do I compose or reply?",
+          "blocks": [
+            {
+              "p": "Compose, thread Reply, and New task share one mail composer."
+            },
+            {
+              "h3": "In the lightbox",
+              "ul": [
+                "To / Cc / Bcc are Tagify chips — pick people, do not type a raw list.",
+                "Attach files, then AI Suggest, Save draft, or Send (far right).",
+                "Send asks you to confirm when SMTP is live. If SMTP is off you get send_not_configured."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "unread-mail",
+          "h": "How do I mark mail as read?",
+          "blocks": [
+            {
+              "ul": [
+                "Open the thread on email or from Agenda. Opening it marks the thread read.",
+                "Agenda New mail only lists unread mail (tasks still show even if you opened them).",
+                "There is no separate “mark unread” control on the row yet."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "slack-teams",
+          "h": "How do I read Slack and Teams for one book?",
+          "blocks": [
+            {
+              "ul": [
+                "Open the book → slack / teams (one tab).",
+                "Search /chat, /slack, or /teams plus a word or person.",
+                "Agenda also lists unread Slack and Teams with an All stamp on channels.",
+                "Pins and unread live on the message. This desk does not post back to Slack or Teams."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "salesforce",
+          "h": "How do I see Salesforce on a book?",
+          "blocks": [
+            {
+              "ul": [
+                "Open the book → Salesforce.",
+                "Opportunities and cases that already synced to this book.",
+                "Search /sf renewal or /sf case.",
+                "This is a view of what is here — it does not edit Salesforce."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "book-calendar",
+          "h": "How do I find a meeting on the book calendar?",
+          "blocks": [
+            {
+              "ul": [
+                "Open the book → calendar, or click the card on Home Agenda.",
+                "Search /calendar QBR on the book.",
+                "Home Agenda is your day across every book. The book calendar is that company only."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "people",
+      "title": "People and projects",
+      "items": [
+        {
+          "id": "tag-input",
+          "h": "How do I put mail or a ticket on a project?",
+          "blocks": [
+            {
+              "ul": [
+                "Open the timeline (or mail / ticket) card.",
+                "Assign a project on that card.",
+                "That is how mail, tickets, Slack, Teams, and Salesforce land on the right book of work."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "people-projects",
+          "h": "How do I see who is on a project?",
+          "blocks": [
+            {
+              "ul": [
+                "Open people. Search the project name, or type /people in book Search to pick a person.",
+                "Org chart and Account team are the same people, different views.",
+                "Directors who own every project: check All projects, or type /project all."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "add-person",
+          "h": "How do I add a person from an email chain?",
+          "blocks": [
+            {
+              "ul": [
+                "Open the book → people → Add person (far right).",
+                "Email is the key. Name, title, Reports to, Projects, and Functions are Tagify or search-select.",
+                "In chat or book Search, @bob finds someone already on People. Add person is for a new email that is not on the book yet.",
+                "If chat names someone not on People, use Add person under the bubble — it seeds the email.",
+                "Update title when a signature shows a new role for someone already on the book."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "org-chart",
+          "h": "How do I see who reports to whom?",
+          "blocks": [
+            {
+              "ul": [
+                "Open the book → org chart (customer) or account team (your side).",
+                "Reports to on Add / Edit person builds the tree. Do not point at another company.",
+                "People is the flat list if you only need search."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "project-crud",
+          "h": "How do I add or edit a project?",
+          "blocks": [
+            {
+              "ul": [
+                "Open projects. Search or filter by type and status.",
+                "Add project: type, status, owner from people, optional group email, tags (type and press Enter).",
+                "Click a row to edit. Remove asks you to type the project name — Cancel if you clicked by mistake."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "functions",
+          "h": "How do I tag someone Ops or Accounting?",
+          "blocks": [
+            {
+              "p": "On People, Add or Edit person. Functions is a Tagify field — Ops, Accounting, DBA, or your own label. Search finds those chips."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "clock",
+      "title": "World clock",
+      "items": [
+        {
+          "id": "world-clock",
+          "h": "How do I compare timezones?",
+          "blocks": [
+            {
+              "ul": [
+                "Click the digital clock above Desk chat.",
+                "Search a city (Los Angeles, even “las angoles”).",
+                "Add or remove rows. Drag the handle to reorder.",
+                "Hover a column to compare. A red * on the You row means that hour is already on your calendar.",
+                "Click an hour to list your meetings then. Click a second hour to check a window.",
+                "Your timezone is the You row. Picks survive refresh."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "clock-window",
+          "h": "How do I see if a time is already booked?",
+          "blocks": [
+            {
+              "ul": [
+                "Open World clock from the digital clock.",
+                "On the You row, a red * under am/pm means that hour has a meeting.",
+                "Click the hour — meetings for that slot list at the bottom, not the timezone conversion line.",
+                "Click a second hour to see everything in that window. The desk does not create a calendar event from the clock."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "setup",
+      "title": "Settings",
+      "items": [
+        {
+          "id": "ai-persona",
+          "h": "How does AI know how I work?",
+          "blocks": [
+            {
+              "p": "AI has no guess of whether you are selling, owning the relationship, or working a ticket. Settings → You is that guidance."
+            },
+            {
+              "h3": "Persona",
+              "ul": [
+                "Sales / account executive — account-level, is the team helping, openings to sell or upsell only when the book supports it.",
+                "Technical Account Manager — more ticket and people detail, blockers, owners.",
+                "Customer Success Manager — health, next actions, who owes whom.",
+                "Support / escalation — the issue, who is waiting, no pitch.",
+                "Write your own — blank intent. Describe altitude, tone, and what to lead with."
+              ]
+            },
+            {
+              "h3": "Intent and style",
+              "ul": [
+                "The textarea is what the model actually reads. Edit the preset. Save profile.",
+                "It flavors chat, compose, task assist, and weekly report. It does not invent tickets or pipeline."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "profile",
+          "h": "How do I set who I am?",
+          "blocks": [
+            {
+              "ul": [
+                "Settings → You: name, phone, email, timezone.",
+                "How you work: pick a persona (CSM, sales, TAM, support) then edit Intent and style. Save profile.",
+                "That text is injected into every AI chat and draft so a sales rep gets account-level answers and a TAM gets more ticket detail.",
+                "Mail from your domain is treated as internal, not a customer book.",
+                "Timezone pins You on the world clock and drives Agenda’s idea of today."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "prefs",
+          "h": "How do I hide weekends or switch night mode?",
+          "blocks": [
+            {
+              "ul": [
+                "Settings → User Preferences.",
+                "Uncheck Saturday and Sunday for a weekday grid. Pick which day the week begins.",
+                "Appearance: Day, Night, or Auto.",
+                "The sun and moon at the bottom of the sidebar also switches Day and Night."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "companies",
+          "h": "How do I add a customer book?",
+          "blocks": [
+            {
+              "ul": [
+                "Settings → Companies → Add company.",
+                "Quiet hides it from Home. Remove archives it — type the abbreviation (ACME) in the confirm sheet.",
+                "Edit: color, crop a logo, domains, Slack / Teams / Salesforce / Jira tags so inbound mail lands on the right book."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ai-keys",
+          "h": "How do I connect mail, chat, and AI?",
+          "blocks": [
+            {
+              "ul": [
+                "Gmail and Calendar: save your profile email, then Sign in with Google.",
+                "Jira: site + API token. Slack: xoxp token. Teams: Connect Microsoft.",
+                "To send mail or a task, set SMTP (host, port, username, app password). Send always asks first.",
+                "Okta SSO still needs an OIDC app client ID."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "seed",
+          "h": "How do I load lab data?",
+          "blocks": [
+            {
+              "ul": [
+                "Settings → Lab → Load seed data.",
+                "Three books: ACME (navy), NWIN (forest), GLX (burgundy), each with people, tickets, mail, chat, and a realistic meeting day.",
+                "Seed is safe to run again. Reset wipes books and keeps your settings, including the world clock."
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -16,12 +16,13 @@ The desk is **vanilla HTML + one CSS file + IIFE JavaScript**. No React, no bund
 - **No nested backticks** inside JS template literals. Prefer `createElement` + `textContent`. After any JS edit: `make check-js`.
 - **Never hard-code the version.** Version comes from `/api/status`.
 - **Cache-bust** `app.css` / `app.js` query strings when those files change (`?v=` matches the served version).
-- **Playwright MCP** (`.grok/config.toml`) is the local browser check. Drive `http://127.0.0.1:8788` (Docker: `http://localhost:8788`). Click, type, and visit every view that shares the state you touched.
+- **Playwright MCP** (`.grok/config.toml`) is the local browser check. Drive `http://127.0.0.1:8788` (`make run`) or `http://localhost:5001` (Docker). Click, type, and visit every view that shares the state you touched.
 - **Buttons live on the edges.** Put actions in a **corner** or on the **far left / far right** of the bar they belong to. **Exception: lightboxes** — actions stay in the panel.
 - Account **color + abbr** are data. Render chips with `accountChip()` (`createElement`). Do not invent 25 CSS themes.
 - **Do not dump a large list into a native `<select>`.** Timezones, people, projects, threads, tickets: type-ahead. See [Search, select, Tagify](#search-select-tagify).
 - **Arrays are Tagify chips.** If the value is a list (To, Projects, Functions, tags, tickets), each pick is a badge — not a one-line “N selected” picker.
-- **Mail lives in the shared composer lightbox.** New compose / reply / task surfaces reuse `mountMailComposer`. Do not invent a second To/Cc/Bcc chrome.
+- **Mail lives in the shared composer lightbox.** New compose / reply / task surfaces reuse `mountMailComposer`. Do not invent a second To/Cc/Bcc chrome. AI Suggest uses `.mail-status.is-busy` (spinner + “Drafting with Grok…”) and button text **Drafting…** — not only a disabled color. Success stays in `.mail-status.is-ok`.
+- **Inbox who-stamp Me** uses `--low` (red), not `--accent`.
 - **Deep-link with `/id=`.** Opening a meeting, thread, chat, or task writes `#account/{abbr}/{tab}/id={id}` so refresh and share land on the same lightbox.
 
 ## Button placement
@@ -54,7 +55,7 @@ Use the `:root` variables in `app.css`. Do not introduce a second palette.
 
 Appearance: `html[data-theme="day"|"night"]` from User Preferences (`auto` follows `prefers-color-scheme`). Sidebar sun/moon is `#btn-theme`. Operator timezone is `#op-timezone-picker` (search-select), not a native `<select>` of every IANA zone.
 
-Font: **Quicksand** 400–700 (Google Fonts). CDN allow-list: that font, plus **Tagify** for people emails (To / Cc / Bcc) and every multi-value field (project tags, person Projects / Functions, compose tickets). No Leaflet, ECharts, or a second email-composer kit — the desk’s `.mail-composer` is the shared prompt.
+Font: **Quicksand** 400–700 (Google Fonts). CDN allow-list: that font, **Tagify** for people emails (To / Cc / Bcc) and every multi-value field (project tags, person Projects / Functions, compose tickets), and **Fuse.js** for Help search (typo-tolerant, no backend). Help matches wrap in `mark.help-mark` — no extra highlighter kit. No Leaflet, ECharts, or a second email-composer kit — the desk’s `.mail-composer` is the shared prompt.
 
 Chrome: pale page (`--page`), white cards with a soft dual shadow, periwinkle primary buttons and selected tabs, slate sidebar icons, a left inset bar on the active nav item. People and mail list rows lead with a pastel initials `.avatar`. Desk chat uses a solid-primary bubble for the operator and a muted bubble for the assistant. Agenda inbox rows are a single card with divider rows (who-stamps stay on the far right).
 
@@ -83,8 +84,10 @@ Chrome: pale page (`--page`), white cards with a soft dual shadow, periwinkle pr
 | Org chart | `.org-chart` `width: max-content`; pane `overflow-x: auto`. Center with `scrollLeft` |
 | Activity lightbox | `#detail-box` + `.sheet` — close `×` top-right. Notes live at the bottom. |
 | Timeline note badge | `img.tl-sticky` → `/static/sticky-note.png` |
-| Help | `#help-search` centered, half the page wide. Group **tiles** in `.help-body` (2-col cards). Questions are **How do I…**. Answers use `.help-sub` headings and `.help-ul` bullets (`blocks` in `prompts/help.json`). `#help/{id}` highlights the item. |
-| Desk chat | `.chat-link` in the bubble. `.chat-ops` Open / Compose / Add note / Add person. `.chat-when` is relative time. Add note opens the Timeline notes sheet. History is an overlay (`.chat-history`), scoped to the book or all accounts. |
+| Help | `#help-search` centered, half the page wide. Fuse.js (typo-tolerant). Group **tiles** in `.help-body` (2-col cards). Questions are **How do I…**. Answers use `.help-sub` headings and `.help-ul` bullets (`blocks` in `ai/prompts/help.json`). Matches wrap in `mark.help-mark`. `#help/{id}` highlights the item. |
+| Desk chat | `.chat-link` in the bubble. `.chat-ops` Open / Compose / Add note / Add person. `.chat-when` is relative time. Add note opens the Timeline notes sheet. History is an overlay (`.chat-history`), scoped to the book or all accounts. Mention menu: `#chat-mention-menu` + `.search-opt`. Prefixes: `#` company (Home only), `/people` `/ticket` bounds (chain), `@` talk-to. |
+| Field tip | `.field-tip` + `.field-tip-pop` next to Settings → You **How you work** / **Intent and style**. Hover/focus explains that persona + intent customizes every AI answer. |
+| Type-to-confirm | `#confirm-box` for Remove company / project. Type the abbr or name. Not `window.confirm`. |
 
 ## Search, select, Tagify
 
@@ -115,7 +118,7 @@ Never use `mountSearchSelect({ multiple: true })`. That shows “Plant onboardin
 | `allowCustom` | Accept typed text that is not in the list |
 | `btnClass: "search-select-btn-block"` | Full-width in a `settings-form` / mail context |
 
-**Already on this pattern:** operator timezone (`#op-timezone-picker`), Task name, Search projects, Compose Thread, person Kind / Reports to, Agenda **Company : Project** filter (same type-ahead idea).
+**Already on this pattern:** operator timezone (`#op-timezone-picker`), Task name, Search projects, Compose Thread, person Kind / Reports to, Agenda **Company : Project** filter (same type-ahead idea). Operator **How you work** (`#op-persona`) is a small closed set — native `<select>` is correct; intent is `#op-intent`.
 
 A native `<select>` of every timezone or every person on the book is a bug. Add the next large catalog here, not as `<option>` soup.
 
@@ -198,7 +201,7 @@ Pattern: `#account/{abbr}/{tab}/id={id}`
 | Help topic | `#help/{id}` |
 | Settings | `#settings` |
 
-Account search is `#account-q` in `.account-tools` (far left). Type `/` for slash types (`/note`, `/project`, `/people`, `/email`, `/ticket`, `/chat`, `/slack`, `/teams`, …) in `#account-suggest`. Project filter `#account-project`. Compose stays far right in the header.
+Account search is `#account-q` in `.account-tools` (far left). Type `/people bob` to find a person, or `/` for slash types (`/ticket`, `/email`, `/chat`, `/project`, …) in `#account-suggest`. Desk chat uses the same `/people` and `/ticket` as bounds you can chain; `@name` is talk-to. `#ACME` picks a company on Home chat only. Project filter `#account-project`. Compose stays far right in the header.
 
 `#actions` and `#reports` redirect to Home (APIs stay). A future surface that opens a document from Agenda, chat, or a notification must go through `goAccountItem(abbr, tab, id)` — do not open a lightbox without updating the hash.
 

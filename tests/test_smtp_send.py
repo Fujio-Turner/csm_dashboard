@@ -84,6 +84,141 @@ def test_send_via_smtp_uses_client(monkeypatch):
     assert DummySMTP.sent[0]["Subject"] == "Ping"
 
 
+def test_draft_send_uses_gmail_when_send_scope(client, repo, monkeypatch):
+    client.post("/api/settings/seed")
+    client.put("/api/settings", json={"operator": {"email": "jordan@example.com"}})
+    repo.put_credential_secret(
+        "connector",
+        "google",
+        {
+            "access_token": "ya29",
+            "refresh_token": "1//r",
+            "scope": "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send",
+        },
+    )
+
+    def fake_post(url, headers=None, json=None, **kwargs):
+        assert "messages/send" in url
+        assert json and json.get("raw")
+        return {"id": "gmail-sent-1", "threadId": "t1", "labelIds": ["SENT"]}
+
+    monkeypatch.setattr("csm_dashboard.connectors.google_mail.json_post", fake_post)
+    monkeypatch.setattr("csm_dashboard.connectors.oauth.ensure_access_token", lambda *a, **k: "ya29")
+    composed = client.post("/api/drafts/compose", json={"account_id": "acct:acme"})
+    sent = client.post(
+        "/api/drafts/" + composed.json()["_id"] + "/send",
+        json={"to_addrs": ["jordan@example.com"], "subject": "Ping me", "body": "desk test"},
+    )
+    assert sent.status_code == 200
+    assert sent.json()["sent"]["via"] == "gmail"
+    assert sent.json()["sent"]["gmail_id"] == "gmail-sent-1"
+
+
+def test_save_draft_pushes_gmail_when_compose_scope(client, repo, monkeypatch):
+    client.post("/api/settings/seed")
+    client.put("/api/settings", json={"operator": {"email": "jordan@example.com"}})
+    repo.put_credential_secret(
+        "connector",
+        "google",
+        {
+            "access_token": "ya29",
+            "refresh_token": "1//r",
+            "scope": (
+                "https://www.googleapis.com/auth/gmail.readonly "
+                "https://www.googleapis.com/auth/gmail.send "
+                "https://www.googleapis.com/auth/gmail.compose"
+            ),
+        },
+    )
+    calls: list[tuple[str, str]] = []
+
+    def fake_post(url, headers=None, json=None, **kwargs):
+        calls.append(("POST", str(url)))
+        if str(url).endswith("/drafts"):
+            return {"id": "r-draft-1", "message": {"id": "m-draft-1"}}
+        if str(url).endswith("/drafts/send"):
+            return {"id": "m-sent-1", "threadId": "t1", "labelIds": ["SENT"]}
+        raise AssertionError(url)
+
+    def fake_put(url, headers=None, json=None, **kwargs):
+        calls.append(("PUT", str(url)))
+        return {"id": "r-draft-1", "message": {"id": "m-draft-1"}}
+
+    monkeypatch.setattr("csm_dashboard.connectors.google_mail.json_post", fake_post)
+    monkeypatch.setattr("csm_dashboard.connectors.google_mail.json_put", fake_put)
+    monkeypatch.setattr("csm_dashboard.connectors.oauth.ensure_access_token", lambda *a, **k: "ya29")
+    created = client.post(
+        "/api/drafts",
+        json={
+            "account_id": "acct:acme",
+            "to_addrs": ["pat@acme.com"],
+            "subject": "Hi",
+            "body": "Hello",
+        },
+    )
+    assert created.status_code == 200
+    body = created.json()
+    assert body["gmail"]["ok"] is True
+    assert body["gmail_draft_id"] == "r-draft-1"
+    patched = client.patch(
+        "/api/drafts/" + body["_id"],
+        json={"subject": "Hi again", "body": "Hello 2", "to_addrs": ["pat@acme.com"]},
+    )
+    assert patched.status_code == 200
+    assert any(method == "PUT" and "/drafts/r-draft-1" in url for method, url in calls)
+    sent = client.post("/api/drafts/" + body["_id"] + "/send")
+    assert sent.status_code == 200
+    assert sent.json()["sent"]["via"] == "gmail"
+    assert any(method == "POST" and url.endswith("/drafts/send") for method, url in calls)
+
+
+def test_save_draft_without_compose_scope_stays_local(client, repo):
+    client.post("/api/settings/seed")
+    client.put("/api/settings", json={"operator": {"email": "jordan@example.com"}})
+    repo.put_credential_secret(
+        "connector",
+        "google",
+        {
+            "access_token": "ya29",
+            "refresh_token": "1//r",
+            "scope": "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send",
+        },
+    )
+    created = client.post(
+        "/api/drafts",
+        json={
+            "account_id": "acct:acme",
+            "to_addrs": ["pat@acme.com"],
+            "subject": "Hi",
+            "body": "Hello",
+        },
+    )
+    assert created.status_code == 200
+    assert created.json()["_id"].startswith("draft:")
+    assert created.json()["gmail"]["ok"] is False
+    assert created.json()["gmail"]["reason"] == "google_draft_reconnect"
+
+
+def test_gmail_connected_without_send_scope_asks_reconnect(client, repo):
+    client.post("/api/settings/seed")
+    repo.put_credential_secret(
+        "connector",
+        "google",
+        {
+            "access_token": "ya29",
+            "refresh_token": "1//r",
+            "scope": "https://www.googleapis.com/auth/gmail.readonly",
+        },
+    )
+    composed = client.post("/api/drafts/compose", json={"account_id": "acct:acme"})
+    res = client.post(
+        "/api/drafts/" + composed.json()["_id"] + "/send",
+        json={"to_addrs": ["me@ex.com"]},
+    )
+    assert res.status_code == 409
+    assert "google_send_reconnect" in res.json()["detail"]
+
+
 def test_draft_send_without_smtp_is_conflict(client):
     client.post("/api/settings/seed")
     composed = client.post("/api/drafts/compose", json={"account_id": "acct:acme"})

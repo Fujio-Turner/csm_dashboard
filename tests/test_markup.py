@@ -36,7 +36,19 @@ def test_views_present():
     compose = (ROOT / "src" / "csm_dashboard" / "web" / "static" / "compose.js").read_text(encoding="utf-8")
     assert "mountMailComposer" in compose
     assert "Send this email now?" in js
+    assert "explainMailError" in js
+    assert "google_send_reconnect" in js
+    assert "google_draft_reconnect" in js
+    assert "auto_draft_replies" in js
+    assert "AI Suggest Response to Draft" in js
+    assert "asAddrList" in js
+    assert "Draft saved to Gmail" in js
+    assert "mail-status" in js
+    assert "if (!id) return null" in js
+    assert "z-index: 80" in css
     assert "openCompanyForm" in js
+    assert "confirmDanger" in js
+    assert 'id="confirm-box"' in HTML
     assert "makeTagInput" in js
     assert "sheet-company" in js
     assert "owns_all_projects" in js
@@ -46,12 +58,19 @@ def test_views_present():
     assert "Tagify" in js
     assert "group_email" in js
     assert "yaireo/tagify" in HTML
+    assert "fuse.js" in HTML
     assert "Quicksand" in HTML
     assert "--accent: #7d80f5" in css
     assert "avatarEl" in js
     assert "has-avatar" in js
     assert "btn-add-company" in HTML
     assert "op-timezone" in HTML
+    assert 'id="op-persona"' in HTML
+    assert 'id="op-intent"' in HTML
+    assert "fillOperatorPersona" in js
+    assert "field-tip" in HTML
+    assert "field-tip-pop" in css
+    assert "customizes every AI answer" in HTML
     assert "settings-page" in HTML
     assert "settings-form" in HTML
     assert 'id="sso-portal"' in HTML
@@ -74,6 +93,11 @@ def test_views_present():
     assert "help-body" in css
     assert "repeat(2, minmax(0, 1fr))" in css
     assert "filterHelp" in js
+    assert "helpFuse" in js
+    assert "helpMarkEl" in js
+    assert "unmarkHelp" in js
+    assert "helpCloseToQuery" in js
+    assert "help-mark" in css
     assert "paintHelp" in js
     assert "appendHelpAnswer" in js
     assert "help-sub" in css
@@ -82,6 +106,14 @@ def test_views_present():
     assert "chat-link" in css
     assert "chat-when" in css
     assert "parseChatDraft" in js
+    assert "What tasks are due this week?" in js
+    assert "renderChatSuggest" in js
+    assert "bindChatMentions" in js
+    assert "chat-mention-menu" in js
+    assert "Type # for a company" in js
+    assert "/people bob response to /ticket" in js
+    assert "chat-mention-menu" in HTML
+    assert "#{ACME}" not in HTML
     assert "attachChatOps" in js
     assert "fillChatBody" in js
     assert "prettyChatText" in js
@@ -112,6 +144,11 @@ def test_views_present():
     assert "bindRowSort" in world
     assert "nudgeZone" in world
     assert "world_clock" in world
+    assert "wtb-busy" in world
+    assert "loadMeetings" in world
+    assert "/api/home/agenda" in world
+    assert "No meetings at this time." in world
+    assert "wtb-busy" in css
     assert "getWorldClock" in js
     assert "crop-box" in HTML
     assert "#crop-box.lightbox" in css
@@ -147,6 +184,16 @@ def test_views_present():
     assert "placeAgendaProjMenu" in js
     assert "Search company or project" in js
     assert "agendaInboxFilter" in js
+    assert 'id="btn-home-refresh"' in HTML
+    assert "/api/sync/refresh" in js
+    assert "refresh_minutes" in js
+    assert "Auto-refresh every" in js
+    assert "ensureAgendaInboxFilter" in js
+    assert "inboxItemMatches" in js
+    assert "Last 7 days" in js
+    assert "agenda-inbox-menu" in js
+    assert "INBOX_TO_OPTS" in js
+    assert "Clear filters" in js
     assert "openTaskForm" in js
     assert "AI Suggest" in js
     assert "mountMailComposer" in js
@@ -190,6 +237,17 @@ def test_views_present():
     assert "new invite" in js
     assert "next_action" not in Path(ROOT / "src" / "csm_dashboard" / "web" / "static" / "app.js").read_text(encoding="utf-8").split("function homeCard")[1].split("function hideChatHistory")[0]
     assert 'type = "color"' in js
+    assert "Brand new account" in js
+    assert "openProcessingReport" in js
+    assert "Processing report" in js
+    assert "Reprocess all feeds" in js
+    assert "/reprocess" in js
+    assert 'inputs.textContent = "Inputs"' in js
+    assert "Mine people" in js
+    assert "people-mine" in js
+    assert 'lab("Phone", phone)' in js
+    assert "job_description" in js
+    assert '"People"' in js
 
 
 def test_no_emoji_in_html():
@@ -250,6 +308,10 @@ def test_timeline_css_present():
     assert "account-suggest" in HTML
     assert "sticky-note.png" in js
     assert "pickSlash" in js
+    assert "pickPerson" in js
+    assert "atPersonState" in js
+    assert "/people bob" in HTML
+    assert 'example: "/people bob"' in js
     assert "salesforce" in js
     assert "fillSalesforce" in js
     assert "Save note" in js

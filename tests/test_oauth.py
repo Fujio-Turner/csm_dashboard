@@ -96,6 +96,9 @@ def test_oauth_start_redirects_to_google(client):
     assert loc.startswith("https://accounts.google.com/o/oauth2/v2/auth")
     qs = parse_qs(urlparse(loc).query)
     assert qs["client_id"] == ["abc.apps.googleusercontent.com"]
+    assert "gmail.send" in qs.get("scope", [""])[0]
+    assert "gmail.compose" in qs.get("scope", [""])[0]
+    assert "gmail.readonly" in qs.get("scope", [""])[0]
     assert "code_challenge" in qs
     assert "access_type" in qs
     blob = json.dumps(qs)
@@ -157,3 +160,20 @@ def test_slack_oauth_requests_user_history_scopes(client):
     user_scope = qs.get("user_scope", [""])[0]
     assert "channels:history" in user_scope
     assert "users:read" in user_scope
+
+
+def test_google_redirect_uses_public_port(monkeypatch):
+    from csm_dashboard.config import invalidate_settings, load_settings
+    from csm_dashboard.connectors.oauth import redirect_uri
+
+    monkeypatch.setenv("CSM_DASHBOARD_PORT", "5000")
+    monkeypatch.setenv("CSM_DASHBOARD_PUBLIC_PORT", "5001")
+    invalidate_settings()
+    try:
+        settings = load_settings(force=True)
+        assert settings.port == 5000
+        assert settings.public_port == 5001
+        assert redirect_uri("google") == "http://localhost:5001/oauth2callback"
+        assert redirect_uri("microsoft") == "http://127.0.0.1:5001/api/oauth/microsoft/callback"
+    finally:
+        invalidate_settings()

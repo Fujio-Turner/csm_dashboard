@@ -20,6 +20,23 @@
         "ps_team"
       ]
     },
+    "email": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string",
+      "description": "Job title / position"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "group": {
+      "type": "string",
+      "description": "Team or department"
+    },
+    "job_description": {
+      "type": "string"
+    },
     "location": {
       "type": "string"
     },

@@ -12,7 +12,7 @@
     ],
     "cc_addrs": [],
     "subject": "ACME-12 workaround",
-    "sent_at": "2026-08-15T14:00:00Z",
+    "sent_at": "2026-08-13T20:17:00Z",
     "snippet": "Scanner died again.",
     "body_text": "The handheld still dies after 20 minutes on OS 14.",
     "body_bytes": 50,
@@ -25,6 +25,7 @@
         "fetched_at": "2026-08-17T15:00:00Z"
       }
     },
+    "project_id": "proj:acme-scan",
     "thread_id": "thr:421321c475293ec4",
     "_id": "em:421321c475293ec4ff86"
   },
@@ -41,7 +42,7 @@
     ],
     "cc_addrs": [],
     "subject": "Re: ACME-12 workaround",
-    "sent_at": "2026-08-15T16:00:00Z",
+    "sent_at": "2026-08-14T13:42:00Z",
     "snippet": "We have a firmware pin.",
     "body_text": "Pat \u2014 we have a firmware pin. TAM will send steps tonight.",
     "body_bytes": 60,
@@ -54,6 +55,7 @@
         "fetched_at": "2026-08-17T15:00:00Z"
       }
     },
+    "project_id": "proj:acme-scan",
     "thread_id": "thr:421321c475293ec4",
     "_id": "em:b336bb6ea0684ce32647"
   },
@@ -70,7 +72,7 @@
     ],
     "cc_addrs": [],
     "subject": "Re: ACME-12 workaround",
-    "sent_at": "2026-08-16T09:00:00Z",
+    "sent_at": "2026-08-14T22:05:00Z",
     "snippet": "Tried it on DC1.",
     "body_text": "Tried the pin on DC1. DC3 still fails.",
     "body_bytes": 38,
@@ -83,6 +85,7 @@
         "fetched_at": "2026-08-17T15:00:00Z"
       }
     },
+    "project_id": "proj:acme-scan",
     "thread_id": "thr:b336bb6ea0684ce3",
     "_id": "em:8265cd5d2be08d1a6e5e"
   },
@@ -99,7 +102,7 @@
     ],
     "cc_addrs": [],
     "subject": "Re: ACME-12 workaround",
-    "sent_at": "2026-08-16T18:00:00Z",
+    "sent_at": "2026-08-15T15:11:00Z",
     "snippet": "New build tomorrow.",
     "body_text": "New build tomorrow morning. Booking TAM.",
     "body_bytes": 40,
@@ -112,6 +115,7 @@
         "fetched_at": "2026-08-17T15:00:00Z"
       }
     },
+    "project_id": "proj:acme-scan",
     "thread_id": "thr:8265cd5d2be08d1a",
     "_id": "em:da92ccbfde082e9551b7"
   },
@@ -128,7 +132,7 @@
     ],
     "cc_addrs": [],
     "subject": "Re: ACME-12 workaround",
-    "sent_at": "2026-08-17T14:22:00Z",
+    "sent_at": "2026-08-17T18:47:00Z",
     "snippet": "The handheld still dies\u2026",
     "body_text": "The handheld still dies after 20 minutes on the DC3 floor. Need a date.",
     "body_bytes": 71,
@@ -141,6 +145,7 @@
         "fetched_at": "2026-08-17T15:00:00Z"
       }
     },
+    "project_id": "proj:acme-scan",
     "thread_id": "thr:da92ccbfde082e95",
     "_id": "em:c55edb1be32de4e2f08e"
   },
@@ -157,7 +162,7 @@
     ],
     "cc_addrs": [],
     "subject": "Re: ACME-12 workaround",
-    "sent_at": "2026-08-28T13:10:00Z",
+    "sent_at": "2026-08-28T17:28:00Z",
     "snippet": "DC3 floor log attached.",
     "body_text": "Attaching tonight's DC3 log. Same brick after 18 minutes.",
     "body_bytes": 57,
@@ -170,6 +175,7 @@
         "fetched_at": "2026-08-17T15:00:00Z"
       }
     },
+    "project_id": "proj:acme-scan",
     "thread_id": "thr:c55edb1be32de4e2",
     "_id": "em:54095fe0a2e3e1c10771"
   },
@@ -186,7 +192,7 @@
     ],
     "cc_addrs": [],
     "subject": "SSO timeout after 8 hours",
-    "sent_at": "2026-08-16T11:30:00Z",
+    "sent_at": "2026-08-16T04:12:00Z",
     "snippet": "Night shift gets kicked.",
     "body_text": "Night shift gets kicked after 8 hours. Related to ACME-18?",
     "body_bytes": 58,
@@ -199,6 +205,7 @@
         "fetched_at": "2026-08-17T15:00:00Z"
       }
     },
+    "project_id": "proj:acme-sso",
     "thread_id": "thr:4fcbdb37410cd468",
     "_id": "em:4fcbdb37410cd4682b62"
   },
@@ -215,7 +222,7 @@
     ],
     "cc_addrs": [],
     "subject": "QBR numbers for Friday",
-    "sent_at": "2026-08-28T14:05:00Z",
+    "sent_at": "2026-08-28T20:42:00Z",
     "snippet": "Need ARR and open P1s.",
     "body_text": "Need ARR, open P1s, and a firmware date before the QBR.",
     "body_bytes": 55,
@@ -244,7 +251,7 @@
     ],
     "cc_addrs": [],
     "subject": "DC3 scanner pin for ACME-12",
-    "sent_at": "2026-08-16T19:00:00Z",
+    "sent_at": "2026-08-16T21:08:00Z",
     "snippet": "Bob \u2014 can you try the pin on DC3 tonight?",
     "body_text": "Bob \u2014 can you try the pin on DC3 tonight and tell me if it holds?",
     "body_bytes": 67,
@@ -257,6 +264,7 @@
         "fetched_at": "2026-08-17T15:00:00Z"
       }
     },
+    "project_id": "proj:acme-scan",
     "thread_id": "thr:60c4f5c85fcd2c0b",
     "_id": "em:60c4f5c85fcd2c0bbaeb"
   },
@@ -273,7 +281,7 @@
     ],
     "cc_addrs": [],
     "subject": "Re: DC3 scanner pin for ACME-12",
-    "sent_at": "2026-08-17T07:15:00Z",
+    "sent_at": "2026-08-17T05:44:00Z",
     "snippet": "Tried it. DC3 still dies after 20 minutes.",
     "body_text": "Tried it. DC3 still dies after 20 minutes. Need a new build.",
     "body_bytes": 60,
@@ -286,6 +294,7 @@
         "fetched_at": "2026-08-17T15:00:00Z"
       }
     },
+    "project_id": "proj:acme-scan",
     "thread_id": "thr:60c4f5c85fcd2c0b",
     "_id": "em:e15bb000c091a8ef4a01"
   },
@@ -302,7 +311,7 @@
     ],
     "cc_addrs": [],
     "subject": "One-pager before 3pm",
-    "sent_at": "2026-08-28T12:40:00Z",
+    "sent_at": "2026-08-28T12:31:00Z",
     "snippet": "Need a one-pager.",
     "body_text": "Need a one-pager on firmware and SSO before the QBR.",
     "body_bytes": 52,
@@ -331,7 +340,7 @@
     ],
     "cc_addrs": [],
     "subject": "Friday auth outage",
-    "sent_at": "2026-08-15T19:00:00Z",
+    "sent_at": "2026-08-14T23:51:00Z",
     "snippet": "We missed cutoff.",
     "body_text": "We missed the cutoff. This is the second P1 this month.",
     "body_bytes": 55,
@@ -344,6 +353,7 @@
         "fetched_at": "2026-08-17T15:00:00Z"
       }
     },
+    "project_id": "proj:nwin-renew",
     "thread_id": "thr:9814cb0342684508",
     "_id": "em:9814cb03426845084636"
   },
@@ -360,7 +370,7 @@
     ],
     "cc_addrs": [],
     "subject": "Re: Friday auth outage",
-    "sent_at": "2026-08-16T08:00:00Z",
+    "sent_at": "2026-08-15T12:07:00Z",
     "snippet": "Incident doc attached.",
     "body_text": "Kim \u2014 incident doc is in the ticket. Can we talk Tuesday?",
     "body_bytes": 59,
@@ -373,6 +383,7 @@
         "fetched_at": "2026-08-17T15:00:00Z"
       }
     },
+    "project_id": "proj:nwin-renew",
     "thread_id": "thr:9814cb0342684508",
     "_id": "em:2dc90399a25efcd3fbc1"
   },
@@ -389,7 +400,7 @@
     ],
     "cc_addrs": [],
     "subject": "Re: Friday auth outage",
-    "sent_at": "2026-08-16T20:00:00Z",
+    "sent_at": "2026-08-15T19:33:00Z",
     "snippet": "I am out until the 28th.",
     "body_text": "I am out until the 28th. Rob can talk numbers.",
     "body_bytes": 46,
@@ -402,6 +413,7 @@
         "fetched_at": "2026-08-17T15:00:00Z"
       }
     },
+    "project_id": "proj:nwin-renew",
     "thread_id": "thr:2dc90399a25efcd3",
     "_id": "em:8fe5494c49712ab28392"
   },
@@ -418,7 +430,7 @@
     ],
     "cc_addrs": [],
     "subject": "Re: Friday auth outage",
-    "sent_at": "2026-08-17T10:00:00Z",
+    "sent_at": "2026-08-17T16:22:00Z",
     "snippet": "Renewal is at risk.",
     "body_text": "If auth is this shaky the renewal is at risk.",
     "body_bytes": 45,
@@ -431,6 +443,7 @@
         "fetched_at": "2026-08-17T15:00:00Z"
       }
     },
+    "project_id": "proj:nwin-renew",
     "thread_id": "thr:98f2e73a2be57e75",
     "_id": "em:d5ad69979a7320665905"
   },
@@ -447,7 +460,7 @@
     ],
     "cc_addrs": [],
     "subject": "Re: Friday auth outage",
-    "sent_at": "2026-08-28T15:20:00Z",
+    "sent_at": "2026-08-28T14:05:00Z",
     "snippet": "Need a commercial option today.",
     "body_text": "Need a commercial option on this morning's call.",
     "body_bytes": 48,
@@ -460,6 +473,7 @@
         "fetched_at": "2026-08-17T15:00:00Z"
       }
     },
+    "project_id": "proj:nwin-renew",
     "thread_id": "thr:d5ad69979a732066",
     "_id": "em:d0bd67558aec3d29fa7a"
   },
@@ -476,7 +490,7 @@
     ],
     "cc_addrs": [],
     "subject": "Exec brief agenda",
-    "sent_at": "2026-08-28T16:05:00Z",
+    "sent_at": "2026-08-28T15:48:00Z",
     "snippet": "Keep it to ten minutes.",
     "body_text": "Keep the 3pm to ten minutes. Commercial option first.",
     "body_bytes": 53,
@@ -489,6 +503,7 @@
         "fetched_at": "2026-08-17T15:00:00Z"
       }
     },
+    "project_id": "proj:nwin-renew",
     "thread_id": "thr:46731a248644b2b3",
     "_id": "em:46731a248644b2b350c5"
   },
@@ -505,7 +520,7 @@
     ],
     "cc_addrs": [],
     "subject": "Kickoff recap",
-    "sent_at": "2026-08-11T16:00:00Z",
+    "sent_at": "2026-08-11T17:28:00Z",
     "snippet": "Great start.",
     "body_text": "Great start yesterday. Plant 2 wants a date.",
     "body_bytes": 44,
@@ -518,6 +533,7 @@
         "fetched_at": "2026-08-17T15:00:00Z"
       }
     },
+    "project_id": "proj:glx-onboard",
     "thread_id": "thr:2491981d33cb8428",
     "_id": "em:2491981d33cb842885f2"
   },
@@ -534,7 +550,7 @@
     ],
     "cc_addrs": [],
     "subject": "Re: Kickoff recap",
-    "sent_at": "2026-08-12T09:00:00Z",
+    "sent_at": "2026-08-12T13:04:00Z",
     "snippet": "Drafting the plan.",
     "body_text": "Drafting the plan. PS will hold Thursday.",
     "body_bytes": 41,
@@ -547,6 +563,7 @@
         "fetched_at": "2026-08-17T15:00:00Z"
       }
     },
+    "project_id": "proj:glx-onboard",
     "thread_id": "thr:2491981d33cb8428",
     "_id": "em:8327a066f41d212e2a4d"
   },
@@ -563,7 +580,7 @@
     ],
     "cc_addrs": [],
     "subject": "Re: Kickoff recap",
-    "sent_at": "2026-08-13T15:00:00Z",
+    "sent_at": "2026-08-13T18:51:00Z",
     "snippet": "Thursday works.",
     "body_text": "Thursday works. Sending badge list.",
     "body_bytes": 35,
@@ -576,6 +593,7 @@
         "fetched_at": "2026-08-17T15:00:00Z"
       }
     },
+    "project_id": "proj:glx-onboard",
     "thread_id": "thr:8327a066f41d212e",
     "_id": "em:0015a0b30a744d8826fa"
   },
@@ -592,7 +610,7 @@
     ],
     "cc_addrs": [],
     "subject": "Re: Kickoff recap",
-    "sent_at": "2026-08-14T11:00:00Z",
+    "sent_at": "2026-08-14T14:16:00Z",
     "snippet": "Got the list.",
     "body_text": "Got the list. See you Thursday.",
     "body_bytes": 31,
@@ -605,6 +623,7 @@
         "fetched_at": "2026-08-17T15:00:00Z"
       }
     },
+    "project_id": "proj:glx-onboard",
     "thread_id": "thr:0015a0b30a744d88",
     "_id": "em:6eb19d226a00fa53be14"
   },
@@ -621,7 +640,7 @@
     ],
     "cc_addrs": [],
     "subject": "Re: Kickoff recap",
-    "sent_at": "2026-08-28T16:40:00Z",
+    "sent_at": "2026-08-28T18:48:00Z",
     "snippet": "Plant 2 badge printer.",
     "body_text": "Plant 2 badge printer is still down. Can PS bring a spare?",
     "body_bytes": 58,
@@ -634,6 +653,7 @@
         "fetched_at": "2026-08-17T15:00:00Z"
       }
     },
+    "project_id": "proj:glx-onboard",
     "thread_id": "thr:6eb19d226a00fa53",
     "_id": "em:10a8bd8b94a9b1bacf40"
   },
@@ -650,7 +670,7 @@
     ],
     "cc_addrs": [],
     "subject": "Onboarding review",
-    "sent_at": "2026-08-28T17:10:00Z",
+    "sent_at": "2026-08-28T19:36:00Z",
     "snippet": "I will sit in.",
     "body_text": "I will sit in on Victor's review. Keep Plant 2 first.",
     "body_bytes": 53,
@@ -663,7 +683,547 @@
         "fetched_at": "2026-08-17T15:00:00Z"
       }
     },
+    "project_id": "proj:glx-onboard",
     "thread_id": "thr:86b8cb5355f292d8",
     "_id": "em:86b8cb5355f292d82587"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:acme",
+    "direction": "internal",
+    "message_id": "<task.send-dana-the-one-pager@csm.local>",
+    "in_reply_to": "",
+    "references": "",
+    "from_addr": "jordan@example.com",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Tasks: Acme Corporation : Send Dana the one-pager {Follow up(s)}",
+    "sent_at": "2026-08-28T21:00:00Z",
+    "snippet": "Firmware date + SSO timeout on one page before the QBR.",
+    "body_text": "Firmware date + SSO timeout on one page before the QBR.\n\nWhen Due By: Aug 28, 2026 8:00 PM",
+    "body_bytes": 90,
+    "has_attachments": false,
+    "operator": {
+      "unread": true,
+      "task": true,
+      "task_name": "Send Dana the one-pager",
+      "task_kind": "Follow up(s)",
+      "due_at": "2026-08-28T20:00:00Z"
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "thread_id": "thr:7be1d1834e156bc8",
+    "_id": "em:7be1d1834e156bc8386f"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:acme",
+    "direction": "internal",
+    "message_id": "<task.lock-qbr-numbers-with-gr@csm.local>",
+    "in_reply_to": "",
+    "references": "",
+    "from_addr": "jordan@example.com",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Tasks: Acme Corporation : Lock QBR numbers with Grace {Review(s)}",
+    "sent_at": "2026-08-26T14:03:00Z",
+    "snippet": "Confirm ARR and open P1 count with finance.",
+    "body_text": "Confirm ARR and open P1 count with finance.\n\nWhen Due By: Aug 31, 2026 4:00 PM",
+    "body_bytes": 78,
+    "has_attachments": false,
+    "operator": {
+      "unread": true,
+      "task": true,
+      "task_name": "Lock QBR numbers with Grace",
+      "task_kind": "Review(s)",
+      "due_at": "2026-08-31T16:00:00Z"
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "thread_id": "thr:f64989ad781bde92",
+    "_id": "em:f64989ad781bde92aac0"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:acme",
+    "direction": "internal",
+    "message_id": "<task.acme-scan-pin@csm.local>",
+    "in_reply_to": "",
+    "references": "",
+    "from_addr": "jordan@example.com",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Tasks: Acme Corporation : Send firmware pin to DC3 {Action item(s)}",
+    "sent_at": "2026-08-16T21:20:00Z",
+    "snippet": "Bob still bricks after 20 minutes. Pin steps and TAM on copy.",
+    "body_text": "Bob still bricks after 20 minutes. Pin steps and TAM on copy.\n\nWhen Due By: Aug 29, 2026 5:00 PM",
+    "body_bytes": 96,
+    "has_attachments": false,
+    "operator": {
+      "unread": true,
+      "task": true,
+      "task_name": "Send firmware pin to DC3",
+      "task_kind": "Action item(s)",
+      "due_at": "2026-08-29T17:00:00Z"
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:acme-scan",
+    "thread_id": "thr:8879a77ed0f7d52e",
+    "_id": "em:8879a77ed0f7d52e0131"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:acme",
+    "direction": "internal",
+    "message_id": "<task.acme-scan-hold@csm.local>",
+    "in_reply_to": "",
+    "references": "",
+    "from_addr": "jordan@example.com",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Tasks: Acme Corporation : Confirm DC1 vs DC3 hold {Follow up(s)}",
+    "sent_at": "2026-08-17T18:41:00Z",
+    "snippet": "DC1 holds. Need a date for DC3 on the new OS image.",
+    "body_text": "DC1 holds. Need a date for DC3 on the new OS image.\n\nWhen Due By: Sep 2, 2026 3:00 PM",
+    "body_bytes": 85,
+    "has_attachments": false,
+    "operator": {
+      "unread": true,
+      "task": true,
+      "task_name": "Confirm DC1 vs DC3 hold",
+      "task_kind": "Follow up(s)",
+      "due_at": "2026-09-02T15:00:00Z"
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:acme-scan",
+    "thread_id": "thr:0485bd9e4517fd09",
+    "_id": "em:0485bd9e4517fd093761"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:acme",
+    "direction": "internal",
+    "message_id": "<task.acme-scan-war@csm.local>",
+    "in_reply_to": "",
+    "references": "",
+    "from_addr": "jordan@example.com",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Tasks: Acme Corporation : Book TAM war room {Action item(s)}",
+    "sent_at": "2026-08-18T12:09:00Z",
+    "snippet": "If tonight's DC3 log still bricks, hold a floor session with Chris.",
+    "body_text": "If tonight's DC3 log still bricks, hold a floor session with Chris.\n\nWhen Due By: Aug 28, 2026 6:00 PM",
+    "body_bytes": 102,
+    "has_attachments": false,
+    "operator": {
+      "unread": true,
+      "task": true,
+      "task_name": "Book TAM war room",
+      "task_kind": "Action item(s)",
+      "due_at": "2026-08-28T18:00:00Z"
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:acme-scan",
+    "thread_id": "thr:93abb63b434cf11a",
+    "_id": "em:93abb63b434cf11a06f4"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:acme",
+    "direction": "internal",
+    "message_id": "<task.acme-sso-map@csm.local>",
+    "in_reply_to": "",
+    "references": "",
+    "from_addr": "jordan@example.com",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Tasks: Acme Corporation : Contractor SSO mapping date {Follow up(s)}",
+    "sent_at": "2026-08-27T16:22:00Z",
+    "snippet": "Elena needs a date before QBR. Mei owns the mapping.",
+    "body_text": "Elena needs a date before QBR. Mei owns the mapping.\n\nWhen Due By: Sep 1, 2026 2:00 PM",
+    "body_bytes": 86,
+    "has_attachments": false,
+    "operator": {
+      "unread": true,
+      "task": true,
+      "task_name": "Contractor SSO mapping date",
+      "task_kind": "Follow up(s)",
+      "due_at": "2026-09-01T14:00:00Z"
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:acme-sso",
+    "thread_id": "thr:14a503a298219432",
+    "_id": "em:14a503a298219432f281"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:acme",
+    "direction": "internal",
+    "message_id": "<task.acme-sso-night@csm.local>",
+    "in_reply_to": "",
+    "references": "",
+    "from_addr": "jordan@example.com",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Tasks: Acme Corporation : Night-shift timeout notes {Review(s)}",
+    "sent_at": "2026-08-16T04:40:00Z",
+    "snippet": "8-hour kick is ACME-18. Capture Vic's VPN notes before the review.",
+    "body_text": "8-hour kick is ACME-18. Capture Vic's VPN notes before the review.\n\nWhen Due By: Aug 28, 2026 9:00 PM",
+    "body_bytes": 101,
+    "has_attachments": false,
+    "operator": {
+      "unread": true,
+      "task": true,
+      "task_name": "Night-shift timeout notes",
+      "task_kind": "Review(s)",
+      "due_at": "2026-08-28T21:00:00Z"
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:acme-sso",
+    "thread_id": "thr:88f35b57cb0e6d8f",
+    "_id": "em:88f35b57cb0e6d8f15e0"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:northwind",
+    "direction": "internal",
+    "message_id": "<task.brief-helen-in-ten-minut@csm.local>",
+    "in_reply_to": "",
+    "references": "",
+    "from_addr": "jordan@example.com",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Tasks: Northwind Traders : Brief Helen in ten minutes {Action item(s)}",
+    "sent_at": "2026-08-27T11:18:00Z",
+    "snippet": "Commercial option first. Keep the exec brief to ten minutes.",
+    "body_text": "Commercial option first. Keep the exec brief to ten minutes.\n\nWhen Due By: Aug 28, 2026 10:00 PM",
+    "body_bytes": 96,
+    "has_attachments": false,
+    "operator": {
+      "unread": true,
+      "task": true,
+      "task_name": "Brief Helen in ten minutes",
+      "task_kind": "Action item(s)",
+      "due_at": "2026-08-28T22:00:00Z"
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "thread_id": "thr:5851908eeb6b790c",
+    "_id": "em:5851908eeb6b790c44f3"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:northwind",
+    "direction": "internal",
+    "message_id": "<task.nwin-auth-p1@csm.local>",
+    "in_reply_to": "",
+    "references": "",
+    "from_addr": "jordan@example.com",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Tasks: Northwind Traders : Close Friday auth P1 {Action item(s)}",
+    "sent_at": "2026-08-15T23:55:00Z",
+    "snippet": "NWIN-4 is still open. Kim is dark; Rob has the numbers.",
+    "body_text": "NWIN-4 is still open. Kim is dark; Rob has the numbers.\n\nWhen Due By: Aug 29, 2026 4:00 PM",
+    "body_bytes": 90,
+    "has_attachments": false,
+    "operator": {
+      "unread": true,
+      "task": true,
+      "task_name": "Close Friday auth P1",
+      "task_kind": "Action item(s)",
+      "due_at": "2026-08-29T16:00:00Z"
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:nwin-renew",
+    "thread_id": "thr:d8a6eaf061ad4e1c",
+    "_id": "em:d8a6eaf061ad4e1cf598"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:northwind",
+    "direction": "internal",
+    "message_id": "<task.nwin-commercial@csm.local>",
+    "in_reply_to": "",
+    "references": "",
+    "from_addr": "jordan@example.com",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Tasks: Northwind Traders : Commercial option for Rob {Follow up(s)}",
+    "sent_at": "2026-08-17T16:40:00Z",
+    "snippet": "Renewal 19 days out. Need a commercial path if auth stays shaky.",
+    "body_text": "Renewal 19 days out. Need a commercial path if auth stays shaky.\n\nWhen Due By: Sep 3, 2026 3:00 PM",
+    "body_bytes": 98,
+    "has_attachments": false,
+    "operator": {
+      "unread": true,
+      "task": true,
+      "task_name": "Commercial option for Rob",
+      "task_kind": "Follow up(s)",
+      "due_at": "2026-09-03T15:00:00Z"
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:nwin-renew",
+    "thread_id": "thr:dcc929b56f459c1d",
+    "_id": "em:dcc929b56f459c1d801d"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:northwind",
+    "direction": "internal",
+    "message_id": "<task.nwin-sso-patch@csm.local>",
+    "in_reply_to": "",
+    "references": "",
+    "from_addr": "jordan@example.com",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Tasks: Northwind Traders : Review contractor SSO patch {Review(s)}",
+    "sent_at": "2026-08-27T14:08:00Z",
+    "snippet": "Jules and Devin have a patch in test. Read before the 27th working session.",
+    "body_text": "Jules and Devin have a patch in test. Read before the 27th working session.\n\nWhen Due By: Sep 4, 2026 6:00 PM",
+    "body_bytes": 109,
+    "has_attachments": false,
+    "operator": {
+      "unread": true,
+      "task": true,
+      "task_name": "Review contractor SSO patch",
+      "task_kind": "Review(s)",
+      "due_at": "2026-09-04T18:00:00Z"
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:nwin-renew",
+    "thread_id": "thr:0deaac55ec5d0a37",
+    "_id": "em:0deaac55ec5d0a37178b"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:globex",
+    "direction": "internal",
+    "message_id": "<task.send-kickoff-recap@csm.local>",
+    "in_reply_to": "",
+    "references": "",
+    "from_addr": "jordan@example.com",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Tasks: Globex Industrial : Send kickoff recap {Follow up(s)}",
+    "sent_at": "2026-08-12T09:22:00Z",
+    "snippet": "Plant 2 wants a date. Recap yesterday's kickoff while it is fresh.",
+    "body_text": "Plant 2 wants a date. Recap yesterday's kickoff while it is fresh.\n\nWhen Due By: Aug 20, 2026 4:00 PM",
+    "body_bytes": 101,
+    "has_attachments": false,
+    "operator": {
+      "unread": true,
+      "task": true,
+      "task_name": "Send kickoff recap",
+      "task_kind": "Follow up(s)",
+      "due_at": "2026-08-20T16:00:00Z"
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "thread_id": "thr:af7f4d1934574107",
+    "_id": "em:af7f4d19345741070c84"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:globex",
+    "direction": "internal",
+    "message_id": "<task.glx-printer@csm.local>",
+    "in_reply_to": "",
+    "references": "",
+    "from_addr": "jordan@example.com",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Tasks: Globex Industrial : Spare badge printer Plant 2 {Action item(s)}",
+    "sent_at": "2026-08-28T20:20:00Z",
+    "snippet": "Sofia says the line is blocked. PS bringing a spare this afternoon.",
+    "body_text": "Sofia says the line is blocked. PS bringing a spare this afternoon.\n\nWhen Due By: Aug 28, 2026 5:00 PM",
+    "body_bytes": 102,
+    "has_attachments": false,
+    "operator": {
+      "unread": true,
+      "task": true,
+      "task_name": "Spare badge printer Plant 2",
+      "task_kind": "Action item(s)",
+      "due_at": "2026-08-28T17:00:00Z"
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:glx-onboard",
+    "thread_id": "thr:30c01156a6e35117",
+    "_id": "em:30c01156a6e3511745df"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:globex",
+    "direction": "internal",
+    "message_id": "<task.glx-vpn@csm.local>",
+    "in_reply_to": "",
+    "references": "",
+    "from_addr": "jordan@example.com",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Tasks: Globex Industrial : Confirm VPN allowlist {Follow up(s)}",
+    "sent_at": "2026-08-17T13:50:00Z",
+    "snippet": "Nadia opened GLX-8. Confirm the OT allowlist before Plant 2 walk.",
+    "body_text": "Nadia opened GLX-8. Confirm the OT allowlist before Plant 2 walk.\n\nWhen Due By: Sep 2, 2026 4:00 PM",
+    "body_bytes": 99,
+    "has_attachments": false,
+    "operator": {
+      "unread": true,
+      "task": true,
+      "task_name": "Confirm VPN allowlist",
+      "task_kind": "Follow up(s)",
+      "due_at": "2026-09-02T16:00:00Z"
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:glx-onboard",
+    "thread_id": "thr:b4b204ff965c272d",
+    "_id": "em:b4b204ff965c272dcd43"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:globex",
+    "direction": "internal",
+    "message_id": "<task.glx-walk@csm.local>",
+    "in_reply_to": "",
+    "references": "",
+    "from_addr": "jordan@example.com",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Tasks: Globex Industrial : Plant 2 walkthrough notes {Review(s)}",
+    "sent_at": "2026-08-14T16:11:00Z",
+    "snippet": "Luis and Sofia on the floor. Capture shipping-label blockers.",
+    "body_text": "Luis and Sofia on the floor. Capture shipping-label blockers.\n\nWhen Due By: Sep 1, 2026 7:00 PM",
+    "body_bytes": 95,
+    "has_attachments": false,
+    "operator": {
+      "unread": true,
+      "task": true,
+      "task_name": "Plant 2 walkthrough notes",
+      "task_kind": "Review(s)",
+      "due_at": "2026-09-01T19:00:00Z"
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "project_id": "proj:glx-onboard",
+    "thread_id": "thr:c75ad6e86c2d9c62",
+    "_id": "em:c75ad6e86c2d9c6241be"
+  },
+  {
+    "type": "email",
+    "account_id": "acct:globex",
+    "direction": "internal",
+    "message_id": "<task.onboarding-cost-for-ivy@csm.local>",
+    "in_reply_to": "",
+    "references": "",
+    "from_addr": "jordan@example.com",
+    "to_addrs": [
+      "jordan@example.com"
+    ],
+    "cc_addrs": [],
+    "subject": "Tasks: Globex Industrial : Onboarding cost for Ivy {More Detail(s)}",
+    "sent_at": "2026-08-21T15:07:00Z",
+    "snippet": "Ivy asked for plant-onboarding cost before Eleanor's brief.",
+    "body_text": "Ivy asked for plant-onboarding cost before Eleanor's brief.\n\nWhen Due By: Sep 8, 2026 3:00 PM",
+    "body_bytes": 93,
+    "has_attachments": false,
+    "operator": {
+      "unread": true,
+      "task": true,
+      "task_name": "Onboarding cost for Ivy",
+      "task_kind": "More Detail(s)",
+      "due_at": "2026-09-08T15:00:00Z"
+    },
+    "sources": {
+      "stub": {
+        "fetched_at": "2026-08-17T15:00:00Z"
+      }
+    },
+    "thread_id": "thr:7872c7460801d3af",
+    "_id": "em:7872c7460801d3afc2f3"
   }
 ]

@@ -1,5 +1,6 @@
 # Project-scoped MCP. Grok loads this when the cwd is this repo.
-# Playwright drives the local desk at http://127.0.0.1:8788 (or localhost:8788).
+# Playwright drives the local desk at http://127.0.0.1:8788 (make run)
+# or http://localhost:5001 (Docker).
 
 [mcp_servers.playwright]
 command = "npx"

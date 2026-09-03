@@ -79,6 +79,11 @@ def list_connectors(settings_doc: dict | None = None, creds_public: dict | None 
         health["present"] = bool(public.get("present"))
         if kind == "oauth" and vendor:
             health["redirect_uri"] = redirect_uri(vendor)
+        if name == "google_mail" and repo is not None:
+            from csm_dashboard.connectors.google_mail import google_draft_ready, google_send_ready
+
+            health["send"] = google_send_ready(repo)
+            health["drafts"] = google_draft_ready(repo)
         health["fields"] = public.get("fields") or [
             {"name": field, "present": False, "secret": field in PASSWORD_FIELDS}
             for field in connector_ui_fields(name)

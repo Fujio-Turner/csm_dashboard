@@ -151,7 +151,7 @@ def test_desk_chat_links_and_actions(page, live_server):
     page.wait_for_timeout(400)
     page.click('[data-nav="home"]')
     page.wait_for_selector("#home-chat-input")
-    page.fill("#home-chat-input", "What is on fire at #{ACME}?")
+    page.fill("#home-chat-input", "What is on fire at #ACME?")
     page.locator("#home-chat-form button[type=submit]").click()
     page.wait_for_selector(".chat-ops", timeout=15000)
     bubble = page.locator(".chat-bubble.assistant").last
@@ -162,6 +162,28 @@ def test_desk_chat_links_and_actions(page, live_server):
     assert page.get_by_role("button", name="Compose").count() >= 1
     assert page.locator(".chat-when").count() >= 1
     assert page.locator("#chat-notes").count() == 0
+
+
+def test_desk_chat_mention_autocomplete(page, live_server):
+    page.goto(f"{live_server}/#settings", wait_until="domcontentloaded")
+    page.wait_for_selector("#btn-seed")
+    page.click("#btn-seed")
+    page.wait_for_timeout(400)
+    page.click('[data-nav="home"]')
+    box = page.locator("#home-chat-input")
+    box.wait_for()
+    box.click()
+    box.press_sequentially("#")
+    page.wait_for_selector("#chat-mention-menu:not([hidden]) .search-opt", timeout=8000)
+    menu = page.locator("#chat-mention-menu")
+    assert "ACME" in menu.inner_text()
+    menu.locator(".search-opt").filter(has_text="ACME").first.click()
+    assert "#ACME" in box.input_value()
+    box.fill("")
+    box.click()
+    box.press_sequentially("@bo")
+    page.wait_for_selector("#chat-mention-menu:not([hidden]) .search-opt", timeout=8000)
+    assert "Bob" in page.locator("#chat-mention-menu").inner_text()
 
 
 def test_help_and_connector_picker(page, live_server):
@@ -184,6 +206,25 @@ def test_help_and_connector_picker(page, live_server):
         }"""
     )
     assert page.locator("#help-empty").is_hidden()
+    page.wait_for_selector("mark.help-mark")
+    assert page.locator("mark.help-mark").count() >= 1
+    page.locator("#help-search").fill("timezome")
+    page.wait_for_function(
+        """() => {
+          const items = [...document.querySelectorAll('.help-item')].filter((el) => !el.hidden);
+          const titles = items.map((el) => (el.querySelector('.help-q-text') || el).textContent || '');
+          const marks = [...document.querySelectorAll('mark.help-mark')].map((el) => el.textContent || '');
+          return items.length >= 1 && titles.some((t) => /timezone/i.test(t)) && marks.some((t) => /timezone/i.test(t));
+        }"""
+    )
+    page.locator("#help-search").fill("email")
+    page.wait_for_function(
+        """() => {
+          const marks = [...document.querySelectorAll('mark.help-mark')];
+          if (!marks.length) return false;
+          return marks.every((el) => /email/i.test(el.textContent || ''));
+        }"""
+    )
     page.click('[data-nav="settings"]')
     page.wait_for_selector("#connector-picker")
     page.wait_for_function("document.querySelectorAll('#connector-picker option').length > 3")

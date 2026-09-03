@@ -31,6 +31,43 @@
     "color": {
       "type": "string",
       "pattern": "^#[0-9A-Fa-f]{6}$"
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["new", "view", "takeover", "covering"]
+        },
+        "viewer_kind": {
+          "type": "string"
+        },
+        "previous_owner_email": {
+          "type": "string"
+        },
+        "until": {
+          "type": "string"
+        },
+        "lookback_days": {
+          "type": "integer",
+          "enum": [14, 90, 365]
+        },
+        "feeds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "refresh_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1440,
+          "description": "How often this book is willing to one-shot Gmail/Calendar. Default 5. Mailbox poll uses the shortest interval among companies."
+        },
+        "auto_draft_replies": {
+          "type": "boolean",
+          "description": "When true, inbound mail with the operator on To: gets a Grok reply saved to Gmail Drafts. Off by default."
+        }
+      }
     }
   }
 }

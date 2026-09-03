@@ -13,6 +13,30 @@ from csm_dashboard.storage.repo import TASK_KINDS
 log = logging.getLogger(__name__)
 
 
+def as_addr_list(raw) -> list[str]:
+    """Grok often returns to/cc as a string or object. Always give the desk a list."""
+    if raw is None or raw is False:
+        return []
+    if isinstance(raw, str):
+        return [p.strip() for p in raw.replace(";", ",").split(",") if p.strip()]
+    if isinstance(raw, dict):
+        addr = str(raw.get("email") or raw.get("value") or raw.get("addr") or "").strip()
+        return [addr] if addr else []
+    if isinstance(raw, list):
+        out: list[str] = []
+        for item in raw:
+            out.extend(as_addr_list(item))
+        return out
+    return []
+
+
+def normalize_draft_fields(data: dict | None) -> dict:
+    out = dict(data or {})
+    out["to"] = as_addr_list(out.get("to") if "to" in out else out.get("to_addrs"))
+    out["cc"] = as_addr_list(out.get("cc") if "cc" in out else out.get("cc_addrs"))
+    return out
+
+
 def fallback_reply(account: dict, thread: dict, last: dict | None = None) -> dict:
     abbr = account.get("abbr") or "ACCT"
     name = account.get("name") or abbr
@@ -71,10 +95,10 @@ def fallback_task_assist(account: dict, *, kind: str = "", name: str = "", body:
     }
 
 
-def assist_task_with_grok(client, payload: dict, settings: Settings) -> tuple[dict, str]:
+def assist_task_with_grok(client, payload: dict, settings: Settings, operator: dict | None = None) -> tuple[dict, str]:
     messages = [
-        {"role": "system", "content": prompt_system("task_assist")},
-        {"role": "user", "content": prompt_user("task_assist", json.dumps(payload, default=str))},
+        {"role": "system", "content": prompt_system("task_assist", operator=operator)},
+        {"role": "user", "content": prompt_user("task_assist", json.dumps(payload, default=str), operator=operator)},
     ]
     data, model = client.complete_json(messages)
     log.info(
@@ -85,16 +109,19 @@ def assist_task_with_grok(client, payload: dict, settings: Settings) -> tuple[di
     return data, model
 
 
-def compose_with_grok(client, ctx: ComposeContext, settings: Settings) -> tuple[dict, str]:
+def compose_with_grok(client, ctx: ComposeContext, settings: Settings, operator: dict | None = None) -> tuple[dict, str]:
+    blob = ctx.serialized()
     messages = [
-        {"role": "system", "content": prompt_system("email_draft")},
-        {"role": "user", "content": prompt_user("email_draft", ctx.serialized())},
+        {"role": "system", "content": prompt_system("email_draft", operator=operator)},
+        {"role": "user", "content": prompt_user("email_draft", blob, operator=operator)},
     ]
     data, model = client.complete_json(messages)
     log.info(
-        "csm.ai.complete account_id=%s prompt_name=email_draft model=%s truncated=%s",
+        "csm.ai.complete account_id=%s prompt_name=email_draft model=%s truncated=%s chars=%s mode=%s",
         ctx.account_id,
         model,
         ctx.truncated,
+        len(blob),
+        getattr(ctx, "mode", "") or "",
     )
-    return data, model
+    return normalize_draft_fields(data), model

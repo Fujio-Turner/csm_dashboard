@@ -2,6 +2,7 @@
   "use strict";
 
   function $(id) {
+    if (!id) return null;
     return document.getElementById(id);
   }
 
@@ -88,6 +89,7 @@
             body: doc.body || "",
           });
           window.CSM.toast(doc.result === "grok" ? "Drafted with Grok" : "Template draft");
+          return doc;
         });
       },
       onSave: function (snap) {
@@ -107,7 +109,7 @@
           : window.CSM.api("/api/drafts", { method: "POST", body: JSON.stringify(payload) });
         return req.then(function (doc) {
           if (doc && doc._id) draftId = doc._id;
-          window.CSM.toast("Draft saved");
+          return doc;
         });
       },
       onSend: function (snap, attachments) {

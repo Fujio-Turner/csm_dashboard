@@ -52,12 +52,13 @@ COPY schema /app/schema
 COPY docs /app/docs
 COPY guides /app/guides
 COPY prompts /app/prompts
+COPY ai /app/ai
 COPY fixtures /app/fixtures
 COPY config.example.json /app/config.example.json
 COPY cblite_config.json /app/cblite_config.json
 
 RUN pip install --no-cache-dir -e .
 
-EXPOSE 8788
+EXPOSE 5000
 
 CMD ["python", "-m", "csm_dashboard"]

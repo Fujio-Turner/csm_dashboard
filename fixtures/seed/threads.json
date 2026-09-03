@@ -4,7 +4,7 @@
     "type": "thread",
     "account_id": "acct:acme",
     "subject": "Re: ACME-12 workaround",
-    "last_at": "2026-08-15T16:00:00Z",
+    "last_at": "2026-08-14T13:42:00Z",
     "message_count": 2,
     "participants": [
       "jordan@example.com",
@@ -20,7 +20,7 @@
     "type": "thread",
     "account_id": "acct:acme",
     "subject": "Re: ACME-12 workaround",
-    "last_at": "2026-08-16T09:00:00Z",
+    "last_at": "2026-08-14T22:05:00Z",
     "message_count": 1,
     "participants": [
       "jordan@example.com",
@@ -36,7 +36,7 @@
     "type": "thread",
     "account_id": "acct:acme",
     "subject": "Re: ACME-12 workaround",
-    "last_at": "2026-08-16T18:00:00Z",
+    "last_at": "2026-08-15T15:11:00Z",
     "message_count": 1,
     "participants": [
       "jordan@example.com",
@@ -52,7 +52,7 @@
     "type": "thread",
     "account_id": "acct:acme",
     "subject": "Re: ACME-12 workaround",
-    "last_at": "2026-08-17T14:22:00Z",
+    "last_at": "2026-08-17T18:47:00Z",
     "message_count": 1,
     "participants": [
       "jordan@example.com",
@@ -68,7 +68,7 @@
     "type": "thread",
     "account_id": "acct:acme",
     "subject": "Re: ACME-12 workaround",
-    "last_at": "2026-08-28T13:10:00Z",
+    "last_at": "2026-08-28T17:28:00Z",
     "message_count": 1,
     "participants": [
       "jordan@example.com",
@@ -84,7 +84,7 @@
     "type": "thread",
     "account_id": "acct:acme",
     "subject": "SSO timeout after 8 hours",
-    "last_at": "2026-08-16T11:30:00Z",
+    "last_at": "2026-08-16T04:12:00Z",
     "message_count": 1,
     "participants": [
       "jordan@example.com",
@@ -100,7 +100,7 @@
     "type": "thread",
     "account_id": "acct:acme",
     "subject": "QBR numbers for Friday",
-    "last_at": "2026-08-28T14:05:00Z",
+    "last_at": "2026-08-28T20:42:00Z",
     "message_count": 1,
     "participants": [
       "jordan@example.com",
@@ -116,7 +116,7 @@
     "type": "thread",
     "account_id": "acct:acme",
     "subject": "Re: DC3 scanner pin for ACME-12",
-    "last_at": "2026-08-17T07:15:00Z",
+    "last_at": "2026-08-17T05:44:00Z",
     "message_count": 2,
     "participants": [
       "bob.hale@acme.com",
@@ -132,7 +132,7 @@
     "type": "thread",
     "account_id": "acct:acme",
     "subject": "One-pager before 3pm",
-    "last_at": "2026-08-28T12:40:00Z",
+    "last_at": "2026-08-28T12:31:00Z",
     "message_count": 1,
     "participants": [
       "dana.cole@acme.com",
@@ -148,7 +148,7 @@
     "type": "thread",
     "account_id": "acct:northwind",
     "subject": "Re: Friday auth outage",
-    "last_at": "2026-08-16T08:00:00Z",
+    "last_at": "2026-08-15T12:07:00Z",
     "message_count": 2,
     "participants": [
       "jordan@example.com",
@@ -164,7 +164,7 @@
     "type": "thread",
     "account_id": "acct:northwind",
     "subject": "Re: Friday auth outage",
-    "last_at": "2026-08-16T20:00:00Z",
+    "last_at": "2026-08-15T19:33:00Z",
     "message_count": 1,
     "participants": [
       "jordan@example.com",
@@ -180,7 +180,7 @@
     "type": "thread",
     "account_id": "acct:northwind",
     "subject": "Re: Friday auth outage",
-    "last_at": "2026-08-17T10:00:00Z",
+    "last_at": "2026-08-17T16:22:00Z",
     "message_count": 1,
     "participants": [
       "jordan@example.com",
@@ -196,7 +196,7 @@
     "type": "thread",
     "account_id": "acct:northwind",
     "subject": "Re: Friday auth outage",
-    "last_at": "2026-08-28T15:20:00Z",
+    "last_at": "2026-08-28T14:05:00Z",
     "message_count": 1,
     "participants": [
       "jordan@example.com",
@@ -212,7 +212,7 @@
     "type": "thread",
     "account_id": "acct:northwind",
     "subject": "Exec brief agenda",
-    "last_at": "2026-08-28T16:05:00Z",
+    "last_at": "2026-08-28T15:48:00Z",
     "message_count": 1,
     "participants": [
       "helen.cho@northwind.example",
@@ -228,7 +228,7 @@
     "type": "thread",
     "account_id": "acct:globex",
     "subject": "Re: Kickoff recap",
-    "last_at": "2026-08-12T09:00:00Z",
+    "last_at": "2026-08-12T13:04:00Z",
     "message_count": 2,
     "participants": [
       "ava.chen@globex.example",
@@ -244,7 +244,7 @@
     "type": "thread",
     "account_id": "acct:globex",
     "subject": "Re: Kickoff recap",
-    "last_at": "2026-08-13T15:00:00Z",
+    "last_at": "2026-08-13T18:51:00Z",
     "message_count": 1,
     "participants": [
       "ava.chen@globex.example",
@@ -260,7 +260,7 @@
     "type": "thread",
     "account_id": "acct:globex",
     "subject": "Re: Kickoff recap",
-    "last_at": "2026-08-14T11:00:00Z",
+    "last_at": "2026-08-14T14:16:00Z",
     "message_count": 1,
     "participants": [
       "ava.chen@globex.example",
@@ -276,7 +276,7 @@
     "type": "thread",
     "account_id": "acct:globex",
     "subject": "Re: Kickoff recap",
-    "last_at": "2026-08-28T16:40:00Z",
+    "last_at": "2026-08-28T18:48:00Z",
     "message_count": 1,
     "participants": [
       "jordan@example.com",
@@ -292,10 +292,250 @@
     "type": "thread",
     "account_id": "acct:globex",
     "subject": "Onboarding review",
-    "last_at": "2026-08-28T17:10:00Z",
+    "last_at": "2026-08-28T19:36:00Z",
     "message_count": 1,
     "participants": [
       "eleanor.voss@globex.example",
+      "jordan@example.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:7be1d1834e156bc8",
+    "type": "thread",
+    "account_id": "acct:acme",
+    "subject": "Tasks: Acme Corporation : Send Dana the one-pager {Follow up(s)}",
+    "last_at": "2026-08-28T21:00:00Z",
+    "message_count": 1,
+    "participants": [
+      "jordan@example.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:f64989ad781bde92",
+    "type": "thread",
+    "account_id": "acct:acme",
+    "subject": "Tasks: Acme Corporation : Lock QBR numbers with Grace {Review(s)}",
+    "last_at": "2026-08-26T14:03:00Z",
+    "message_count": 1,
+    "participants": [
+      "jordan@example.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:8879a77ed0f7d52e",
+    "type": "thread",
+    "account_id": "acct:acme",
+    "subject": "Tasks: Acme Corporation : Send firmware pin to DC3 {Action item(s)}",
+    "last_at": "2026-08-16T21:20:00Z",
+    "message_count": 1,
+    "participants": [
+      "jordan@example.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:0485bd9e4517fd09",
+    "type": "thread",
+    "account_id": "acct:acme",
+    "subject": "Tasks: Acme Corporation : Confirm DC1 vs DC3 hold {Follow up(s)}",
+    "last_at": "2026-08-17T18:41:00Z",
+    "message_count": 1,
+    "participants": [
+      "jordan@example.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:93abb63b434cf11a",
+    "type": "thread",
+    "account_id": "acct:acme",
+    "subject": "Tasks: Acme Corporation : Book TAM war room {Action item(s)}",
+    "last_at": "2026-08-18T12:09:00Z",
+    "message_count": 1,
+    "participants": [
+      "jordan@example.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:14a503a298219432",
+    "type": "thread",
+    "account_id": "acct:acme",
+    "subject": "Tasks: Acme Corporation : Contractor SSO mapping date {Follow up(s)}",
+    "last_at": "2026-08-27T16:22:00Z",
+    "message_count": 1,
+    "participants": [
+      "jordan@example.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:88f35b57cb0e6d8f",
+    "type": "thread",
+    "account_id": "acct:acme",
+    "subject": "Tasks: Acme Corporation : Night-shift timeout notes {Review(s)}",
+    "last_at": "2026-08-16T04:40:00Z",
+    "message_count": 1,
+    "participants": [
+      "jordan@example.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:5851908eeb6b790c",
+    "type": "thread",
+    "account_id": "acct:northwind",
+    "subject": "Tasks: Northwind Traders : Brief Helen in ten minutes {Action item(s)}",
+    "last_at": "2026-08-27T11:18:00Z",
+    "message_count": 1,
+    "participants": [
+      "jordan@example.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:d8a6eaf061ad4e1c",
+    "type": "thread",
+    "account_id": "acct:northwind",
+    "subject": "Tasks: Northwind Traders : Close Friday auth P1 {Action item(s)}",
+    "last_at": "2026-08-15T23:55:00Z",
+    "message_count": 1,
+    "participants": [
+      "jordan@example.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:dcc929b56f459c1d",
+    "type": "thread",
+    "account_id": "acct:northwind",
+    "subject": "Tasks: Northwind Traders : Commercial option for Rob {Follow up(s)}",
+    "last_at": "2026-08-17T16:40:00Z",
+    "message_count": 1,
+    "participants": [
+      "jordan@example.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:0deaac55ec5d0a37",
+    "type": "thread",
+    "account_id": "acct:northwind",
+    "subject": "Tasks: Northwind Traders : Review contractor SSO patch {Review(s)}",
+    "last_at": "2026-08-27T14:08:00Z",
+    "message_count": 1,
+    "participants": [
+      "jordan@example.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:af7f4d1934574107",
+    "type": "thread",
+    "account_id": "acct:globex",
+    "subject": "Tasks: Globex Industrial : Send kickoff recap {Follow up(s)}",
+    "last_at": "2026-08-12T09:22:00Z",
+    "message_count": 1,
+    "participants": [
+      "jordan@example.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:30c01156a6e35117",
+    "type": "thread",
+    "account_id": "acct:globex",
+    "subject": "Tasks: Globex Industrial : Spare badge printer Plant 2 {Action item(s)}",
+    "last_at": "2026-08-28T20:20:00Z",
+    "message_count": 1,
+    "participants": [
+      "jordan@example.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:b4b204ff965c272d",
+    "type": "thread",
+    "account_id": "acct:globex",
+    "subject": "Tasks: Globex Industrial : Confirm VPN allowlist {Follow up(s)}",
+    "last_at": "2026-08-17T13:50:00Z",
+    "message_count": 1,
+    "participants": [
+      "jordan@example.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:c75ad6e86c2d9c62",
+    "type": "thread",
+    "account_id": "acct:globex",
+    "subject": "Tasks: Globex Industrial : Plant 2 walkthrough notes {Review(s)}",
+    "last_at": "2026-08-14T16:11:00Z",
+    "message_count": 1,
+    "participants": [
+      "jordan@example.com"
+    ],
+    "operator": {
+      "unread": true,
+      "pinned": false
+    }
+  },
+  {
+    "_id": "thr:7872c7460801d3af",
+    "type": "thread",
+    "account_id": "acct:globex",
+    "subject": "Tasks: Globex Industrial : Onboarding cost for Ivy {More Detail(s)}",
+    "last_at": "2026-08-21T15:07:00Z",
+    "message_count": 1,
+    "participants": [
       "jordan@example.com"
     ],
     "operator": {

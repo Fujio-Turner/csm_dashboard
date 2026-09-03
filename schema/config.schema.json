@@ -16,6 +16,10 @@
         },
         "port": {
           "type": "integer"
+        },
+        "public_port": {
+          "type": "integer",
+          "description": "Browser / OAuth callback port when it differs from the listen port (Docker host map)."
         }
       }
     },
